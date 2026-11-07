@@ -5,18 +5,17 @@ Logs every interaction to /var/log/plc/decoy-plc.jsonl.
 """
 
 import asyncio
-from datetime import datetime, timezone
 import json
 import logging
-import os
+from datetime import UTC, datetime
 from pathlib import Path
 
-from pymodbus.device import ModbusDeviceIdentification
 from pymodbus.datastore import (
     ModbusSequentialDataBlock,
     ModbusServerContext,
     ModbusSlaveContext,
 )
+from pymodbus.device import ModbusDeviceIdentification
 from pymodbus.server import StartAsyncTcpServer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -24,6 +23,7 @@ logger = logging.getLogger("decoy-plc")
 
 LOG_FILE = Path("/var/log/plc/decoy-plc.jsonl")
 LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+LOG_FILE.touch(exist_ok=True)
 
 
 class CustomDataBlock(ModbusSequentialDataBlock):
@@ -36,7 +36,7 @@ class CustomDataBlock(ModbusSequentialDataBlock):
     def getValues(self, address, count=1):
         values = super().getValues(address, count)
         log_entry = {
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": datetime.now(UTC).isoformat(),
             "station": "decoy-plc-station-02",
             "action": "read",
             "block_type": self.block_type,
@@ -52,7 +52,7 @@ class CustomDataBlock(ModbusSequentialDataBlock):
     def setValues(self, address, values):
         super().setValues(address, values)
         log_entry = {
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": datetime.now(UTC).isoformat(),
             "station": "decoy-plc-station-02",
             "action": "write",
             "block_type": self.block_type,

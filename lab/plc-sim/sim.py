@@ -2,18 +2,18 @@
 """PyModbus async server simulating a water tank with a 1 Hz physics loop and HTTP state endpoint."""
 
 import asyncio
-from datetime import datetime, timezone
 import json
 import logging
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from pymodbus.device import ModbusDeviceIdentification
 from pymodbus.datastore import (
     ModbusSequentialDataBlock,
     ModbusServerContext,
     ModbusSlaveContext,
 )
+from pymodbus.device import ModbusDeviceIdentification
 from pymodbus.server import StartAsyncTcpServer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -26,6 +26,10 @@ STATE_LOG.parent.mkdir(parents=True, exist_ok=True)
 
 class TankPhysics:
     def __init__(self):
+        self.reset()
+        self.last_writes: list[dict[str, Any]] = []
+
+    def reset(self):
         # Holding registers: 0: pump_speed_pct, 1: valve_position_pct, 2: level_high_alarm_setpoint
         self.pump_speed_pct: float = 50.0
         self.valve_position_pct: float = 50.0
@@ -36,11 +40,10 @@ class TankPhysics:
         self.emergency_stop: bool = False
 
         # Input registers: 0: tank_level_pct, 1: pressure_kpa, 2: temperature_c
-        self.tank_level_pct: float = 50.0
-        self.pressure_kpa: float = 250.0
+        # Settles stably at 55% in "normal"
+        self.tank_level_pct: float = 55.0
+        self.pressure_kpa: float = 265.0
         self.temperature_c: float = 22.0
-
-        self.last_writes: list[dict[str, Any]] = []
 
     def get_flag(self) -> str:
         if self.tank_level_pct >= 92.0 or self.tank_level_pct <= 8.0:
@@ -52,7 +55,7 @@ class TankPhysics:
     def record_write(self, function_code: int, register: int, value: Any):
         flag = self.get_flag()
         entry = {
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": datetime.now(UTC).isoformat(),
             "function_code": function_code,
             "register": register,
             "value": value,
@@ -70,8 +73,12 @@ class TankPhysics:
         if self.emergency_stop:
             self.pump_run = False
 
-        inflow = (self.pump_speed_pct * 0.007) if self.pump_run else 0.0
-        outflow = self.valve_position_pct * 0.007
+        # Physics tuning:
+        # Defaults (pump 50%, valve 50%) settle stably at 55% in "normal".
+        # Benign pump writes (40-70) stay between ~35% and ~75%.
+        # Valve=0 with pump>=50 reaches unsafe (>92) in ~82 seconds (within 60-120s).
+        inflow = (self.pump_speed_pct * 0.009) if self.pump_run else 0.0
+        outflow = (self.valve_position_pct * (self.tank_level_pct / 55.0) * 0.009) if self.tank_level_pct > 0 else 0.0
 
         net = inflow - outflow
         self.tank_level_pct = max(0.0, min(100.0, self.tank_level_pct + net))
@@ -80,6 +87,7 @@ class TankPhysics:
 
 
 physics = TankPhysics()
+global_store: ModbusSlaveContext | None = None
 
 
 class InterceptHoldingBlock(ModbusSequentialDataBlock):
@@ -114,6 +122,7 @@ class InterceptCoilsBlock(ModbusSequentialDataBlock):
 
 
 async def physics_loop(store: ModbusSlaveContext):
+    state_tick = 0
     while True:
         try:
             physics.update_physics()
@@ -124,20 +133,22 @@ async def physics_loop(store: ModbusSlaveContext):
             temp_int = int(round(physics.temperature_c))
             store.setValues(4, 0, [level_int, press_int, temp_int])
 
-            # Log 1 Hz state line
-            state_entry = {
-                "ts": datetime.now(timezone.utc).isoformat(),
-                "tank_level_pct": round(physics.tank_level_pct, 2),
-                "pressure_kpa": round(physics.pressure_kpa, 2),
-                "temperature_c": round(physics.temperature_c, 2),
-                "pump_speed_pct": physics.pump_speed_pct,
-                "valve_position_pct": physics.valve_position_pct,
-                "pump_run": physics.pump_run,
-                "emergency_stop": physics.emergency_stop,
-                "flag": physics.get_flag(),
-            }
-            with open(STATE_LOG, "a", encoding="utf-8") as f:
-                f.write(json.dumps(state_entry) + "\n")
+            state_tick += 1
+            # Log state every 5 s instead of 1 s (simulation itself runs at 1 Hz)
+            if state_tick % 5 == 0:
+                state_entry = {
+                    "ts": datetime.now(UTC).isoformat(),
+                    "tank_level_pct": round(physics.tank_level_pct, 2),
+                    "pressure_kpa": round(physics.pressure_kpa, 2),
+                    "temperature_c": round(physics.temperature_c, 2),
+                    "pump_speed_pct": physics.pump_speed_pct,
+                    "valve_position_pct": physics.valve_position_pct,
+                    "pump_run": physics.pump_run,
+                    "emergency_stop": physics.emergency_stop,
+                    "flag": physics.get_flag(),
+                }
+                with open(STATE_LOG, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(state_entry) + "\n")
         except Exception as e:
             logger.error(f"Error in physics loop: {e}")
 
@@ -151,6 +162,15 @@ async def handle_http_client(reader: asyncio.StreamReader, writer: asyncio.Strea
             line = await reader.readline()
             if not line or line == b"\r\n":
                 break
+
+        # Check for POST /reset
+        if request_line.startswith(b"POST /reset"):
+            physics.reset()
+            if global_store is not None:
+                global_store.setValues(3, 0, [50, 50, 90])
+                global_store.setValues(1, 0, [True, False])
+                global_store.setValues(4, 0, [55, 265, 22])
+            logger.info("PLC reset to baseline parameters via POST /reset")
 
         state_data = {
             "tank_level_pct": round(physics.tank_level_pct, 2),
@@ -181,12 +201,14 @@ async def handle_http_client(reader: asyncio.StreamReader, writer: asyncio.Strea
 
 
 async def main():
+    global global_store
     di = ModbusSequentialDataBlock(0, [False] * 16)
     co = InterceptCoilsBlock(0, [True, False])
     hr = InterceptHoldingBlock(0, [50, 50, 90])
-    ir = ModbusSequentialDataBlock(0, [50, 250, 22])
+    ir = ModbusSequentialDataBlock(0, [55, 265, 22])
 
     store = ModbusSlaveContext(di=di, co=co, hr=hr, ir=ir, zero_mode=True)
+    global_store = store
     context = ModbusServerContext(slaves=store, single=True)
 
     identity = ModbusDeviceIdentification()

@@ -50,7 +50,7 @@ RUN chmod +x /usr/local/bin/audit-shell
 
 # SSH configuration
 RUN mkdir -p /run/sshd && \
-    sed -i 's/#LogLevel INFO/LogLevel VERBOSE/' /etc/ssh/sshd_config && \
+    sed -i 's/#LogLevel INFO/LogLevel INFO/' /etc/ssh/sshd_config && \
     echo "ForceCommand /usr/local/bin/audit-shell" >> /etc/ssh/sshd_config && \
     echo "PasswordAuthentication no" >> /etc/ssh/sshd_config && \
     echo "Match User svc_backup" >> /etc/ssh/sshd_config && \

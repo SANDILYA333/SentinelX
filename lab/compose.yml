@@ -30,6 +30,12 @@ networks:
     driver_opts:
       com.docker.network.bridge.name: br-sx-mgmt
 
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   # ==========================================
   # Management & Telemetry Core
@@ -39,25 +45,37 @@ services:
     container_name: sentinelx-wazuh-manager
     hostname: wazuh-manager
     mem_limit: 1536m
+    logging: *default-logging
     networks:
       mgmt:
         ipv4_address: 10.10.9.2
     environment:
       - INDEXER_URL=
+      - WAZUH_REGISTRATION_PASSWORD=${WAZUH_REGISTRATION_PASSWORD:-SentinelXRegistrationPass2026!}
+    tmpfs:
+      - /var/ossec/tmp:size=64m
     entrypoint:
       - /bin/bash
       - -c
       - |
+        mkdir -p /var/ossec/logs/archives
+        chown -R wazuh:wazuh /var/ossec/logs/archives
+        chmod 777 /var/ossec/logs/archives
+        if [ -n "$${WAZUH_REGISTRATION_PASSWORD:-}" ]; then
+          printf "%s" "$${WAZUH_REGISTRATION_PASSWORD}" > /var/ossec/etc/authd.pass
+          chmod 0640 /var/ossec/etc/authd.pass
+          chown root:wazuh /var/ossec/etc/authd.pass
+        fi
+        touch /etc/services.d/filebeat/down 2>/dev/null || true
         (
           while true; do
-            chmod -R a+rX /var/ossec/logs/archives 2>/dev/null || true
+            chmod a+r /var/ossec/logs/archives/archives.json 2>/dev/null || true
             sleep 3
           done
         ) &
         exec /init
     volumes:
       - ./wazuh/ossec.conf:/var/ossec/etc/ossec.conf:ro
-      - ./wazuh/authd.pass:/var/ossec/etc/authd.pass:ro
       - ../data/logs/wazuh:/var/ossec/logs/archives
     healthcheck:
       test: ["CMD-SHELL", "/var/ossec/bin/wazuh-control status | grep -q 'is running'"]
@@ -79,11 +97,13 @@ services:
     container_name: sentinelx-attacker
     hostname: attacker
     mem_limit: 256m
+    logging: *default-logging
     networks:
       it:
         ipv4_address: 10.10.1.5
     volumes:
       - ../scripts/lab_smoke.sh:/opt/attack/lab_smoke.sh:ro
+      - ../data/logs:/opt/attack/data/logs:ro
     healthcheck:
       test: ["CMD-SHELL", "test -f /opt/attack/ALLOWED_TARGETS"]
       interval: 5s
@@ -100,6 +120,7 @@ services:
     container_name: sentinelx-jump-host
     hostname: jump-host
     mem_limit: 256m
+    logging: *default-logging
     networks:
       it:
         ipv4_address: 10.10.1.10
@@ -107,6 +128,8 @@ services:
         ipv4_address: 10.10.2.10
       mgmt:
         ipv4_address: 10.10.9.10
+    environment:
+      - WAZUH_REGISTRATION_PASSWORD=${WAZUH_REGISTRATION_PASSWORD:-SentinelXRegistrationPass2026!}
     depends_on:
       wazuh-manager:
         condition: service_started
@@ -127,11 +150,14 @@ services:
     container_name: sentinelx-file-srv
     hostname: file-srv
     mem_limit: 256m
+    logging: *default-logging
     networks:
       it:
         ipv4_address: 10.10.1.20
       mgmt:
         ipv4_address: 10.10.9.20
+    environment:
+      - WAZUH_REGISTRATION_PASSWORD=${WAZUH_REGISTRATION_PASSWORD:-SentinelXRegistrationPass2026!}
     volumes:
       - ./hosts/dns_responder.py:/usr/local/bin/dns_responder.py:ro
     depends_on:
@@ -154,11 +180,14 @@ services:
     container_name: sentinelx-db-srv
     hostname: db-srv
     mem_limit: 512m
+    logging: *default-logging
     networks:
       it:
         ipv4_address: 10.10.1.30
       mgmt:
         ipv4_address: 10.10.9.30
+    environment:
+      - WAZUH_REGISTRATION_PASSWORD=${WAZUH_REGISTRATION_PASSWORD:-SentinelXRegistrationPass2026!}
     depends_on:
       wazuh-manager:
         condition: service_started
@@ -180,6 +209,7 @@ services:
     container_name: sentinelx-eng-ws
     hostname: eng-ws
     mem_limit: 256m
+    logging: *default-logging
     networks:
       it:
         ipv4_address: 10.10.1.40
@@ -187,6 +217,8 @@ services:
         ipv4_address: 10.10.3.40
       mgmt:
         ipv4_address: 10.10.9.40
+    environment:
+      - WAZUH_REGISTRATION_PASSWORD=${WAZUH_REGISTRATION_PASSWORD:-SentinelXRegistrationPass2026!}
     depends_on:
       wazuh-manager:
         condition: service_started
@@ -208,11 +240,14 @@ services:
     container_name: sentinelx-benign
     hostname: benign
     mem_limit: 256m
+    logging: *default-logging
     networks:
       it:
         ipv4_address: 10.10.1.50
       mgmt:
         ipv4_address: 10.10.9.50
+    environment:
+      - WAZUH_REGISTRATION_PASSWORD=${WAZUH_REGISTRATION_PASSWORD:-SentinelXRegistrationPass2026!}
     volumes:
       - ./hosts/benign_loop.py:/usr/local/bin/benign_loop.py:ro
     depends_on:
@@ -240,6 +275,7 @@ services:
     container_name: sentinelx-plc-sim
     hostname: plc-sim
     mem_limit: 128m
+    logging: *default-logging
     networks:
       ot:
         ipv4_address: 10.10.3.20
@@ -258,6 +294,7 @@ services:
     container_name: sentinelx-decoy-plc
     hostname: decoy-plc
     mem_limit: 128m
+    logging: *default-logging
     networks:
       ot:
         ipv4_address: 10.10.3.60
@@ -275,6 +312,7 @@ services:
     container_name: sentinelx-cowrie
     hostname: backup-srv-02
     mem_limit: 256m
+    logging: *default-logging
     cap_add:
       - NET_BIND_SERVICE
     networks:
@@ -299,6 +337,7 @@ services:
     container_name: sentinelx-opencanary
     hostname: db-prod-02
     mem_limit: 128m
+    logging: *default-logging
     networks:
       dmz:
         ipv4_address: 10.10.2.30
@@ -319,6 +358,7 @@ services:
     container_name: sentinelx-zeek-it
     network_mode: host
     mem_limit: 512m
+    logging: *default-logging
     cap_add:
       - NET_ADMIN
       - NET_RAW
@@ -331,6 +371,12 @@ services:
         echo "Waiting for network bridge br-sx-it...";
         sleep 1;
       done;
+      (
+        while true; do
+          sleep 300
+          ls -t /var/log/zeek/*.log.* 2>/dev/null | tail -n +4 | xargs -r rm -f
+        done
+      ) &
       cd /var/log/zeek && exec zeek -C -i br-sx-it /etc/zeek/local.zeek
       '
     depends_on:
@@ -342,6 +388,7 @@ services:
     container_name: sentinelx-zeek-dmz
     network_mode: host
     mem_limit: 512m
+    logging: *default-logging
     cap_add:
       - NET_ADMIN
       - NET_RAW
@@ -354,6 +401,12 @@ services:
         echo "Waiting for network bridge br-sx-dmz...";
         sleep 1;
       done;
+      (
+        while true; do
+          sleep 300
+          ls -t /var/log/zeek/*.log.* 2>/dev/null | tail -n +4 | xargs -r rm -f
+        done
+      ) &
       cd /var/log/zeek && exec zeek -C -i br-sx-dmz /etc/zeek/local.zeek
       '
     depends_on:
@@ -365,6 +418,7 @@ services:
     container_name: sentinelx-zeek-ot
     network_mode: host
     mem_limit: 512m
+    logging: *default-logging
     cap_add:
       - NET_ADMIN
       - NET_RAW
@@ -377,9 +431,14 @@ services:
         echo "Waiting for network bridge br-sx-ot...";
         sleep 1;
       done;
+      (
+        while true; do
+          sleep 300
+          ls -t /var/log/zeek/*.log.* 2>/dev/null | tail -n +4 | xargs -r rm -f
+        done
+      ) &
       cd /var/log/zeek && exec zeek -C -i br-sx-ot /etc/zeek/local.zeek
       '
     depends_on:
       plc-sim:
         condition: service_started
-

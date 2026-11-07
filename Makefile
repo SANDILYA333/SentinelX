@@ -1,7 +1,8 @@
 SHELL := /bin/bash
 
 .PHONY: help setup api web dev test lint fmt contracts clean \
-        lab-build lab-up lab-down lab-reset lab-logs lab-check lab-smoke lab-samples
+        lab-build lab-up lab-down lab-reset lab-logs lab-check lab-probe \
+        lab-smoke lab-samples plc-reset lab-disk lab-prune
 
 help: ## Show available Makefile commands
 	@echo "Available commands:"
@@ -48,14 +49,36 @@ clean: ## Clean up build artifacts, cache directories, and test databases
 	rm -rf data/*.db data/*.db-wal data/*.db-shm
 
 # ==============================================================================
-# Docker Lab Targets (Phase 1)
+# Docker Lab Targets (Phase 1 & Phase 1.1)
 # ==============================================================================
 lab-build: ## Build all Docker lab images (hosts, decoys, plc-sim)
+	@if [ ! -f lab/.env.local ]; then \
+	  echo "Generating untracked lab/.env.local from lab/.env.example..."; \
+	  cp lab/.env.example lab/.env.local; \
+	  chmod 0600 lab/.env.local; \
+	fi
 	docker compose -f lab/compose.yml build
 
 lab-up: ## Start all lab services in background and wait for health
+	@avail_gb=$$(df -BG / | awk 'NR==2 {gsub("G",""); print $$4}'); \
+	if [ "$$avail_gb" -lt 15 ]; then \
+	  echo "ERROR: Free disk space ($${avail_gb}GB) is under 15 GB! Refusing to start lab."; \
+	  df -h /; \
+	  exit 1; \
+	fi; \
+	echo "Disk space pre-flight check passed:"; \
+	df -h / | head -n 2
+	@if [ ! -f lab/.env.local ]; then \
+	  echo "Generating untracked lab/.env.local from lab/.env.example..."; \
+	  cp lab/.env.example lab/.env.local; \
+	  chmod 0600 lab/.env.local; \
+	fi
 	mkdir -p data/logs/wazuh data/logs/plc data/logs/cowrie data/logs/opencanary data/logs/zeek-it data/logs/zeek-dmz data/logs/zeek-ot
-	chmod -R 777 data/logs
+	touch data/logs/plc/decoy-plc.jsonl data/logs/cowrie/cowrie.json
+	chmod 755 data/logs data/logs/plc data/logs/opencanary data/logs/zeek-it data/logs/zeek-dmz data/logs/zeek-ot
+	# Wazuh manager and Cowrie run as non-root UID 999; allow daemon write access without host UID remapping
+	chmod 777 data/logs/wazuh data/logs/cowrie
+	chmod 666 data/logs/plc/decoy-plc.jsonl data/logs/cowrie/cowrie.json 2>/dev/null || true
 	docker compose -f lab/compose.yml up -d
 	@echo "Waiting for services to become healthy..."
 	@for i in $$(seq 1 60); do \
@@ -74,17 +97,32 @@ lab-down: ## Stop all lab services and networks
 lab-reset: ## Tear down lab volumes, wipe data logs, and start fresh
 	docker compose -f lab/compose.yml down -v
 	docker run --rm -v $$(pwd)/data:/data debian:bookworm-slim rm -rf /data/logs 2>/dev/null || rm -rf data/logs 2>/dev/null || true
-	mkdir -p data/logs/wazuh data/logs/plc data/logs/cowrie data/logs/opencanary data/logs/zeek-it data/logs/zeek-dmz data/logs/zeek-ot
 	$(MAKE) lab-up
 
 lab-logs: ## Tail logs for a specific service (e.g., make lab-logs SERVICE=wazuh-manager)
 	docker compose -f lab/compose.yml logs -f $(SERVICE)
 
-lab-check: ## Verify telemetry freshness across all 8 sources (<= 60s threshold)
+lab-check: ## Verify telemetry freshness passively (no stimulus, threshold <= 60s)
 	python3 scripts/lab_check.py
+
+lab-probe: ## Generate explicit attack-like stimulus (DO NOT RUN DURING BENIGN CAPTURE)
+	@echo "================================================================================"
+	@echo " [ATTACK-LIKE TRAFFIC] Generating lab probe stimulus (DO NOT RUN DURING BENIGN)"
+	@echo "================================================================================"
+	@bash scripts/lab_probe.sh
 
 lab-smoke: ## Run attack and pivot smoke tests from attacker container
 	bash scripts/lab_smoke.sh
 
 lab-samples: ## Export real telemetry samples into eval/captures/samples/
 	python3 scripts/export_samples.py
+
+plc-reset: ## Reset PLC simulator registers and physics to baseline (55% normal)
+	docker exec sentinelx-eng-ws curl -s -X POST http://10.10.3.20:8080/reset
+
+lab-disk: ## Report disk usage, container writable layers, and enforce 500 MB limit
+	python3 scripts/lab_disk.py
+
+lab-prune: ## Remove stopped containers and dangling images for this project
+	docker compose -f lab/compose.yml rm -f
+	docker image prune -f

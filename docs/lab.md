@@ -180,3 +180,78 @@ Total measured footprint: ~1.05 GB (well under the 7.0 GB limit).
 | **OT Controller / PLC** | PyModbus async water tank simulation with 1 Hz physics loop | Real PLCs (Rockwell Allen-Bradley, Siemens S7, Schneider Electric Modicon) communicating over industrial fieldbuses and Ethernet/IP, with hardware watchdog modules. |
 | **Benign Activity** | Python loop generating synthetic heartbeats across hosts | Real enterprise user traffic, scheduled backup agents, IT automated management (Ansible, SCCM), and standard SCADA HMI polling loops. |
 
+---
+
+## 7. Log Format Notes for Adapters (Phase 2 Reference)
+
+This section provides critical parsing and schema mapping facts for downstream telemetry adapters:
+
+### 7.1 Wazuh Syslog (`/var/log/auth.log`)
+- In `archives.json`, SSH authentication lines forwarded from `/var/log/auth.log` have **no syslog timestamp or hostname prefix** in `full_log`. The agent strips them before encapsulation.
+- The `decoder` field is an empty dictionary (`{}`).
+- Authentication outcomes must be parsed directly from `full_log` text (e.g., regex `Accepted (publickey|key)` vs `Failed password`).
+
+*Real Sample Line (Accepted)*:
+```json
+{"timestamp":"2026-11-07T16:34:14.492+0000","agent":{"id":"003","name":"jump-host","ip":"10.10.9.10"},"manager":{"name":"wazuh-manager"},"id":"1794069254.428064","full_log":"Accepted publickey for alice from 10.10.1.50 port 37162 ssh2: ED25519 SHA256:2Os6CkDbnC0t3xO94DDLgYyc6TxuZUvg0SiziZS2c6A\r","decoder":{},"location":"/var/log/auth.log"}
+```
+
+*Real Sample Line (Failed)*:
+```json
+{"timestamp":"2026-11-07T16:33:36.472+0000","rule":{"level":2,"description":"Unknown problem somewhere in the system.","id":"1002"},"agent":{"id":"003","name":"jump-host","ip":"10.10.9.10"},"manager":{"name":"wazuh-manager"},"id":"1794069216.428064","full_log":"Failed password for svc_backup from 10.10.1.5 port 35968 ssh2\r","decoder":{},"location":"/var/log/auth.log"}
+```
+
+### 7.2 Wazuh Command Auditing (`cmd.jsonl`)
+- Raw commands written to `/var/log/sentinelx/cmd.jsonl` are decoded with `"decoder": {"name": "json"}`.
+- Field renaming: The original `user` key in `cmd.jsonl` is mapped to `data.dstuser` in `archives.json`.
+- Boolean conversion: Booleans (such as `"tty": false`) are cast to strings (`"tty": "false"`).
+
+*Real Sample Line*:
+```json
+{"timestamp":"2026-11-07T14:55:50.236+0000","agent":{"id":"001","name":"eng-ws"},"manager":{"name":"wazuh-manager"},"id":"1794063350.660280","full_log":"{\"ts\":\"2026-11-07T14:55:48Z\",\"host\":\"eng-ws\",\"user\":\"eng1\",\"src_ip\":\"10.10.1.50\",\"session\":\"140\",\"tty\":false,\"cwd\":\"/home/eng1\",\"cmd\":\"/usr/local/bin/read_plc.py 10.10.3.20 502\",\"mode\":\"exec\"}","decoder":{"name":"json"},"data":{"dstuser":"eng1","ts":"2026-11-07T14:55:48Z","host":"eng-ws","src_ip":"10.10.1.50","session":"140","tty":"false","cwd":"/home/eng1","cmd":"/usr/local/bin/read_plc.py 10.10.3.20 502","mode":"exec"},"location":"/var/log/sentinelx/cmd.jsonl"}
+```
+
+### 7.3 Wazuh Syscheck (FIM)
+- Syscheck realtime file integrity events **do NOT contain a `full_log` field**.
+- File metadata is structured under the `syscheck` JSON object: `path`, `mode`, `size_after`, `perm_before`, `perm_after`, `md5_after`, `sha256_after`, `changed_attributes`, `event`.
+
+*Real Sample Line*:
+```json
+{"timestamp":"2026-11-07T14:58:27.855+0000","rule":{"level":7,"description":"Integrity checksum changed.","id":"550"},"agent":{"id":"002","name":"file-srv","ip":"10.10.9.20"},"location":"syscheck","syscheck":{"path":"/srv/share/backup/.db_creds","mode":"realtime","size_after":"50","perm_before":"rw-r--r--","perm_after":"rwxrwxrwx","md5_after":"b3bfed64bbc2070646fb013012643755","sha256_after":"419d725758b19f70095a99b04808edf5463258924817601d7183519f299f7228","event":"modified"},"decoder":{"name":"syscheck_integrity_changed"}}
+```
+
+### 7.4 Zeek JSON Log Fields
+- `conn.log`: `ts`, `uid`, `id.orig_h`, `id.orig_p`, `id.resp_h`, `id.resp_p`, `proto`, `service`, `duration`, `orig_bytes`, `resp_bytes`, `conn_state`, `history`, `orig_pkts`, `resp_pkts`
+- `modbus.log`: `ts`, `uid`, `id.orig_h`, `id.orig_p`, `id.resp_h`, `id.resp_p`, `func`, `pdu_type`, `unit`
+- `dns.log`: `ts`, `uid`, `id.orig_h`, `id.orig_p`, `id.resp_h`, `id.resp_p`, `proto`, `trans_id`, `query`, `qclass_name`, `qtype_name`, `answers`
+
+### 7.5 Cowrie SSH Decoy
+- `eventid` types observed in `data/logs/cowrie/cowrie.json`:
+  - `cowrie.session.connect`: incoming connection established
+  - `cowrie.login.success`: authentication succeeded (honey user `svc_dbadmin` / `Winter2026!`)
+  - `cowrie.login.failed`: authentication rejected
+  - `cowrie.command.input`: command typed into honeypot shell
+  - `cowrie.session.closed`: connection terminated
+
+### 7.6 OpenCanary Multi-Service Decoy
+- `logtype` integer codes observed in `data/logs/opencanary/opencanary.log`:
+  - `3001`: HTTP request (method, URI, headers)
+  - `5001`: FTP connection attempt
+  - `8001`: MySQL login probe (`logdata.USERNAME`, `logdata.PASSWORD` hash)
+
+---
+
+## 8. Secrets & Permissions Architecture
+
+1. **Untracked Secrets**: The Wazuh enrollment password is stored in untracked `lab/.env.local` (mode `0600`), dynamically generated from `lab/.env.example` by `make lab-build` if absent. No passwords or private tokens are tracked in git.
+2. **Minimal Log Directory Permissions**:
+   - `data/logs`: `0755`
+   - `data/logs/wazuh` & `data/logs/cowrie`: `0777` (Wazuh manager and Cowrie run as non-root UID `999`. Because the host workspace is owned by UID `1000`, setting targeted `0777` on these two log mounts is the minimum required to allow container daemons to append logs without running container processes as root or requiring host-level UID remapping).
+   - `data/logs/opencanary`, `plc`, `zeek-*`: `0755` (daemons run as root / UID `0`).
+   - Blanket `chmod -R 777` across repository files is strictly eliminated.
+3. **Storage Quotas & Leak Prevention**:
+   - Every service enforces `json-file` log rotation with `max-size: 10m` and `max-file: 3`.
+   - `wazuh-manager` disables `<vulnerability-detection>` and `<indexer>` (preventing 10+ GB tar decompression loops and indexer buffering), uses a `64M` tmpfs on `/var/ossec/tmp`, and disables unused Filebeat.
+   - `make lab-disk` enforces a strict 500 MB per-container writable layer limit and fails if violated.
+
+

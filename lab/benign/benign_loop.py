@@ -32,21 +32,24 @@ def main():
             plc_read_counter += 1
             run_cmd("eng1", "ssh -o StrictHostKeyChecking=no eng1@10.10.1.40 '/usr/local/bin/read_plc.py 10.10.3.20 502'")
 
-            # Occasionally write pump speed within safe operational range (40 - 70)
+            # Occasionally write pump speed within safe bounded operational range (48 - 62)
+            # This ensures tank level stays comfortably within normal (between 50% and 70%)
             if plc_read_counter % 3 == 0:
-                speed = random.randint(45, 65)
+                speed = random.randint(48, 62)
                 run_cmd("eng1", f"ssh -o StrictHostKeyChecking=no eng1@10.10.1.40 '/usr/local/bin/write_plc.py 10.10.3.20 0 {speed}'")
 
             # 2. General IT action every 20-40s
-            action = random.choice(["alice_share", "bob_db", "alice_jumphost", "alice_dns"])
+            action = random.choice(["alice_share", "bob_db", "alice_dns"])
             if action == "alice_share":
                 run_cmd("alice", "ssh -o StrictHostKeyChecking=no alice@10.10.1.20 'ls -la /srv/share'")
             elif action == "bob_db":
                 run_cmd("bob", "PGPASSWORD=BobDatabasePass2026! psql -h 10.10.1.30 -U bob -d postgres -c 'SELECT count(*) FROM customers;'")
-            elif action == "alice_jumphost":
-                run_cmd("alice", "ssh -o StrictHostKeyChecking=no alice@10.10.1.10 'uptime'")
             elif action == "alice_dns":
                 run_cmd("alice", "python3 -c 'import socket; s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.sendto(b\"\\x12\\x34\\x01\\x00\\x00\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x08filesrv\\x04corp\\x00\\x00\\x01\\x00\\x01\", (\"10.10.1.20\", 53))'")
+
+            # Jump-host administrative check every ~25-30s to maintain jump-host audit activity
+            if plc_read_counter % 2 == 0:
+                run_cmd("alice", "ssh -o StrictHostKeyChecking=no alice@10.10.1.10 'uptime'")
 
         except Exception as e:
             logger.error(f"Loop iteration error: {e}")

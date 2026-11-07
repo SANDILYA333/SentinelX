@@ -1,17 +1,20 @@
-{"ts":"2026-11-07T14:55:58Z","host":"jump-host","user":"svc_backup","src_ip":"10.10.1.5","session":"176","tty":false,"cwd":"/home/svc_backup","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T14:56:28Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"378","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T14:56:40Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"420","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T14:57:31Z","host":"jump-host","user":"svc_backup","src_ip":"10.10.1.5","session":"519","tty":false,"cwd":"/home/svc_backup","cmd":"echo SMOKE_STEP_1_SUCCESS && whoami","mode":"exec"}
-{"ts":"2026-11-07T14:57:32Z","host":"jump-host","user":"svc_backup","src_ip":"10.10.1.5","session":"538","tty":false,"cwd":"/home/svc_backup","cmd":"\n    echo \"Connecting to Cowrie SSH decoy at 10.10.2.20:22 as svc_dbadmin...\"\n    sshpass -p \"Winter2026!\" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 svc_dbadmin@10.10.2.20 \"whoami\" 2>&1 || true\n    echo \"Connecting to OpenCanary MySQL decoy at 10.10.2.30:3306...\"\n    mariadb -h 10.10.2.30 -u root --connect-timeout=3 -e \"SHOW DATABASES;\" 2>&1 || true\n","mode":"exec"}
-{"ts":"2026-11-07T14:58:14Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"632","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T14:58:43Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"699","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T14:59:52Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"860","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T15:00:03Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"897","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T15:00:59Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"1004","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T15:02:35Z","host":"jump-host","user":"svc_backup","src_ip":"10.10.1.5","session":"1207","tty":false,"cwd":"/home/svc_backup","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T15:05:02Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"1499","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T15:05:30Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"1565","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T15:06:20Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"1676","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T15:06:34Z","host":"jump-host","user":"svc_backup","src_ip":"10.10.1.5","session":"1738","tty":false,"cwd":"/home/svc_backup","cmd":"echo SMOKE_STEP_1_SUCCESS && whoami","mode":"exec"}
-{"ts":"2026-11-07T15:06:34Z","host":"jump-host","user":"svc_backup","src_ip":"10.10.1.5","session":"1757","tty":false,"cwd":"/home/svc_backup","cmd":"\n    echo \"Connecting to Cowrie SSH decoy at 10.10.2.20:22 as svc_dbadmin...\"\n    sshpass -p \"Winter2026!\" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 svc_dbadmin@10.10.2.20 \"whoami\" 2>&1 || true\n    echo \"Connecting to OpenCanary MySQL decoy at 10.10.2.30:3306...\"\n    mariadb -h 10.10.2.30 -u root --connect-timeout=3 -e \"SHOW DATABASES;\" 2>&1 || true\n","mode":"exec"}
-{"ts":"2026-11-07T15:07:34Z","host":"jump-host","user":"svc_backup","src_ip":"10.10.1.5","session":"1881","tty":false,"cwd":"/home/svc_backup","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T16:56:32Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"536","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T16:56:58Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"595","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T16:57:25Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"654","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T16:57:53Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"721","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T16:58:20Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"781","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T16:58:47Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"847","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T16:59:17Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"907","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T16:59:46Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"974","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:00:12Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"1040","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:00:38Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"1099","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:01:01Z","host":"jump-host","user":"svc_backup","src_ip":"10.10.1.5","session":"1151","tty":false,"cwd":"/home/svc_backup","cmd":"echo SMOKE_STEP_1_SUCCESS && whoami","mode":"exec"}
+{"ts":"2026-11-07T17:01:01Z","host":"jump-host","user":"svc_backup","src_ip":"10.10.1.5","session":"1170","tty":false,"cwd":"/home/svc_backup","cmd":"tail -n 1 /var/log/sentinelx/cmd.jsonl","mode":"exec"}
+{"ts":"2026-11-07T17:01:02Z","host":"jump-host","user":"svc_backup","src_ip":"10.10.1.5","session":"1189","tty":false,"cwd":"/home/svc_backup","cmd":"\n    echo \"Connecting to Cowrie SSH decoy at 10.10.2.20:22 as svc_dbadmin / Winter2026!...\"\n    sshpass -p \"Winter2026!\" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 svc_dbadmin@10.10.2.20 \"whoami\" 2>&1 || true\n    echo \"Connecting to OpenCanary MySQL decoy at 10.10.2.30:3306 as svc_dbadmin / Winter2026!...\"\n    mariadb -h 10.10.2.30 -u svc_dbadmin -pWinter2026! --connect-timeout=3 -e \"SHOW DATABASES;\" 2>&1 || true\n","mode":"exec"}
+{"ts":"2026-11-07T17:01:04Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"1218","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:01:30Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"1277","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:01:55Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"1337","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:02:19Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"1395","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:02:47Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"1454","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:03:13Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"1513","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:03:38Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"1578","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}

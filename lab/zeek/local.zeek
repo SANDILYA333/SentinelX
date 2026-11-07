@@ -6,8 +6,8 @@
 @load base/protocols/ssh
 @load base/protocols/modbus
 
-# Keep log filenames stable for live tailing (disable automatic time-rotation file renaming)
-redef Log::default_rotation_interval = 0 hrs;
+# Rotate logs hourly
+redef Log::default_rotation_interval = 1 hr;
 redef LogAscii::use_json = T;
 redef ignore_checksums = T;
 

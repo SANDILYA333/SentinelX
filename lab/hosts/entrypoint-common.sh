@@ -10,8 +10,8 @@ touch /var/log/sentinelx/cmd.jsonl
 chmod 0666 /var/log/sentinelx/cmd.jsonl
 chmod 1777 /var/log/sentinelx
 
-# Start sshd with verbose auth logging
-/usr/sbin/sshd -e -E /var/log/auth.log
+# Start sshd with standard auth logging (INFO)
+/usr/sbin/sshd -e -E /var/log/auth.log -o LogLevel=INFO
 echo "SSHD service started."
 
 # Start DNS responder if on file-srv

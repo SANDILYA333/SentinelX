@@ -47,6 +47,9 @@ data/
 !eval/captures/samples/
 .env
 .env.local
+lab/.env
+lab/.env.local
+lab/wazuh/authd.pass
 .env.development.local
 .env.test.local
 .env.production.local
