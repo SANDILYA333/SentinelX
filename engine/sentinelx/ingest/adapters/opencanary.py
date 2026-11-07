@@ -108,3 +108,4 @@ class OpenCanaryAdapter(BaseAdapter):
                 tags=tags,
             )
         ]
+
