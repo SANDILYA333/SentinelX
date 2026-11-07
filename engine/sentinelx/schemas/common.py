@@ -1,9 +1,9 @@
 """SentinelX common schema definitions, enums, and validators."""
 
-from datetime import datetime, timezone
+import uuid
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal
-import uuid
 
 from pydantic import AfterValidator, BaseModel, ConfigDict
 
@@ -14,7 +14,7 @@ def validate_utc_datetime(v: datetime) -> datetime:
     """Validate that datetime is timezone-aware and normalize to UTC."""
     if v.tzinfo is None or v.utcoffset() is None:
         raise ValueError("Datetime must be timezone-aware UTC; naive datetimes are rejected")
-    return v.astimezone(timezone.utc)
+    return v.astimezone(UTC)
 
 
 UtcDatetime = Annotated[datetime, AfterValidator(validate_utc_datetime)]

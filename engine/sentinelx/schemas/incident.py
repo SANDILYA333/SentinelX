@@ -1,6 +1,7 @@
 """Correlated security incident and graph schema for SentinelX."""
 
 from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from sentinelx.schemas.common import Entity, Severity, Technique, UtcDatetime

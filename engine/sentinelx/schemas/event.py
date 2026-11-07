@@ -1,9 +1,17 @@
 """Normalized telemetry event schema for SentinelX."""
 
+import warnings
 from typing import Any, Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from sentinelx.schemas.common import Domain, Outcome, SourceTool, UtcDatetime
+
+warnings.filterwarnings(
+    "ignore",
+    message='Field name "register" in "OTFields" shadows an attribute in parent "BaseModel"',
+    category=UserWarning,
+)
 
 EventCategory = Literal[
     "authentication",
@@ -22,7 +30,7 @@ EventCategory = Literal[
 class OTFields(BaseModel):
     """Operational Technology (OT/ICS) specific telemetry attributes."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", protected_namespaces=())
 
     unit_id: int | None = None
     device_id: str | None = None

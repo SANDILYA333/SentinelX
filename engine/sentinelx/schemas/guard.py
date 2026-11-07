@@ -1,6 +1,7 @@
 """Response safety and guard decision schema for automated containment."""
 
 from typing import Literal
+
 from pydantic import BaseModel, ConfigDict
 
 from sentinelx.schemas.common import UtcDatetime

@@ -1,0 +1,35 @@
+{
+  "additionalProperties": false,
+  "description": "Typed WebSocket envelope for real-time messaging.",
+  "properties": {
+    "type": {
+      "enum": [
+        "hello",
+        "event",
+        "signal",
+        "incident",
+        "guard",
+        "health"
+      ],
+      "title": "Type",
+      "type": "string"
+    },
+    "ts": {
+      "format": "date-time",
+      "title": "Ts",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": true,
+      "title": "Payload",
+      "type": "object"
+    }
+  },
+  "required": [
+    "type",
+    "ts",
+    "payload"
+  ],
+  "title": "WSMessage",
+  "type": "object"
+}

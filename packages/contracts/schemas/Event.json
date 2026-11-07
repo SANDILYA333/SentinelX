@@ -1,0 +1,332 @@
+{
+  "$defs": {
+    "Domain": {
+      "description": "Network and asset operational domain.",
+      "enum": [
+        "it",
+        "ot",
+        "decoy"
+      ],
+      "title": "Domain",
+      "type": "string"
+    },
+    "OTFields": {
+      "additionalProperties": false,
+      "description": "Operational Technology (OT/ICS) specific telemetry attributes.",
+      "properties": {
+        "unit_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit Id"
+        },
+        "device_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Device Id"
+        },
+        "function_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Function Code"
+        },
+        "register": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Register"
+        },
+        "value": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "is_write": {
+          "title": "Is Write",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "is_write"
+      ],
+      "title": "OTFields",
+      "type": "object"
+    },
+    "Outcome": {
+      "description": "Action execution outcome.",
+      "enum": [
+        "success",
+        "failure",
+        "unknown"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "SourceTool": {
+      "description": "Telemetry collection and deception source tools.",
+      "enum": [
+        "wazuh",
+        "zeek",
+        "cowrie",
+        "opencanary",
+        "modbus",
+        "evtx",
+        "generic"
+      ],
+      "title": "SourceTool",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Normalized security event schema produced by all telemetry adapters.",
+  "properties": {
+    "event_id": {
+      "title": "Event Id",
+      "type": "string"
+    },
+    "ts": {
+      "format": "date-time",
+      "title": "Ts",
+      "type": "string"
+    },
+    "ingested_at": {
+      "format": "date-time",
+      "title": "Ingested At",
+      "type": "string"
+    },
+    "source_tool": {
+      "$ref": "#/$defs/SourceTool"
+    },
+    "domain": {
+      "$ref": "#/$defs/Domain"
+    },
+    "category": {
+      "enum": [
+        "authentication",
+        "process",
+        "network",
+        "file",
+        "dns",
+        "http",
+        "ot_command",
+        "ot_state",
+        "decoy_interaction",
+        "other"
+      ],
+      "title": "Category",
+      "type": "string"
+    },
+    "action": {
+      "title": "Action",
+      "type": "string"
+    },
+    "outcome": {
+      "$ref": "#/$defs/Outcome"
+    },
+    "host": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Host"
+    },
+    "src_ip": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Src Ip"
+    },
+    "dst_ip": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Dst Ip"
+    },
+    "src_port": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Src Port"
+    },
+    "dst_port": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Dst Port"
+    },
+    "protocol": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Protocol"
+    },
+    "user": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "User"
+    },
+    "process": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Process"
+    },
+    "parent_process": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Parent Process"
+    },
+    "cmdline": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cmdline"
+    },
+    "session_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Session Id"
+    },
+    "ot": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/OTFields"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "raw_ref": {
+      "additionalProperties": true,
+      "title": "Raw Ref",
+      "type": "object"
+    },
+    "raw": {
+      "additionalProperties": true,
+      "title": "Raw",
+      "type": "object"
+    },
+    "tags": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Tags",
+      "type": "array"
+    }
+  },
+  "required": [
+    "event_id",
+    "ts",
+    "ingested_at",
+    "source_tool",
+    "domain",
+    "category",
+    "action",
+    "outcome",
+    "raw_ref",
+    "raw"
+  ],
+  "title": "Event",
+  "type": "object"
+}

@@ -1,6 +1,7 @@
 """Detection signal schema emitted by SentinelX detection engines."""
 
 from typing import Any, Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from sentinelx.schemas.common import Entity, Technique, UtcDatetime

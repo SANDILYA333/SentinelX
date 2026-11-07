@@ -1,0 +1,334 @@
+{
+  "$defs": {
+    "Entity": {
+      "additionalProperties": false,
+      "description": "Observable entity instance.",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/EntityType"
+        },
+        "value": {
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ],
+      "title": "Entity",
+      "type": "object"
+    },
+    "EntityType": {
+      "description": "Observable entity types for graph and correlation analysis.",
+      "enum": [
+        "user",
+        "host",
+        "ip",
+        "session",
+        "process",
+        "device"
+      ],
+      "title": "EntityType",
+      "type": "string"
+    },
+    "GraphEdge": {
+      "additionalProperties": false,
+      "description": "Edge connecting nodes in an incident correlation graph.",
+      "properties": {
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "target": {
+          "title": "Target",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "event_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Event Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "source",
+        "target",
+        "label",
+        "ts",
+        "event_ids"
+      ],
+      "title": "GraphEdge",
+      "type": "object"
+    },
+    "GraphNode": {
+      "additionalProperties": false,
+      "description": "Node in an incident correlation graph.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "label"
+      ],
+      "title": "GraphNode",
+      "type": "object"
+    },
+    "IncidentGraph": {
+      "additionalProperties": false,
+      "description": "Correlated entity and attack chain graph representation.",
+      "properties": {
+        "nodes": {
+          "items": {
+            "$ref": "#/$defs/GraphNode"
+          },
+          "title": "Nodes",
+          "type": "array"
+        },
+        "edges": {
+          "items": {
+            "$ref": "#/$defs/GraphEdge"
+          },
+          "title": "Edges",
+          "type": "array"
+        }
+      },
+      "required": [
+        "nodes",
+        "edges"
+      ],
+      "title": "IncidentGraph",
+      "type": "object"
+    },
+    "Severity": {
+      "description": "Alert and incident severity levels.",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "Technique": {
+      "additionalProperties": false,
+      "description": "MITRE ATT&CK technique mapping.",
+      "properties": {
+        "framework": {
+          "enum": [
+            "enterprise",
+            "ics"
+          ],
+          "title": "Framework",
+          "type": "string"
+        },
+        "technique_id": {
+          "title": "Technique Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "tactic": {
+          "title": "Tactic",
+          "type": "string"
+        }
+      },
+      "required": [
+        "framework",
+        "technique_id",
+        "name",
+        "tactic"
+      ],
+      "title": "Technique",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Correlated attack incident reconstructed across IT/OT domains.",
+  "properties": {
+    "incident_id": {
+      "title": "Incident Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "open",
+        "closed",
+        "suppressed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    },
+    "first_signal_ts": {
+      "format": "date-time",
+      "title": "First Signal Ts",
+      "type": "string"
+    },
+    "first_meaningful_alert_ts": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "First Meaningful Alert Ts"
+    },
+    "ttfma_seconds": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Ttfma Seconds"
+    },
+    "score": {
+      "title": "Score",
+      "type": "number"
+    },
+    "severity": {
+      "$ref": "#/$defs/Severity"
+    },
+    "entities": {
+      "items": {
+        "$ref": "#/$defs/Entity"
+      },
+      "title": "Entities",
+      "type": "array"
+    },
+    "signal_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Signal Ids",
+      "type": "array"
+    },
+    "event_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Event Ids",
+      "type": "array"
+    },
+    "kill_chain_stages": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Kill Chain Stages",
+      "type": "array"
+    },
+    "techniques": {
+      "items": {
+        "$ref": "#/$defs/Technique"
+      },
+      "title": "Techniques",
+      "type": "array"
+    },
+    "decoy_touched": {
+      "title": "Decoy Touched",
+      "type": "boolean"
+    },
+    "ot_touched": {
+      "title": "Ot Touched",
+      "type": "boolean"
+    },
+    "explanation": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Explanation",
+      "type": "array"
+    },
+    "summary": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Summary"
+    },
+    "summary_citations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Summary Citations",
+      "type": "array"
+    },
+    "graph": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/IncidentGraph"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "incident_id",
+    "status",
+    "created_at",
+    "updated_at",
+    "first_signal_ts",
+    "score",
+    "severity",
+    "entities",
+    "signal_ids",
+    "event_ids",
+    "kill_chain_stages",
+    "techniques",
+    "decoy_touched",
+    "ot_touched",
+    "explanation"
+  ],
+  "title": "Incident",
+  "type": "object"
+}

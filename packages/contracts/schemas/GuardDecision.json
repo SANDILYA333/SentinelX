@@ -1,0 +1,99 @@
+{
+  "additionalProperties": false,
+  "description": "Response safety policy decision evaluating proposed containment action.",
+  "properties": {
+    "decision_id": {
+      "title": "Decision Id",
+      "type": "string"
+    },
+    "ts": {
+      "format": "date-time",
+      "title": "Ts",
+      "type": "string"
+    },
+    "incident_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Incident Id"
+    },
+    "action": {
+      "enum": [
+        "isolate_host",
+        "block_ip",
+        "disable_account",
+        "block_modbus_write",
+        "kill_process"
+      ],
+      "title": "Action",
+      "type": "string"
+    },
+    "target": {
+      "title": "Target",
+      "type": "string"
+    },
+    "decision": {
+      "enum": [
+        "allow",
+        "deny",
+        "needs_human"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    },
+    "rule_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Rule Ids",
+      "type": "array"
+    },
+    "asset_criticality": {
+      "anyOf": [
+        {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "process_critical"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Asset Criticality"
+    },
+    "requested_by": {
+      "title": "Requested By",
+      "type": "string"
+    }
+  },
+  "required": [
+    "decision_id",
+    "ts",
+    "action",
+    "target",
+    "decision",
+    "reasons",
+    "rule_ids",
+    "requested_by"
+  ],
+  "title": "GuardDecision",
+  "type": "object"
+}

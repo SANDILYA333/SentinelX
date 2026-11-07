@@ -1,0 +1,34 @@
+{
+  "additionalProperties": false,
+  "description": "MITRE ATT&CK technique mapping.",
+  "properties": {
+    "framework": {
+      "enum": [
+        "enterprise",
+        "ics"
+      ],
+      "title": "Framework",
+      "type": "string"
+    },
+    "technique_id": {
+      "title": "Technique Id",
+      "type": "string"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "tactic": {
+      "title": "Tactic",
+      "type": "string"
+    }
+  },
+  "required": [
+    "framework",
+    "technique_id",
+    "name",
+    "tactic"
+  ],
+  "title": "Technique",
+  "type": "object"
+}

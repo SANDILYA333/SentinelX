@@ -37,6 +37,7 @@ node_modules/
 .next/
 out/
 .pnpm-debug.log*
+.pnpm-store/
 
 # Database & Environment
 *.db

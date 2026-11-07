@@ -1,0 +1,160 @@
+{
+  "$defs": {
+    "Entity": {
+      "additionalProperties": false,
+      "description": "Observable entity instance.",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/EntityType"
+        },
+        "value": {
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ],
+      "title": "Entity",
+      "type": "object"
+    },
+    "EntityType": {
+      "description": "Observable entity types for graph and correlation analysis.",
+      "enum": [
+        "user",
+        "host",
+        "ip",
+        "session",
+        "process",
+        "device"
+      ],
+      "title": "EntityType",
+      "type": "string"
+    },
+    "Technique": {
+      "additionalProperties": false,
+      "description": "MITRE ATT&CK technique mapping.",
+      "properties": {
+        "framework": {
+          "enum": [
+            "enterprise",
+            "ics"
+          ],
+          "title": "Framework",
+          "type": "string"
+        },
+        "technique_id": {
+          "title": "Technique Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "tactic": {
+          "title": "Tactic",
+          "type": "string"
+        }
+      },
+      "required": [
+        "framework",
+        "technique_id",
+        "name",
+        "tactic"
+      ],
+      "title": "Technique",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Detection signal emitted by detectors (detectors emit signals, never raw alerts).",
+  "properties": {
+    "signal_id": {
+      "title": "Signal Id",
+      "type": "string"
+    },
+    "ts": {
+      "format": "date-time",
+      "title": "Ts",
+      "type": "string"
+    },
+    "detector": {
+      "enum": [
+        "rule",
+        "baseline",
+        "anomaly",
+        "graph",
+        "deception"
+      ],
+      "title": "Detector",
+      "type": "string"
+    },
+    "rule_id": {
+      "title": "Rule Id",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "score": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Score",
+      "type": "number"
+    },
+    "confidence": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "entities": {
+      "items": {
+        "$ref": "#/$defs/Entity"
+      },
+      "title": "Entities",
+      "type": "array"
+    },
+    "evidence_event_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Evidence Event Ids",
+      "type": "array"
+    },
+    "techniques": {
+      "items": {
+        "$ref": "#/$defs/Technique"
+      },
+      "title": "Techniques",
+      "type": "array"
+    },
+    "explanation": {
+      "title": "Explanation",
+      "type": "string"
+    },
+    "metadata": {
+      "additionalProperties": true,
+      "title": "Metadata",
+      "type": "object"
+    }
+  },
+  "required": [
+    "signal_id",
+    "ts",
+    "detector",
+    "rule_id",
+    "title",
+    "score",
+    "confidence",
+    "entities",
+    "evidence_event_ids",
+    "techniques",
+    "explanation"
+  ],
+  "title": "Signal",
+  "type": "object"
+}

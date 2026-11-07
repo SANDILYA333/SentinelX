@@ -9,7 +9,7 @@ help: ## Show available Makefile commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
 setup: ## Install backend (uv sync) and frontend (pnpm install) dependencies
-	uv sync
+	uv sync --all-packages
 	if [ -d "apps/web" ] && [ -f "apps/web/package.json" ]; then cd apps/web && pnpm install; fi
 
 api: ## Run FastAPI backend with auto-reload on port 8000

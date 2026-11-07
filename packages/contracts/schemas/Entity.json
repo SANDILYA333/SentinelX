@@ -1,0 +1,34 @@
+{
+  "$defs": {
+    "EntityType": {
+      "description": "Observable entity types for graph and correlation analysis.",
+      "enum": [
+        "user",
+        "host",
+        "ip",
+        "session",
+        "process",
+        "device"
+      ],
+      "title": "EntityType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Observable entity instance.",
+  "properties": {
+    "type": {
+      "$ref": "#/$defs/EntityType"
+    },
+    "value": {
+      "title": "Value",
+      "type": "string"
+    }
+  },
+  "required": [
+    "type",
+    "value"
+  ],
+  "title": "Entity",
+  "type": "object"
+}
