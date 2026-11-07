@@ -139,8 +139,7 @@ def main():
     if db_file.exists():
         try:
             import sqlite3
-            from datetime import datetime
-
+            from datetime import datetime, timezone
             conn = sqlite3.connect(str(db_file))
             row = conn.execute("SELECT MIN(ts), MAX(ts), COUNT(*) FROM events").fetchone()
             if row and row[2] > 1 and row[0] and row[1]:
@@ -157,7 +156,9 @@ def main():
                     else:
                         print(f"Events Stored: {count}")
                         print(f"Telemetry Span: {min_str} to {max_str}")
-                        print("Estimated Growth Rate: < 0.1 MB/hour (timespan under 36 seconds)")
+                        print(
+                            "Estimated Growth Rate: < 0.1 MB/hour (timespan under 36 seconds)"
+                        )
                 except Exception:
                     pass
             elif row and row[2] == 1:
