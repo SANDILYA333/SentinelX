@@ -1,0 +1,13 @@
+[project]
+name = "sentinelx"
+version = "0.1.0"
+description = "SentinelX core engine and data contracts"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.7.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
