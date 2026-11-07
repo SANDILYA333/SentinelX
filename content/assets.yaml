@@ -1,0 +1,152 @@
+# SentinelX Lab Assets Inventory
+# Single source of truth for topology, enrichment, and guard validation
+
+hosts:
+  - name: attacker
+    role: attacker
+    zone: it
+    ips:
+      it: 10.10.1.5
+    is_decoy: false
+    process_critical: false
+    criticality: low
+    ssh_users: []
+
+  - name: jump-host
+    role: jump_host
+    zone: it
+    ips:
+      it: 10.10.1.10
+      dmz: 10.10.2.10
+      mgmt: 10.10.9.10
+    is_decoy: false
+    process_critical: false
+    criticality: high
+    ssh_users:
+      - alice
+      - bob
+      - eng1
+      - svc_backup
+
+  - name: file-srv
+    role: file_server
+    zone: it
+    ips:
+      it: 10.10.1.20
+      mgmt: 10.10.9.20
+    is_decoy: false
+    process_critical: false
+    criticality: medium
+    ssh_users:
+      - alice
+      - bob
+      - eng1
+      - svc_backup
+
+  - name: db-srv
+    role: database_server
+    zone: it
+    ips:
+      it: 10.10.1.30
+      mgmt: 10.10.9.30
+    is_decoy: false
+    process_critical: false
+    criticality: high
+    ssh_users:
+      - alice
+      - bob
+      - eng1
+      - svc_backup
+
+  - name: eng-ws
+    role: engineering_workstation
+    zone: it
+    ips:
+      it: 10.10.1.40
+      ot: 10.10.3.40
+      mgmt: 10.10.9.40
+    is_decoy: false
+    process_critical: true
+    criticality: process_critical
+    ssh_users:
+      - alice
+      - bob
+      - eng1
+      - svc_backup
+
+  - name: benign
+    role: benign_traffic_generator
+    zone: it
+    ips:
+      it: 10.10.1.50
+      mgmt: 10.10.9.50
+    is_decoy: false
+    process_critical: false
+    criticality: low
+    ssh_users:
+      - alice
+      - bob
+      - eng1
+      - svc_backup
+
+  - name: wazuh-manager
+    role: siem_manager
+    zone: mgmt
+    ips:
+      mgmt: 10.10.9.2
+    is_decoy: false
+    process_critical: false
+    criticality: high
+    ssh_users: []
+
+  - name: cowrie
+    hostname: backup-srv-02
+    role: ssh_decoy
+    zone: dmz
+    ips:
+      dmz: 10.10.2.20
+    is_decoy: true
+    process_critical: false
+    criticality: low
+    ssh_users:
+      - svc_dbadmin
+
+  - name: opencanary
+    hostname: db-prod-02
+    role: multi_service_decoy
+    zone: dmz
+    ips:
+      dmz: 10.10.2.30
+    is_decoy: true
+    process_critical: false
+    criticality: low
+    ssh_users: []
+
+  - name: plc-sim
+    role: programmable_logic_controller
+    zone: ot
+    ips:
+      ot: 10.10.3.20
+    is_decoy: false
+    process_critical: true
+    criticality: process_critical
+    ssh_users: []
+
+  - name: decoy-plc
+    role: plc_decoy
+    zone: ot
+    ips:
+      ot: 10.10.3.60
+    is_decoy: true
+    process_critical: false
+    criticality: low
+    ssh_users: []
+
+honey_credentials:
+  - username: svc_dbadmin
+    decoy:
+      - cowrie
+      - opencanary
+
+honey_files:
+  - /srv/share/backup/.db_creds

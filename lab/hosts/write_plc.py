@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Helper script to write PLC holding registers via Modbus TCP."""
+
 import json
 import sys
+
 from pymodbus.client import ModbusTcpClient
+
 
 def main():
     host = sys.argv[1] if len(sys.argv) > 1 else "10.10.3.20"
@@ -32,6 +35,6 @@ def main():
     finally:
         client.close()
 
+
 if __name__ == "__main__":
     main()
-

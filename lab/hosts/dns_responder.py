@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """Lightweight DNS responder for enterprise lab network simulation."""
+
 import socket
 
 DNS_RECORDS = {
-    b"filesrv.corp": b"\x0a\x0a\x01\x14",       # 10.10.1.20
-    b"dbprod.corp": b"\x0a\x0a\x01\x1e",        # 10.10.1.30
-    b"jumphost.corp": b"\x0a\x0a\x01\x0a",      # 10.10.1.10
-    b"engws.corp": b"\x0a\x0a\x01\x28",         # 10.10.1.40
+    b"filesrv.corp": b"\x0a\x0a\x01\x14",  # 10.10.1.20
+    b"dbprod.corp": b"\x0a\x0a\x01\x1e",  # 10.10.1.30
+    b"jumphost.corp": b"\x0a\x0a\x01\x0a",  # 10.10.1.10
+    b"engws.corp": b"\x0a\x0a\x01\x28",  # 10.10.1.40
     b"backup-srv-02.dmz": b"\x0a\x0a\x02\x14",  # 10.10.2.20
-    b"db-prod-02.dmz": b"\x0a\x0a\x02\x1e",     # 10.10.2.30
+    b"db-prod-02.dmz": b"\x0a\x0a\x02\x1e",  # 10.10.2.30
 }
 DEFAULT_IP = b"\x0a\x0a\x01\x14"
 
@@ -28,7 +29,7 @@ def main():
             while idx < len(data) and data[idx] != 0:
                 length = data[idx]
                 idx += 1
-                domain_parts.append(data[idx:idx + length])
+                domain_parts.append(data[idx : idx + length])
                 idx += length
             domain = b".".join(domain_parts).lower()
 
@@ -40,7 +41,7 @@ def main():
                 + b"\x81\x80"
                 + data[4:6]
                 + b"\x00\x01\x00\x00\x00\x00"
-                + data[12:idx + 5]
+                + data[12 : idx + 5]
                 + b"\xc0\x0c\x00\x01\x00\x01\x00\x00\x00\x3c\x00\x04"
                 + ip_bytes
             )
@@ -51,4 +52,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -2,7 +2,8 @@ SHELL := /bin/bash
 
 .PHONY: help setup api web dev test lint fmt contracts clean \
         lab-build lab-up lab-down lab-reset lab-logs lab-check lab-probe \
-        lab-smoke lab-samples plc-reset lab-disk lab-prune
+        lab-smoke lab-samples plc-reset lab-disk lab-prune \
+        ingest-live ingest-replay ingest-file db-reset
 
 help: ## Show available Makefile commands
 	@echo "Available commands:"
@@ -47,6 +48,21 @@ clean: ## Clean up build artifacts, cache directories, and test databases
 	find . -type d -name ".ruff_cache" -exec rm -rf {} +
 	find . -type d -name ".next" -exec rm -rf {} +
 	rm -rf data/*.db data/*.db-wal data/*.db-shm
+
+db-reset: ## Wipe and re-initialize SentinelX SQLite database and checkpoints
+	rm -f data/sentinelx.db data/sentinelx.db-wal data/sentinelx.db-shm
+	uv run python -c "from sentinelx.store.sqlite import init_db; init_db('data/sentinelx.db')"
+
+ingest-live: ## Start SentinelX API with live telemetry ingestion from data/logs
+	SENTINELX_INGEST_MODE=live uv run uvicorn app.main:app --reload --port 8000 --app-dir services/api
+
+DIR ?= data/logs
+SPEED ?= 50
+ingest-replay: ## Replay telemetry from DIR at SPEED factor (default 50x)
+	SENTINELX_INGEST_MODE=replay SENTINELX_LOG_ROOT=$(DIR) SENTINELX_REPLAY_SPEED=$(SPEED) uv run uvicorn app.main:app --reload --port 8000 --app-dir services/api
+
+ingest-file: ## Ingest a JSON or CSV file using a YAML mapping (FILE=... MAPPING=...)
+	uv run python scripts/ingest_file.py "$(FILE)" "$(MAPPING)"
 
 # ==============================================================================
 # Docker Lab Targets (Phase 1 & Phase 1.1)

@@ -1,24 +1,62 @@
 """FastAPI main entrypoint for SentinelX backend API service."""
 
+import asyncio
+import logging
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from sentinelx.ingest.runtime import Ingestor
 from sentinelx.schemas.common import SCHEMA_VERSION, WSMessage
+from sentinelx.schemas.event import Event
 
 from app.config import settings
 from app.db import close_db, get_db
+from app.ingest import set_ingestor
 from app.routes.events import router as events_router
 from app.routes.health import router as health_router
+from app.routes.sources import router as sources_router
 from app.ws import manager
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan manager to setup and teardown database resources."""
-    get_db()
+    """Application lifespan manager to setup DB, Ingestor, and background tasks."""
+    db = get_db()
+
+    # Callback when Ingestor flushes events
+    async def on_event(ev: Event) -> None:
+        await manager.broadcast_event(ev)
+
+    ingestor = Ingestor(
+        log_root=settings.SENTINELX_LOG_ROOT,
+        db=db,
+        mode=settings.SENTINELX_INGEST_MODE,  # type: ignore[arg-type]
+        on_event=on_event,
+        speed=settings.SENTINELX_REPLAY_SPEED,
+    )
+    set_ingestor(ingestor)
+
+    if settings.SENTINELX_INGEST_MODE in ("live", "replay"):
+        logger.info(f"Starting Ingestor in {settings.SENTINELX_INGEST_MODE} mode...")
+        await ingestor.start()
+
+    ticker_task = asyncio.create_task(manager.start_health_ticker())
+
     yield
+
+    ticker_task.cancel()
+    try:
+        await ticker_task
+    except asyncio.CancelledError:
+        pass
+
+    if ingestor.running:
+        await ingestor.stop()
+    set_ingestor(None)
     close_db()
 
 
@@ -41,6 +79,7 @@ app.add_middleware(
 # Standard endpoints
 app.include_router(health_router)
 app.include_router(events_router)
+app.include_router(sources_router)
 
 # Dev-only endpoints
 if settings.SENTINELX_ENV == "dev":

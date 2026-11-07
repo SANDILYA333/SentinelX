@@ -243,7 +243,9 @@ This section provides critical parsing and schema mapping facts for downstream t
 
 ## 8. Secrets & Permissions Architecture
 
-1. **Untracked Secrets**: The Wazuh enrollment password is stored in untracked `lab/.env.local` (mode `0600`), dynamically generated from `lab/.env.example` by `make lab-build` if absent. No passwords or private tokens are tracked in git.
+1. **Untracked Secrets**: The Wazuh enrollment password is stored in untracked `lab/.env.local` (mode `0600`), dynamically generated from `lab/.env.example` by `make lab-build` if absent. No active passwords or private tokens are tracked in git.
+   > [!IMPORTANT]
+   > The legacy placeholder registration password `SentinelXRegistrationPass2026!` was committed in early git history. Per Phase 1.1 review / Task 0c, this secret has been rotated to a freshly generated credential in `lab/.env.local`, and the historical value in git history is deprecated and invalid.
 2. **Minimal Log Directory Permissions**:
    - `data/logs`: `0755`
    - `data/logs/wazuh` & `data/logs/cowrie`: `0777` (Wazuh manager and Cowrie run as non-root UID `999`. Because the host workspace is owned by UID `1000`, setting targeted `0777` on these two log mounts is the minimum required to allow container daemons to append logs without running container processes as root or requiring host-level UID remapping).

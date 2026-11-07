@@ -301,7 +301,7 @@ services:
     volumes:
       - ../data/logs/plc:/var/log/plc
     healthcheck:
-      test: ["CMD-SHELL", "python3 -c 'import socket; s = socket.socket(); s.connect((\"127.0.0.1\", 502)); s.close()' >/dev/null"]
+      test: ["CMD", "python", "-c", "import os; assert 'server.py' in open('/proc/1/cmdline').read(); os.kill(1, 0)"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -325,7 +325,7 @@ services:
       - ./decoys/cowrie/userdb.txt:/cowrie/cowrie-git/etc/userdb.txt:ro
       - ../data/logs/cowrie:/cowrie/cowrie-git/var/log/cowrie
     healthcheck:
-      test: ["CMD", "/cowrie/cowrie-env/bin/python3", "-c", "import socket; s = socket.socket(); s.connect(('127.0.0.1', 22)); s.close()"]
+      test: ["CMD", "/cowrie/cowrie-env/bin/python3", "-c", "import os; assert 'twistd' in open('/proc/1/cmdline').read(); os.kill(1, 0)"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -344,7 +344,7 @@ services:
     volumes:
       - ../data/logs/opencanary:/var/log/opencanary
     healthcheck:
-      test: ["CMD-SHELL", "python3 -c 'import socket; s = socket.socket(); s.connect((\"127.0.0.1\", 80)); s.close()' >/dev/null"]
+      test: ["CMD-SHELL", "test -f /var/run/opencanaryd.pid && kill -0 $$(cat /var/run/opencanaryd.pid)"]
       interval: 5s
       timeout: 3s
       retries: 5

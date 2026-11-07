@@ -490,10 +490,14 @@ version = "0.1.0"
 source = { editable = "engine" }
 dependencies = [
     { name = "pydantic" },
+    { name = "pyyaml" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pydantic", specifier = ">=2.7.0" }]
+requires-dist = [
+    { name = "pydantic", specifier = ">=2.7.0" },
+    { name = "pyyaml", specifier = ">=6.0" },
+]
 
 [[package]]
 name = "sentinelx-api"

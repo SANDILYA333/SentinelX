@@ -10,7 +10,9 @@ from sentinelx.schemas import (
     GuardDecision,
     Incident,
     Signal,
+    SourceHealth,
     Technique,
+    TelemetryStats,
     WSMessage,
 )
 
@@ -22,6 +24,8 @@ MODELS = {
     "WSMessage": WSMessage,
     "Entity": Entity,
     "Technique": Technique,
+    "SourceHealth": SourceHealth,
+    "TelemetryStats": TelemetryStats,
 }
 
 
@@ -43,4 +47,3 @@ def export_schemas() -> None:
 
 if __name__ == "__main__":
     export_schemas()
-

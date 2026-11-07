@@ -1,0 +1,50 @@
+name: modbus_csv
+format: csv
+source_tool: modbus
+domain: ot
+delimiter: ","
+timestamp:
+  field: timestamp
+  format: auto
+  timezone: UTC
+fields:
+  src_ip: src_ip
+  dst_ip: dst_ip
+  src_port: src_port
+  dst_port: dst_port
+  protocol: protocol
+ot_fields:
+  unit_id: unit_id
+  function_code: function_code
+  register: register
+  value: value
+conditional_rules:
+  - match:
+      is_write: "true"
+    category: ot_command
+    action: modbus_write
+    outcome: success
+    is_write: true
+  - match:
+      is_write: "1"
+    category: ot_command
+    action: modbus_write
+    outcome: success
+    is_write: true
+  - match:
+      is_write: "false"
+    category: ot_command
+    action: modbus_read
+    outcome: success
+    is_write: false
+  - match:
+      is_write: "0"
+    category: ot_command
+    action: modbus_read
+    outcome: success
+    is_write: false
+default:
+  category: ot_command
+  action: modbus_command
+  outcome: success
+  is_write: false

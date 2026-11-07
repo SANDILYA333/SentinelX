@@ -20,7 +20,9 @@ LOGS_DIR = REPO_ROOT / "data" / "logs"
 SAMPLES_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def extract_samples(src_path: Path, dest_name: str, required_patterns: list[str] | None = None, max_lines: int = 20):
+def extract_samples(
+    src_path: Path, dest_name: str, required_patterns: list[str] | None = None, max_lines: int = 20
+):
     dest_path = SAMPLES_DIR / dest_name
     if not src_path.exists():
         matches = list(src_path.parent.rglob(src_path.name))
@@ -45,17 +47,17 @@ def extract_samples(src_path: Path, dest_name: str, required_patterns: list[str]
     selected = []
     if required_patterns:
         for pat in required_patterns:
-            for l in reversed(lines):
-                if pat in l and l not in selected:
-                    selected.append(l)
+            for item in reversed(lines):
+                if pat in item and item not in selected:
+                    selected.append(item)
                     break
 
     # Fill remainder with the most recent lines
-    for l in reversed(lines):
+    for item in reversed(lines):
         if len(selected) >= max_lines:
             break
-        if l not in selected:
-            selected.append(l)
+        if item not in selected:
+            selected.append(item)
 
     selected.reverse()
     with open(dest_path, "w", encoding="utf-8") as f:
@@ -65,16 +67,20 @@ def extract_samples(src_path: Path, dest_name: str, required_patterns: list[str]
     return True
 
 
-def extract_samples_from_docker(container: str, container_path: str, dest_name: str, max_lines: int = 20):
+def extract_samples_from_docker(
+    container: str, container_path: str, dest_name: str, max_lines: int = 20
+):
     dest_path = SAMPLES_DIR / dest_name
     try:
         cmd = ["docker", "exec", container, "tail", "-n", str(max_lines), container_path]
         res = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
         if res.returncode == 0 and res.stdout.strip():
-            lines = [l.strip() for l in res.stdout.strip().splitlines() if l.strip()]
+            lines = [ln.strip() for ln in res.stdout.strip().splitlines() if ln.strip()]
             with open(dest_path, "w", encoding="utf-8") as f:
                 f.writelines(line + "\n" for line in lines)
-            print(f"Exported {len(lines)} lines from {container} -> {dest_path.relative_to(REPO_ROOT)}")
+            print(
+                f"Exported {len(lines)} lines from {container} -> {dest_path.relative_to(REPO_ROOT)}"
+            )
             return True
     except Exception as e:
         print(f"Warning: Failed to extract from {container}:{container_path}: {e}")
@@ -88,7 +94,12 @@ def main():
     # 1. Wazuh archives: include Accepted, Failed, cmd.jsonl, and syscheck
     wazuh_archives = LOGS_DIR / "wazuh" / "archives.json"
     wazuh_patterns = ["Accepted", "Failed", "sentinelx/cmd.jsonl", "syscheck"]
-    if not extract_samples(wazuh_archives, "wazuh_archives.sample.jsonl", required_patterns=wazuh_patterns, max_lines=25):
+    if not extract_samples(
+        wazuh_archives,
+        "wazuh_archives.sample.jsonl",
+        required_patterns=wazuh_patterns,
+        max_lines=25,
+    ):
         success = False
 
     # 2. Zeek conn (IT bridge)
@@ -96,7 +107,13 @@ def main():
         success = False
 
     # 3. Zeek modbus (OT bridge)
-    if not extract_samples(LOGS_DIR / "zeek-ot" / "modbus.log", "zeek_modbus.sample.jsonl"):
+    modbus_patterns = ["WRITE_SINGLE_REGISTER", "WRITE_MULTIPLE_REGISTERS", "READ"]
+    if not extract_samples(
+        LOGS_DIR / "zeek-ot" / "modbus.log",
+        "zeek_modbus.sample.jsonl",
+        required_patterns=modbus_patterns,
+        max_lines=25,
+    ):
         success = False
 
     # 4. Zeek dns
@@ -109,12 +126,22 @@ def main():
 
     # 5. Cowrie: include login success and failure
     cowrie_patterns = ["cowrie.login.success", "cowrie.login.failed"]
-    if not extract_samples(LOGS_DIR / "cowrie" / "cowrie.json", "cowrie.sample.jsonl", required_patterns=cowrie_patterns, max_lines=20):
+    if not extract_samples(
+        LOGS_DIR / "cowrie" / "cowrie.json",
+        "cowrie.sample.jsonl",
+        required_patterns=cowrie_patterns,
+        max_lines=20,
+    ):
         success = False
 
     # 6. OpenCanary: include mysql login attempt (logtype 8001 or svc_dbadmin)
     canary_patterns = ["8001", "svc_dbadmin", "3001"]
-    if not extract_samples(LOGS_DIR / "opencanary" / "opencanary.log", "opencanary.sample.jsonl", required_patterns=canary_patterns, max_lines=20):
+    if not extract_samples(
+        LOGS_DIR / "opencanary" / "opencanary.log",
+        "opencanary.sample.jsonl",
+        required_patterns=canary_patterns,
+        max_lines=20,
+    ):
         success = False
 
     # 7. PLC writes
@@ -122,14 +149,18 @@ def main():
         success = False
 
     # 8. Command auditing cmd.jsonl from jump-host
-    if not extract_samples_from_docker("sentinelx-jump-host", "/var/log/sentinelx/cmd.jsonl", "cmd.sample.jsonl"):
+    if not extract_samples_from_docker(
+        "sentinelx-jump-host", "/var/log/sentinelx/cmd.jsonl", "cmd.sample.jsonl"
+    ):
         success = False
 
     if success:
         print("All sample logs successfully generated!")
         sys.exit(0)
     else:
-        print("Some sample files could not be generated. Ensure lab is running and has generated traffic.")
+        print(
+            "Some sample files could not be generated. Ensure lab is running and has generated traffic."
+        )
         sys.exit(1)
 
 

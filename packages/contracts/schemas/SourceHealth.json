@@ -1,0 +1,106 @@
+{
+  "additionalProperties": false,
+  "description": "Health status and telemetry volume counters for an ingestion source.",
+  "properties": {
+    "source_key": {
+      "title": "Source Key",
+      "type": "string"
+    },
+    "source_tool": {
+      "title": "Source Tool",
+      "type": "string"
+    },
+    "relative_path": {
+      "title": "Relative Path",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "live",
+        "idle",
+        "stale",
+        "error"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "expected_active": {
+      "title": "Expected Active",
+      "type": "boolean"
+    },
+    "lines_read": {
+      "title": "Lines Read",
+      "type": "integer"
+    },
+    "events_emitted": {
+      "title": "Events Emitted",
+      "type": "integer"
+    },
+    "ignored": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Ignored",
+      "type": "object"
+    },
+    "unparsed": {
+      "title": "Unparsed",
+      "type": "integer"
+    },
+    "errors": {
+      "title": "Errors",
+      "type": "integer"
+    },
+    "last_event_ts": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Last Event Ts"
+    },
+    "last_event_age_sec": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Last Event Age Sec"
+    },
+    "last_error": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Last Error"
+    }
+  },
+  "required": [
+    "source_key",
+    "source_tool",
+    "relative_path",
+    "status",
+    "expected_active",
+    "lines_read",
+    "events_emitted",
+    "ignored",
+    "unparsed",
+    "errors"
+  ],
+  "title": "SourceHealth",
+  "type": "object"
+}

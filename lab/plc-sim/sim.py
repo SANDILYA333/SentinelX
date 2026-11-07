@@ -78,7 +78,11 @@ class TankPhysics:
         # Benign pump writes (40-70) stay between ~35% and ~75%.
         # Valve=0 with pump>=50 reaches unsafe (>92) in ~82 seconds (within 60-120s).
         inflow = (self.pump_speed_pct * 0.009) if self.pump_run else 0.0
-        outflow = (self.valve_position_pct * (self.tank_level_pct / 55.0) * 0.009) if self.tank_level_pct > 0 else 0.0
+        outflow = (
+            (self.valve_position_pct * (self.tank_level_pct / 55.0) * 0.009)
+            if self.tank_level_pct > 0
+            else 0.0
+        )
 
         net = inflow - outflow
         self.tank_level_pct = max(0.0, min(100.0, self.tank_level_pct + net))
@@ -219,7 +223,7 @@ async def main():
     identity.MajorMinorRevision = "v3.10"
 
     # Start HTTP state server on port 8080
-    http_server = await asyncio.start_server(handle_http_client, "0.0.0.0", 8080)
+    _http_server = await asyncio.start_server(handle_http_client, "0.0.0.0", 8080)
     logger.info("HTTP state endpoint listening on 0.0.0.0:8080/state")
 
     # Start background physics loop

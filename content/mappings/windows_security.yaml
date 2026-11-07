@@ -1,0 +1,57 @@
+name: windows_security
+format: json
+source_tool: evtx
+domain: it
+timestamp:
+  field: TimeCreated
+  format: auto
+  timezone: UTC
+fields:
+  host: Computer
+  user: TargetUserName
+  cmdline: CommandLine
+  process: NewProcessName
+  parent_process: ParentProcessName
+  src_ip: IpAddress
+  src_port: IpPort
+  session_id: TargetLogonId
+conditional_rules:
+  - match:
+      EventID: 4624
+    category: authentication
+    action: logon_success
+    outcome: success
+  - match:
+      EventID: 4625
+    category: authentication
+    action: logon_failure
+    outcome: failure
+  - match:
+      EventID: 4688
+    category: process
+    action: process_creation
+    outcome: success
+  - match:
+      EventID: 4104
+    category: process
+    action: powershell_script_block
+    outcome: success
+  - match:
+      EventID: 7045
+    category: process
+    action: service_install
+    outcome: success
+  - match:
+      EventID: 1
+    category: process
+    action: process_creation
+    outcome: success
+  - match:
+      EventID: 3
+    category: network
+    action: network_connection
+    outcome: success
+default:
+  category: other
+  action: windows_event
+  outcome: unknown

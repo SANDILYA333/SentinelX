@@ -20,6 +20,7 @@ from sentinelx.schemas.guard import (
     GuardDecision,
     GuardOutcome,
 )
+from sentinelx.schemas.health import SourceHealth, TelemetryStats
 from sentinelx.schemas.incident import (
     GraphEdge,
     GraphNode,
@@ -50,10 +51,11 @@ __all__ = [
     "Outcome",
     "Severity",
     "Signal",
+    "SourceHealth",
     "SourceTool",
     "Technique",
+    "TelemetryStats",
     "UtcDatetime",
     "WSMessage",
     "new_id",
 ]
-

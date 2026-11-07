@@ -84,3 +84,49 @@ def test_websocket_stream(client: TestClient):
         event_msg = json.loads(event_raw)
         assert event_msg["type"] == "event"
         assert event_msg["payload"]["event_id"] == emitted_event["event_id"]
+
+
+def test_sources_health_and_stats(client: TestClient):
+    # Test sources health
+    res_health = client.get("/api/v1/sources/health")
+    assert res_health.status_code == 200
+    sources = res_health.json()
+    assert isinstance(sources, list)
+    assert len(sources) > 0
+    assert "source_key" in sources[0]
+    assert "status" in sources[0]
+
+    # Test stats
+    res_stats = client.get("/api/v1/stats")
+    assert res_stats.status_code == 200
+    stats = res_stats.json()
+    assert "total_events" in stats
+    assert "events_per_sec" in stats
+    assert "by_source" in stats
+    assert "by_category" in stats
+    assert "by_domain" in stats
+
+
+def test_get_event_by_id_and_filters(client: TestClient):
+    # Emit an event
+    res_emit = client.post("/api/v1/dev/emit-test-event")
+    assert res_emit.status_code == 200
+    ev = res_emit.json()
+    eid = ev["event_id"]
+
+    # Fetch by ID
+    res_single = client.get(f"/api/v1/events/{eid}")
+    assert res_single.status_code == 200
+    assert res_single.json()["event_id"] == eid
+
+    # Fetch non-existent ID
+    res_404 = client.get("/api/v1/events/non_existent_id")
+    assert res_404.status_code == 404
+
+    # Filter by category
+    cat = ev["category"]
+    res_filtered = client.get(f"/api/v1/events?category={cat}")
+    assert res_filtered.status_code == 200
+    matched = res_filtered.json()
+    assert len(matched) >= 1
+    assert any(e["event_id"] == eid for e in matched)

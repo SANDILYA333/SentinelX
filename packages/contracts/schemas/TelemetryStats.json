@@ -1,0 +1,49 @@
+{
+  "additionalProperties": false,
+  "description": "Aggregate telemetry event metrics computed over a sliding time window.",
+  "properties": {
+    "window_seconds": {
+      "title": "Window Seconds",
+      "type": "integer"
+    },
+    "total_events": {
+      "title": "Total Events",
+      "type": "integer"
+    },
+    "events_per_sec": {
+      "title": "Events Per Sec",
+      "type": "number"
+    },
+    "by_source": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "By Source",
+      "type": "object"
+    },
+    "by_category": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "By Category",
+      "type": "object"
+    },
+    "by_domain": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "By Domain",
+      "type": "object"
+    }
+  },
+  "required": [
+    "window_seconds",
+    "total_events",
+    "events_per_sec",
+    "by_source",
+    "by_category",
+    "by_domain"
+  ],
+  "title": "TelemetryStats",
+  "type": "object"
+}

@@ -41,7 +41,9 @@ def parse_timestamp(line: str) -> float | None:
     return None
 
 
-def get_last_line_from_docker(container: str, container_path: str) -> tuple[str | None, float | None]:
+def get_last_line_from_docker(
+    container: str, container_path: str
+) -> tuple[str | None, float | None]:
     """Read last non-empty line via docker exec without generating traffic."""
     try:
         cmd = ["docker", "exec", container, "tail", "-n", "1", container_path]
@@ -58,7 +60,9 @@ def get_last_line_from_file(file_path: Path) -> tuple[str | None, float | None]:
     """Read last non-empty line and modification time from local file."""
     if not file_path.exists() or file_path.stat().st_size == 0:
         if "wazuh" in str(file_path):
-            return get_last_line_from_docker("sentinelx-wazuh-manager", "/var/ossec/logs/archives/archives.json")
+            return get_last_line_from_docker(
+                "sentinelx-wazuh-manager", "/var/ossec/logs/archives/archives.json"
+            )
         return None, None
 
     mtime = file_path.stat().st_mtime
@@ -76,7 +80,9 @@ def get_last_line_from_file(file_path: Path) -> tuple[str | None, float | None]:
                     break
     except Exception:
         if "wazuh" in str(file_path):
-            return get_last_line_from_docker("sentinelx-wazuh-manager", "/var/ossec/logs/archives/archives.json")
+            return get_last_line_from_docker(
+                "sentinelx-wazuh-manager", "/var/ossec/logs/archives/archives.json"
+            )
 
     return last_line, mtime
 
@@ -85,8 +91,16 @@ def get_container_health(container: str) -> tuple[bool, str]:
     """Check if the container is running and healthy."""
     try:
         res = subprocess.run(
-            ["docker", "inspect", "-f", "{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}", container],
-            capture_output=True, text=True, timeout=5
+            [
+                "docker",
+                "inspect",
+                "-f",
+                "{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}",
+                container,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if res.returncode == 0:
             status = res.stdout.strip()
@@ -97,7 +111,9 @@ def get_container_health(container: str) -> tuple[bool, str]:
     return False, "unknown"
 
 
-def check_source(name: str, ctype: str, path_or_target: str, is_decoy: bool = False, container: str = "") -> dict:
+def check_source(
+    name: str, ctype: str, path_or_target: str, is_decoy: bool = False, container: str = ""
+) -> dict:
     now_epoch = datetime.now(UTC).timestamp()
     result = {
         "name": name,
@@ -132,7 +148,9 @@ def check_source(name: str, ctype: str, path_or_target: str, is_decoy: bool = Fa
         if is_decoy:
             c_healthy, c_status = get_container_health(container)
             if not file_exists or not file_readable:
-                result["detail"] = f"File missing/unreadable ({p}), container {container}: {c_status}"
+                result["detail"] = (
+                    f"File missing/unreadable ({p}), container {container}: {c_status}"
+                )
                 return result
             if not c_healthy:
                 result["detail"] = f"Producing container {container} is {c_status}"
@@ -196,15 +214,45 @@ def main():
     # Active sources: must have line newer than 60s
     # Decoy sources: idle by design, PASS if file exists, readable, and container healthy
     sources = [
-        ("Wazuh archives.json", "file", "data/logs/wazuh/archives.json", False, "sentinelx-wazuh-manager"),
+        (
+            "Wazuh archives.json",
+            "file",
+            "data/logs/wazuh/archives.json",
+            False,
+            "sentinelx-wazuh-manager",
+        ),
         ("Zeek IT conn.log", "file", "data/logs/zeek-it/conn.log", False, "sentinelx-zeek-it"),
         ("Zeek DMZ conn.log", "file", "data/logs/zeek-dmz/conn.log", True, "sentinelx-zeek-dmz"),
         ("Zeek OT modbus.log", "file", "data/logs/zeek-ot/modbus.log", False, "sentinelx-zeek-ot"),
         ("Cowrie cowrie.json", "file", "data/logs/cowrie/cowrie.json", True, "sentinelx-cowrie"),
-        ("OpenCanary opencanary.log", "file", "data/logs/opencanary/opencanary.log", True, "sentinelx-opencanary"),
-        ("Decoy PLC decoy-plc.jsonl", "file", "data/logs/plc/decoy-plc.jsonl", True, "sentinelx-decoy-plc"),
-        ("PLC Sim plc-sim-state.jsonl", "file", "data/logs/plc/plc-sim-state.jsonl", False, "sentinelx-plc-sim"),
-        ("Jump-host cmd.jsonl (docker)", "docker", "sentinelx-jump-host:/var/log/sentinelx/cmd.jsonl", False, "sentinelx-jump-host"),
+        (
+            "OpenCanary opencanary.log",
+            "file",
+            "data/logs/opencanary/opencanary.log",
+            True,
+            "sentinelx-opencanary",
+        ),
+        (
+            "Decoy PLC decoy-plc.jsonl",
+            "file",
+            "data/logs/plc/decoy-plc.jsonl",
+            True,
+            "sentinelx-decoy-plc",
+        ),
+        (
+            "PLC Sim plc-sim-state.jsonl",
+            "file",
+            "data/logs/plc/plc-sim-state.jsonl",
+            False,
+            "sentinelx-plc-sim",
+        ),
+        (
+            "Jump-host cmd.jsonl (docker)",
+            "docker",
+            "sentinelx-jump-host:/var/log/sentinelx/cmd.jsonl",
+            False,
+            "sentinelx-jump-host",
+        ),
     ]
 
     print("=" * 80)

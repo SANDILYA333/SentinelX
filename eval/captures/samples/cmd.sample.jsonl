@@ -1,20 +1,20 @@
-{"ts":"2026-11-07T16:56:32Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"536","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T16:56:58Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"595","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T16:57:25Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"654","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T16:57:53Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"721","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T16:58:20Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"781","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T16:58:47Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"847","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T16:59:17Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"907","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T16:59:46Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"974","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T17:00:12Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"1040","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T17:00:38Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"1099","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T17:01:01Z","host":"jump-host","user":"svc_backup","src_ip":"10.10.1.5","session":"1151","tty":false,"cwd":"/home/svc_backup","cmd":"echo SMOKE_STEP_1_SUCCESS && whoami","mode":"exec"}
-{"ts":"2026-11-07T17:01:01Z","host":"jump-host","user":"svc_backup","src_ip":"10.10.1.5","session":"1170","tty":false,"cwd":"/home/svc_backup","cmd":"tail -n 1 /var/log/sentinelx/cmd.jsonl","mode":"exec"}
-{"ts":"2026-11-07T17:01:02Z","host":"jump-host","user":"svc_backup","src_ip":"10.10.1.5","session":"1189","tty":false,"cwd":"/home/svc_backup","cmd":"\n    echo \"Connecting to Cowrie SSH decoy at 10.10.2.20:22 as svc_dbadmin / Winter2026!...\"\n    sshpass -p \"Winter2026!\" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 svc_dbadmin@10.10.2.20 \"whoami\" 2>&1 || true\n    echo \"Connecting to OpenCanary MySQL decoy at 10.10.2.30:3306 as svc_dbadmin / Winter2026!...\"\n    mariadb -h 10.10.2.30 -u svc_dbadmin -pWinter2026! --connect-timeout=3 -e \"SHOW DATABASES;\" 2>&1 || true\n","mode":"exec"}
-{"ts":"2026-11-07T17:01:04Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"1218","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T17:01:30Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"1277","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T17:01:55Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"1337","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T17:02:19Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"1395","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T17:02:47Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"1454","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T17:03:13Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"1513","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
-{"ts":"2026-11-07T17:03:38Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"1578","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:33:21Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"2691","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:33:48Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"2751","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:34:14Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"2817","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:34:42Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"2877","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:35:10Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"2943","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:35:38Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"3003","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:36:06Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"3069","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:36:32Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"3129","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:36:57Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"3188","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:37:24Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"3247","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:37:47Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"3307","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:38:16Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"3373","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:38:44Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"3433","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:39:10Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"3492","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:39:38Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"3559","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:40:04Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"3618","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:40:30Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"3677","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:40:58Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"3744","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:41:22Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"3809","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}
+{"ts":"2026-11-07T17:41:50Z","host":"jump-host","user":"alice","src_ip":"10.10.1.50","session":"3868","tty":false,"cwd":"/home/alice","cmd":"uptime","mode":"exec"}

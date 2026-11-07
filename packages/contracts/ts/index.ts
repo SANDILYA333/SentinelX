@@ -385,3 +385,78 @@ export interface GuardDecision {
   asset_criticality?: AssetCriticality;
   requested_by: RequestedBy;
 }
+
+export type SourceKey = string;
+
+export type RelativePath = string;
+
+export type ExpectedActive = boolean;
+
+export type LinesRead = number;
+
+export type EventsEmitted = number;
+
+export type Unparsed = number;
+
+export type Errors = number;
+
+export type LastEventTs = string | null;
+
+export type LastEventAgeSec = number | null;
+
+export type LastError = string | null;
+
+/**
+ * Health status and telemetry volume counters for an ingestion source.
+ */
+
+export interface SourceHealth {
+  source_key: SourceKey;
+  source_tool: SourceTool;
+  relative_path: RelativePath;
+  status: Status;
+  expected_active: ExpectedActive;
+  lines_read: LinesRead;
+  events_emitted: EventsEmitted;
+  ignored: Ignored;
+  unparsed: Unparsed;
+  errors: Errors;
+  last_event_ts?: LastEventTs;
+  last_event_age_sec?: LastEventAgeSec;
+  last_error?: LastError;
+}
+
+export interface Ignored {
+  [k: string]: number;
+}
+
+export type WindowSeconds = number;
+
+export type TotalEvents = number;
+
+export type EventsPerSec = number;
+
+/**
+ * Aggregate telemetry event metrics computed over a sliding time window.
+ */
+
+export interface TelemetryStats {
+  window_seconds: WindowSeconds;
+  total_events: TotalEvents;
+  events_per_sec: EventsPerSec;
+  by_source: BySource;
+  by_category: ByCategory;
+  by_domain: ByDomain;
+}
+
+export interface BySource {
+  [k: string]: number;
+}
+
+export interface ByCategory {
+  [k: string]: number;
+}
+
+export interface ByDomain {
+  [k: string]: number;
+}
