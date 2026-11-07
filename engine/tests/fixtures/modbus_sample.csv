@@ -1,3 +1,4 @@
 timestamp,src_ip,dst_ip,src_port,dst_port,protocol,unit_id,function_code,register,value,is_write,unexpected_header
 2026-11-07T12:10:00Z,10.10.1.40,10.10.3.20,54321,502,modbus,1,16,1,0,true,random_data
 2026-11-07T12:10:05Z,10.10.1.40,10.10.3.20,54322,502,modbus,1,4,0,55,false,more_random_data
+
