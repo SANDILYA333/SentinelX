@@ -55,3 +55,4 @@ default:
   category: other
   action: windows_event
   outcome: unknown
+
