@@ -1,0 +1,385 @@
+name: sentinelx
+
+networks:
+  it:
+    internal: true
+    ipam:
+      config:
+        - subnet: 10.10.1.0/24
+    driver_opts:
+      com.docker.network.bridge.name: br-sx-it
+  dmz:
+    internal: true
+    ipam:
+      config:
+        - subnet: 10.10.2.0/24
+    driver_opts:
+      com.docker.network.bridge.name: br-sx-dmz
+  ot:
+    internal: true
+    ipam:
+      config:
+        - subnet: 10.10.3.0/24
+    driver_opts:
+      com.docker.network.bridge.name: br-sx-ot
+  mgmt:
+    internal: true
+    ipam:
+      config:
+        - subnet: 10.10.9.0/24
+    driver_opts:
+      com.docker.network.bridge.name: br-sx-mgmt
+
+services:
+  # ==========================================
+  # Management & Telemetry Core
+  # ==========================================
+  wazuh-manager:
+    image: wazuh/wazuh-manager:${WAZUH_VERSION:-4.14.10}
+    container_name: sentinelx-wazuh-manager
+    hostname: wazuh-manager
+    mem_limit: 1536m
+    networks:
+      mgmt:
+        ipv4_address: 10.10.9.2
+    environment:
+      - INDEXER_URL=
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        (
+          while true; do
+            chmod -R a+rX /var/ossec/logs/archives 2>/dev/null || true
+            sleep 3
+          done
+        ) &
+        exec /init
+    volumes:
+      - ./wazuh/ossec.conf:/var/ossec/etc/ossec.conf:ro
+      - ./wazuh/authd.pass:/var/ossec/etc/authd.pass:ro
+      - ../data/logs/wazuh:/var/ossec/logs/archives
+    healthcheck:
+      test: ["CMD-SHELL", "/var/ossec/bin/wazuh-control status | grep -q 'is running'"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 25s
+
+  # ==========================================
+  # IT Workstations & Servers
+  # ==========================================
+  attacker:
+    build:
+      context: ./hosts
+      target: attacker
+      args:
+        DEBIAN_TAG: ${DEBIAN_TAG:-bookworm-slim}
+        PYMODBUS_VERSION: ${PYMODBUS_VERSION:-3.6.8}
+    container_name: sentinelx-attacker
+    hostname: attacker
+    mem_limit: 256m
+    networks:
+      it:
+        ipv4_address: 10.10.1.5
+    volumes:
+      - ../scripts/lab_smoke.sh:/opt/attack/lab_smoke.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /opt/attack/ALLOWED_TARGETS"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  jump-host:
+    build:
+      context: ./hosts
+      target: jump-host
+      args:
+        DEBIAN_TAG: ${DEBIAN_TAG:-bookworm-slim}
+        WAZUH_VERSION: ${WAZUH_VERSION:-4.14.10}
+    container_name: sentinelx-jump-host
+    hostname: jump-host
+    mem_limit: 256m
+    networks:
+      it:
+        ipv4_address: 10.10.1.10
+      dmz:
+        ipv4_address: 10.10.2.10
+      mgmt:
+        ipv4_address: 10.10.9.10
+    depends_on:
+      wazuh-manager:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep sshd >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  file-srv:
+    build:
+      context: ./hosts
+      target: file-srv
+      args:
+        DEBIAN_TAG: ${DEBIAN_TAG:-bookworm-slim}
+        WAZUH_VERSION: ${WAZUH_VERSION:-4.14.10}
+    container_name: sentinelx-file-srv
+    hostname: file-srv
+    mem_limit: 256m
+    networks:
+      it:
+        ipv4_address: 10.10.1.20
+      mgmt:
+        ipv4_address: 10.10.9.20
+    volumes:
+      - ./hosts/dns_responder.py:/usr/local/bin/dns_responder.py:ro
+    depends_on:
+      wazuh-manager:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep sshd >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  db-srv:
+    build:
+      context: ./hosts
+      target: db-srv
+      args:
+        DEBIAN_TAG: ${DEBIAN_TAG:-bookworm-slim}
+        WAZUH_VERSION: ${WAZUH_VERSION:-4.14.10}
+    container_name: sentinelx-db-srv
+    hostname: db-srv
+    mem_limit: 512m
+    networks:
+      it:
+        ipv4_address: 10.10.1.30
+      mgmt:
+        ipv4_address: 10.10.9.30
+    depends_on:
+      wazuh-manager:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost >/dev/null && pgrep sshd >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+
+  eng-ws:
+    build:
+      context: ./hosts
+      target: eng-ws
+      args:
+        DEBIAN_TAG: ${DEBIAN_TAG:-bookworm-slim}
+        WAZUH_VERSION: ${WAZUH_VERSION:-4.14.10}
+        PYMODBUS_VERSION: ${PYMODBUS_VERSION:-3.6.8}
+    container_name: sentinelx-eng-ws
+    hostname: eng-ws
+    mem_limit: 256m
+    networks:
+      it:
+        ipv4_address: 10.10.1.40
+      ot:
+        ipv4_address: 10.10.3.40
+      mgmt:
+        ipv4_address: 10.10.9.40
+    depends_on:
+      wazuh-manager:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep sshd >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  benign:
+    build:
+      context: ./hosts
+      target: benign
+      args:
+        DEBIAN_TAG: ${DEBIAN_TAG:-bookworm-slim}
+        WAZUH_VERSION: ${WAZUH_VERSION:-4.14.10}
+        PYMODBUS_VERSION: ${PYMODBUS_VERSION:-3.6.8}
+    container_name: sentinelx-benign
+    hostname: benign
+    mem_limit: 256m
+    networks:
+      it:
+        ipv4_address: 10.10.1.50
+      mgmt:
+        ipv4_address: 10.10.9.50
+    volumes:
+      - ./hosts/benign_loop.py:/usr/local/bin/benign_loop.py:ro
+    depends_on:
+      file-srv:
+        condition: service_healthy
+      db-srv:
+        condition: service_healthy
+      eng-ws:
+        condition: service_healthy
+      plc-sim:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f benign_loop.py >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
+  # ==========================================
+  # OT PLC & Decoy Systems
+  # ==========================================
+  plc-sim:
+    build:
+      context: ./plc-sim
+    container_name: sentinelx-plc-sim
+    hostname: plc-sim
+    mem_limit: 128m
+    networks:
+      ot:
+        ipv4_address: 10.10.3.20
+    volumes:
+      - ../data/logs/plc:/var/log/plc
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8080/state\")' >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  decoy-plc:
+    build:
+      context: ./decoys/decoy-plc
+    container_name: sentinelx-decoy-plc
+    hostname: decoy-plc
+    mem_limit: 128m
+    networks:
+      ot:
+        ipv4_address: 10.10.3.60
+    volumes:
+      - ../data/logs/plc:/var/log/plc
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c 'import socket; s = socket.socket(); s.connect((\"127.0.0.1\", 502)); s.close()' >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  cowrie:
+    image: cowrie/cowrie:${COWRIE_TAG:-3.1.5}
+    container_name: sentinelx-cowrie
+    hostname: backup-srv-02
+    mem_limit: 256m
+    cap_add:
+      - NET_BIND_SERVICE
+    networks:
+      dmz:
+        ipv4_address: 10.10.2.20
+    environment:
+      - COWRIE_SSH_LISTEN_ENDPOINTS=tcp:22:interface=0.0.0.0
+    volumes:
+      - ./decoys/cowrie/cowrie.cfg:/cowrie/cowrie-git/etc/cowrie.cfg:ro
+      - ./decoys/cowrie/userdb.txt:/cowrie/cowrie-git/etc/userdb.txt:ro
+      - ../data/logs/cowrie:/cowrie/cowrie-git/var/log/cowrie
+    healthcheck:
+      test: ["CMD", "/cowrie/cowrie-env/bin/python3", "-c", "import socket; s = socket.socket(); s.connect(('127.0.0.1', 22)); s.close()"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  opencanary:
+    build:
+      context: ./decoys/opencanary
+    container_name: sentinelx-opencanary
+    hostname: db-prod-02
+    mem_limit: 128m
+    networks:
+      dmz:
+        ipv4_address: 10.10.2.30
+    volumes:
+      - ../data/logs/opencanary:/var/log/opencanary
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c 'import socket; s = socket.socket(); s.connect((\"127.0.0.1\", 80)); s.close()' >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  # ==========================================
+  # Zeek Passive Network Sensors (Linux Host Mode)
+  # ==========================================
+  zeek-it:
+    image: zeek/zeek:${ZEEK_VERSION:-9.0.1}
+    container_name: sentinelx-zeek-it
+    network_mode: host
+    mem_limit: 512m
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./zeek/local.zeek:/etc/zeek/local.zeek:ro
+      - ../data/logs/zeek-it:/var/log/zeek
+    command: >
+      sh -c '
+      while [ ! -d /sys/class/net/br-sx-it ]; do
+        echo "Waiting for network bridge br-sx-it...";
+        sleep 1;
+      done;
+      cd /var/log/zeek && exec zeek -C -i br-sx-it /etc/zeek/local.zeek
+      '
+    depends_on:
+      attacker:
+        condition: service_started
+
+  zeek-dmz:
+    image: zeek/zeek:${ZEEK_VERSION:-9.0.1}
+    container_name: sentinelx-zeek-dmz
+    network_mode: host
+    mem_limit: 512m
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./zeek/local.zeek:/etc/zeek/local.zeek:ro
+      - ../data/logs/zeek-dmz:/var/log/zeek
+    command: >
+      sh -c '
+      while [ ! -d /sys/class/net/br-sx-dmz ]; do
+        echo "Waiting for network bridge br-sx-dmz...";
+        sleep 1;
+      done;
+      cd /var/log/zeek && exec zeek -C -i br-sx-dmz /etc/zeek/local.zeek
+      '
+    depends_on:
+      cowrie:
+        condition: service_started
+
+  zeek-ot:
+    image: zeek/zeek:${ZEEK_VERSION:-9.0.1}
+    container_name: sentinelx-zeek-ot
+    network_mode: host
+    mem_limit: 512m
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./zeek/local.zeek:/etc/zeek/local.zeek:ro
+      - ../data/logs/zeek-ot:/var/log/zeek
+    command: >
+      sh -c '
+      while [ ! -d /sys/class/net/br-sx-ot ]; do
+        echo "Waiting for network bridge br-sx-ot...";
+        sleep 1;
+      done;
+      cd /var/log/zeek && exec zeek -C -i br-sx-ot /etc/zeek/local.zeek
+      '
+    depends_on:
+      plc-sim:
+        condition: service_started
+

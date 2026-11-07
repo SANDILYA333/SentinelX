@@ -39,13 +39,12 @@ out/
 .pnpm-debug.log*
 .pnpm-store/
 
-# Database & Environment
+# Database & Lab Telemetry Data
+data/
 *.db
 *.db-wal
 *.db-shm
-data/*.db
-data/*.db-wal
-data/*.db-shm
+!eval/captures/samples/
 .env
 .env.local
 .env.development.local

@@ -1,0 +1,67 @@
+FROM debian:bookworm-slim
+
+ARG WAZUH_VERSION=4.14.10
+ARG EXTRA_PACKAGES=""
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssh-server \
+    sudo \
+    procps \
+    curl \
+    gnupg \
+    ca-certificates \
+    net-tools \
+    iputils-ping \
+    lsb-release \
+    python3 \
+    python3-pip \
+    $EXTRA_PACKAGES \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Wazuh Agent
+RUN curl -sSL "https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_${WAZUH_VERSION}-1_amd64.deb" -o /tmp/wazuh-agent.deb \
+    && dpkg -i /tmp/wazuh-agent.deb \
+    && rm -f /tmp/wazuh-agent.deb
+
+# Create users: alice (sysadmin, sudo), bob (dba), eng1 (engineer), svc_backup (service account, weak password)
+RUN useradd -m -s /bin/bash alice && usermod -aG sudo alice && echo "alice ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/alice \
+    && useradd -m -s /bin/bash bob \
+    && useradd -m -s /bin/bash eng1 \
+    && useradd -m -s /bin/bash svc_backup \
+    && echo "svc_backup:Backup2024!" | chpasswd
+
+# Setup key-based login for alice, bob, eng1
+COPY ssh_keys/id_ed25519.pub /tmp/id_ed25519.pub
+RUN for u in alice bob eng1; do \
+      mkdir -p /home/$u/.ssh && \
+      cp /tmp/id_ed25519.pub /home/$u/.ssh/authorized_keys && \
+      chown -R $u:$u /home/$u/.ssh && \
+      chmod 700 /home/$u/.ssh && \
+      chmod 600 /home/$u/.ssh/authorized_keys; \
+    done && rm -f /tmp/id_ed25519.pub
+
+# Audit logging directory and hooks
+RUN mkdir -p /var/log/sentinelx && chmod 1777 /var/log/sentinelx && touch /var/log/sentinelx/cmd.jsonl && chmod 0666 /var/log/sentinelx/cmd.jsonl
+COPY audit-shell.sh /usr/local/bin/audit-shell
+COPY prompt-command.sh /etc/profile.d/sentinelx-audit.sh
+RUN chmod +x /usr/local/bin/audit-shell
+
+# SSH configuration
+RUN mkdir -p /run/sshd && \
+    sed -i 's/#LogLevel INFO/LogLevel VERBOSE/' /etc/ssh/sshd_config && \
+    echo "ForceCommand /usr/local/bin/audit-shell" >> /etc/ssh/sshd_config && \
+    echo "PasswordAuthentication no" >> /etc/ssh/sshd_config && \
+    echo "Match User svc_backup" >> /etc/ssh/sshd_config && \
+    echo "    PasswordAuthentication yes" >> /etc/ssh/sshd_config
+
+# Wazuh agent configuration
+COPY ossec-agent.conf /var/ossec/etc/ossec.conf
+
+# Entrypoint
+COPY entrypoint-common.sh /usr/local/bin/entrypoint-common.sh
+RUN chmod +x /usr/local/bin/entrypoint-common.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint-common.sh"]
+

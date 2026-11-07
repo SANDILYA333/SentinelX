@@ -1,8 +1,7 @@
 SHELL := /bin/bash
-export PATH := /tmp/bin:$(HOME)/.cargo/bin:$(HOME)/.local/bin:$(PATH)
-export UV_PYTHON_INSTALL_DIR ?= /tmp/uv-python
 
-.PHONY: help setup api web dev test lint fmt contracts clean
+.PHONY: help setup api web dev test lint fmt contracts clean \
+        lab-build lab-up lab-down lab-reset lab-logs lab-check lab-smoke lab-samples
 
 help: ## Show available Makefile commands
 	@echo "Available commands:"
@@ -47,3 +46,45 @@ clean: ## Clean up build artifacts, cache directories, and test databases
 	find . -type d -name ".ruff_cache" -exec rm -rf {} +
 	find . -type d -name ".next" -exec rm -rf {} +
 	rm -rf data/*.db data/*.db-wal data/*.db-shm
+
+# ==============================================================================
+# Docker Lab Targets (Phase 1)
+# ==============================================================================
+lab-build: ## Build all Docker lab images (hosts, decoys, plc-sim)
+	docker compose -f lab/compose.yml build
+
+lab-up: ## Start all lab services in background and wait for health
+	mkdir -p data/logs/wazuh data/logs/plc data/logs/cowrie data/logs/opencanary data/logs/zeek-it data/logs/zeek-dmz data/logs/zeek-ot
+	chmod -R 777 data/logs
+	docker compose -f lab/compose.yml up -d
+	@echo "Waiting for services to become healthy..."
+	@for i in $$(seq 1 60); do \
+	  unhealthy=$$(docker compose -f lab/compose.yml ps --format '{{.Service}}: {{.Health}}' | grep -E "unhealthy|starting" || true); \
+	  if [ -z "$$unhealthy" ]; then \
+	    echo "All monitored lab services are healthy."; \
+	    break; \
+	  fi; \
+	  sleep 2; \
+	done
+	docker compose -f lab/compose.yml ps
+
+lab-down: ## Stop all lab services and networks
+	docker compose -f lab/compose.yml down
+
+lab-reset: ## Tear down lab volumes, wipe data logs, and start fresh
+	docker compose -f lab/compose.yml down -v
+	docker run --rm -v $$(pwd)/data:/data debian:bookworm-slim rm -rf /data/logs 2>/dev/null || rm -rf data/logs 2>/dev/null || true
+	mkdir -p data/logs/wazuh data/logs/plc data/logs/cowrie data/logs/opencanary data/logs/zeek-it data/logs/zeek-dmz data/logs/zeek-ot
+	$(MAKE) lab-up
+
+lab-logs: ## Tail logs for a specific service (e.g., make lab-logs SERVICE=wazuh-manager)
+	docker compose -f lab/compose.yml logs -f $(SERVICE)
+
+lab-check: ## Verify telemetry freshness across all 8 sources (<= 60s threshold)
+	python3 scripts/lab_check.py
+
+lab-smoke: ## Run attack and pivot smoke tests from attacker container
+	bash scripts/lab_smoke.sh
+
+lab-samples: ## Export real telemetry samples into eval/captures/samples/
+	python3 scripts/export_samples.py
