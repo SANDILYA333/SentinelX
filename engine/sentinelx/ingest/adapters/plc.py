@@ -160,3 +160,4 @@ class DecoyPlcAdapter(BaseAdapter):
                 tags=tags,
             )
         ]
+
