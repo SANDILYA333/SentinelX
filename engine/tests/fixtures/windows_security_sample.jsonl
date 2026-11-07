@@ -5,3 +5,4 @@
 {"EventID": 7045, "TimeCreated": "2026-11-07T12:04:00.000Z", "Computer": "WIN-DC01", "TargetUserName": "SYSTEM", "CommandLine": "C:\\Windows\\System32\\srv.exe", "ServiceName": "BackdoorSvc"}
 {"EventID": 1, "TimeCreated": "2026-11-07T12:05:00.000Z", "Computer": "WIN-WORKSTATION", "TargetUserName": "bob", "NewProcessName": "whoami.exe", "CommandLine": "whoami /all", "ParentProcessName": "explorer.exe"}
 {"EventID": 3, "TimeCreated": "2026-11-07T12:06:00.000Z", "Computer": "WIN-WORKSTATION", "TargetUserName": "bob", "IpAddress": "10.10.1.30", "IpPort": 3389, "Protocol": "tcp"}
+
