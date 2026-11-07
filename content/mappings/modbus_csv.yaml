@@ -48,3 +48,4 @@ default:
   action: modbus_command
   outcome: success
   is_write: false
+
