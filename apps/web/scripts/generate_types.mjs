@@ -58,3 +58,4 @@ main().catch((err) => {
   console.error("Error generating contracts:", err);
   process.exit(1);
 });
+
