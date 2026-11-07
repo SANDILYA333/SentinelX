@@ -98,3 +98,4 @@ class CowrieAdapter(BaseAdapter):
                 tags=tags,
             )
         ]
+
