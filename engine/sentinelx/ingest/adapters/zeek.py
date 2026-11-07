@@ -233,3 +233,4 @@ class ZeekModbusAdapter(BaseAdapter):
                 tags=tags,
             )
         ]
+
