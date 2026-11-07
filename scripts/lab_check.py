@@ -83,6 +83,11 @@ def probe_source_if_needed(name: str):
     """Trigger a stimulus to verify live telemetry ingestion if a decoy or bridge source is currently idle."""
     try:
         if "Zeek DMZ" in name:
+            # Trigger quick HTTP and MySQL connections to DMZ to produce immediate TCP conn records
+            subprocess.run(
+                ["docker", "exec", "sentinelx-jump-host", "curl", "-s", "-m", "1", "http://10.10.2.30/"],
+                capture_output=True, timeout=5
+            )
             subprocess.run(
                 ["docker", "exec", "sentinelx-jump-host", "mariadb", "-h", "10.10.2.30",
                  "-u", "root", "--connect-timeout=2", "-e", "SHOW DATABASES;"],
@@ -152,7 +157,7 @@ def check_source(name: str, check_type: str, path_or_target: str, allow_probe: b
 
         if last_line is None and allow_probe:
             probe_source_if_needed(name)
-            time.sleep(2.5)
+            time.sleep(3.0)
             return check_source(name, check_type, path_or_target, allow_probe=False)
 
         if last_line is None:
@@ -166,7 +171,7 @@ def check_source(name: str, check_type: str, path_or_target: str, allow_probe: b
 
         if last_line is None and allow_probe:
             probe_source_if_needed(name)
-            time.sleep(2.5)
+            time.sleep(3.0)
             return check_source(name, check_type, path_or_target, allow_probe=False)
 
         if last_line is None:
@@ -184,7 +189,7 @@ def check_source(name: str, check_type: str, path_or_target: str, allow_probe: b
 
     if age > 60 and allow_probe:
         probe_source_if_needed(name)
-        time.sleep(2.5)
+        time.sleep(3.0)
         return check_source(name, check_type, path_or_target, allow_probe=False)
 
     result["age_sec"] = age
