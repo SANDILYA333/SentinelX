@@ -80,6 +80,17 @@ function formatTimestamp(isoString: string): string {
   }
 }
 
+function getSourceTitle(src: SourceHealth): string {
+  if (src.source_tool.toLowerCase() === "zeek") {
+    const tag = `${src.source_key} ${src.relative_path}`.toLowerCase();
+    if (tag.includes("dmz")) return "Zeek — DMZ";
+    if (tag.includes("ot")) return "Zeek — OT";
+    if (tag.includes("it")) return "Zeek — IT";
+    return "Zeek";
+  }
+  return src.source_tool.charAt(0).toUpperCase() + src.source_tool.slice(1);
+}
+
 export default function OverviewPage() {
   const { events, status } = useEventStream();
   const { presenterMode } = useEventStore();
@@ -241,13 +252,13 @@ export default function OverviewPage() {
           {sourcesHealth && sourcesHealth.length > 0 ? (
             sourcesHealth.map((src: SourceHealth) => (
               <Card
-                key={src.source_tool}
+                key={src.source_key}
                 className="border-slate-800 bg-slate-900/50 hover:bg-slate-900/80 transition-colors shadow-xs"
               >
                 <CardHeader className="p-3.5 pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-bold text-slate-200 capitalize">
-                      {src.source_tool}
+                    <CardTitle className="text-sm font-bold text-slate-200">
+                      {getSourceTitle(src)}
                     </CardTitle>
                     {getStatusBadge(src.status)}
                   </div>
