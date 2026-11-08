@@ -101,8 +101,13 @@ class GenericMappingAdapter(BaseAdapter):
                 ctx.ignore_reason = self.last_ignore_reason
                 return None
         else:
+            line_str = line.strip()
+            if not line_str:
+                self.last_ignore_reason = "empty_line"
+                ctx.ignore_reason = self.last_ignore_reason
+                return None
             try:
-                record = json.loads(line)
+                record = json.loads(line_str)
             except Exception as e:
                 raise ValueError(f"Invalid JSON line in generic adapter: {e}") from e
 

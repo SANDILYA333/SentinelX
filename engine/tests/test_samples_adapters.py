@@ -212,3 +212,50 @@ def test_golden_assertions():
     assert found_modbus_write, (
         "Golden assertion failed: Zeek modbus write with is_write=true not found"
     )
+
+
+def test_wazuh_adapter_classify_and_malformed():
+    """Verify WazuhArchivesAdapter classify() and malformed full_log error handling."""
+    adapter = WazuhArchivesAdapter()
+    ctx = SourceContext("wazuh", "wazuh", Path("archives.json"), 0)
+
+    # 1. Valid auth line -> emitted:ssh_login
+    valid_auth = (
+        '{"timestamp":"2026-11-08T02:00:00Z","agent":{"name":"jump-host"},'
+        '"location":"/var/log/auth.log","full_log":"Accepted publickey for svc_backup from 10.10.1.5 port 54321 ssh2"}'
+    )
+    bucket, evs = adapter.classify(valid_auth, ctx)
+    assert bucket == "emitted:ssh_login"
+    assert evs is not None and len(evs) == 1
+
+    # 2. Key check noise -> ignored:sshd_noise
+    noise_auth = (
+        '{"timestamp":"2026-11-08T02:00:00Z","agent":{"name":"jump-host"},'
+        '"location":"/var/log/auth.log","full_log":"Accepted key ED25519 SHA256:abc found at /home/alice/.ssh/authorized_keys:1"}'
+    )
+    bucket, evs = adapter.classify(noise_auth, ctx)
+    assert bucket == "ignored:sshd_noise"
+    assert evs is None
+
+    # 3. Wazuh internal event -> ignored:wazuh_internal
+    internal_line = (
+        '{"timestamp":"2026-11-08T02:00:00Z","agent":{"name":"jump-host"},'
+        '"location":"sca","full_log":"Scanning system"}'
+    )
+    bucket, evs = adapter.classify(internal_line, ctx)
+    assert bucket == "ignored:wazuh_internal"
+    assert evs is None
+
+    # 4. Malformed inner full_log in cmd.jsonl -> unparsed (raises ValueError on parse)
+    malformed_cmd = (
+        '{"timestamp":"2026-11-08T02:00:00Z","agent":{"name":"jump-host"},'
+        '"location":"/var/log/sentinelx/cmd.jsonl","full_log":"{\\"ts\\":\\"2026-11-08T02:00:00Z\\",\\"cmd\\":\\"curl'
+    )
+    bucket, evs = adapter.classify(malformed_cmd, ctx)
+    assert bucket.startswith("unparsed:")
+    assert evs is None
+
+    # 5. Non-JSON archive line -> unparsed
+    bucket, evs = adapter.classify("not a json line", ctx)
+    assert bucket.startswith("unparsed:")
+    assert evs is None

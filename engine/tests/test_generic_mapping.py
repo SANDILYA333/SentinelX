@@ -107,3 +107,32 @@ def test_malformed_rows_resilience():
     assert len(evs) == 1
     assert evs[0].src_ip == "10.10.1.40"
     assert not evs[0].dst_ip
+
+
+def test_windows_security_malformed_fixture_survival():
+    """Verify that ingest-file processing survives malformed rows in windows fixture."""
+    mapping_path = MAPPINGS_DIR / "windows_security.yaml"
+    fixture_path = FIXTURES_DIR / "windows_security_malformed.jsonl"
+    assert fixture_path.exists()
+
+    cfg = GenericMappingConfig.load(mapping_path)
+    adapter = GenericMappingAdapter(cfg)
+    enricher = EventEnricher()
+    ctx = SourceContext("win_sec", "evtx", fixture_path, 0)
+
+    events = []
+    unparsed_count = 0
+
+    with open(fixture_path, "r", encoding="utf-8") as f:
+        for offset, line in enumerate(f):
+            ctx.offset = offset
+            try:
+                evs = adapter.parse(line.strip(), ctx)
+                if evs:
+                    for ev in evs:
+                        events.append(enricher.enrich(ev))
+            except Exception:
+                unparsed_count += 1
+
+    assert len(events) == 7
+    assert unparsed_count == 1

@@ -3,7 +3,8 @@ SHELL := /bin/bash
 .PHONY: help setup api web dev test lint fmt contracts clean \
         lab-build lab-up lab-down lab-reset lab-logs lab-check lab-probe \
         lab-smoke lab-samples plc-reset lab-disk lab-prune \
-        ingest-live ingest-replay ingest-file db-reset
+        ingest-live ingest-replay ingest-file db-reset \
+        benign-run attack-run capture-benign capture-attack captures-all captures-validate
 
 help: ## Show available Makefile commands
 	@echo "Available commands:"
@@ -142,3 +143,29 @@ lab-disk: ## Report disk usage, container writable layers, and enforce 500 MB li
 lab-prune: ## Remove stopped containers and dangling images for this project
 	docker compose -f lab/compose.yml rm -f
 	docker image prune -f
+
+# ==============================================================================
+# Simulation & Capture Targets (Phase 3)
+# ==============================================================================
+benign-run: ## Run benign activity generator (DURATION=seconds, SPEED=compression, SEED=int)
+	uv run python lab/benign/benign_loop.py $$(if [ -n "$(DURATION)" ]; then echo "--duration $(DURATION)"; fi) $$(if [ -n "$(SPEED)" ]; then echo "--sim-speed $(SPEED)"; fi) $$(if [ -n "$(SEED)" ]; then echo "--seed $(SEED)"; fi)
+
+attack-run: ## Run attack scenario (SCENARIO=baseline|reordered|slow_burn, ATTACK_SPEED=float)
+	@if [ -z "$(SCENARIO)" ]; then echo "Error: SCENARIO is required (e.g. make attack-run SCENARIO=baseline)"; exit 1; fi
+	uv run python scripts/attack_runner.py "$(SCENARIO)" $$(if [ -n "$(ATTACK_SPEED)" ]; then echo "--speed $(ATTACK_SPEED)"; fi)
+
+capture-benign: ## Capture a benign day run (SEED=seed, DURATION=seconds)
+	@seed=$${SEED:-42}; \
+	dur=$${DURATION:-60}; \
+	uv run python eval/capture.py --category benign --name "day_$$seed" --seed "$$seed" --duration "$$dur"
+
+capture-attack: ## Capture an attack scenario (SCENARIO=baseline|reordered|slow_burn)
+	@if [ -z "$(SCENARIO)" ]; then echo "Error: SCENARIO is required (e.g. make capture-attack SCENARIO=baseline)"; exit 1; fi; \
+	name=$$(if [ "$(SCENARIO)" = "baseline" ]; then echo "demo_baseline"; else echo "$(SCENARIO)"; fi); \
+	uv run python eval/capture.py --category attack --name "$$name" --scenario "$(SCENARIO)"
+
+captures-all: ## Generate full set of 8 captures (5 benign days + 3 attack scenarios) with disk checks
+	uv run python scripts/generate_all_captures.py
+
+captures-validate: ## Validate all existing captures through Phase 2 replay pipeline
+	uv run python eval/validate_captures.py

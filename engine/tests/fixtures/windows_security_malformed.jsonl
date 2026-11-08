@@ -1,0 +1,9 @@
+{"EventID": 4624, "TimeCreated": "2026-11-07T12:00:00.000Z", "Computer": "WIN-DC01", "TargetUserName": "Administrator", "IpAddress": "10.10.1.5", "IpPort": 49152, "TargetLogonId": "0x3e7", "ExtraUnknownColumn": "irrelevant_value"}
+{"EventID": 4625, "TimeCreated": "2026-11-07T12:01:00.000Z", "Computer": "WIN-DC01", "TargetUserName": "guest", "IpAddress": "10.10.1.5", "IpPort": 49153, "TargetLogonId": "0x0"}
+{"EventID": 4688, "TimeCreated": "2026-11-07T12:02:00.000Z", "Computer": "WIN-DC01", "TargetUserName": "Administrator", "NewProcessName": "powershell.exe", "CommandLine": "powershell.exe -enc SQBY...", "ParentProcessName": "cmd.exe"}
+{"EventID": 4104, "TimeCreated": "2026-11-07T12:03:00.000Z", "Computer": "WIN-DC01", "TargetUserName": "Administrator", "CommandLine": "Write-Host 'Test PowerShell ScriptBlock'"}
+{"EventID": 7045, "TimeCreated": "2026-11-07T12:04:00.000Z", "Computer": "WIN-DC01", "TargetUserName": "SYSTEM", "CommandLine": "C:\\Windows\\System32\\srv.exe", "ServiceName": "BackdoorSvc"}
+{"EventID": 1, "TimeCreated": "2026-11-07T12:05:00.000Z", "Computer": "WIN-WORKSTATION", "TargetUserName": "bob", "NewProcessName": "whoami.exe", "CommandLine": "whoami /all", "ParentProcessName": "explorer.exe"}
+{"EventID": 3, "TimeCreated": "2026-11-07T12:06:00.000Z", "Computer": "WIN-WORKSTATION", "TargetUserName": "bob", "IpAddress": "10.10.1.30", "IpPort": 3389, "Protocol": "tcp"}
+{"EventID": 9999, "TimeCreated": "MALFORMED_ROW_MISSING_QUOTES: true, unterminated...
+

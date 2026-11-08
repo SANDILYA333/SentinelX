@@ -1,0 +1,72 @@
+# SentinelX Benign Traffic Generator Configuration
+sim_speed: 96  # Default: 24h simulated in 15 real minutes (96x compression)
+
+# Diurnal hourly activity weights (0-23 hours)
+# Lower weight = longer delays between actions (night/lunch)
+diurnal_weights:
+  0: 0.15
+  1: 0.15
+  2: 0.15   # Maintenance window begins
+  3: 0.15   # Maintenance window active
+  4: 0.20
+  5: 0.25
+  6: 0.40
+  7: 0.70   # Morning ramp
+  8: 0.90
+  9: 1.00   # Morning peak
+  10: 1.00
+  11: 0.90
+  12: 0.50  # Lunch dip
+  13: 0.60
+  14: 0.95  # Afternoon peak
+  15: 1.00
+  16: 0.90
+  17: 0.75
+  18: 0.50  # Evening wind-down
+  19: 0.35
+  20: 0.25
+  21: 0.20
+  22: 0.20
+  23: 0.15
+
+# OT Change-Control Maintenance Window (simulated hours)
+# Pump speed writes ONLY occur during these simulated hours
+maintenance_window:
+  start_hour: 2
+  end_hour: 4
+  min_pump_speed: 48
+  max_pump_speed: 62
+
+# Target host addresses (Strict: NO DECOYS)
+targets:
+  jump_host: "10.10.1.10"
+  file_srv: "10.10.1.20"
+  db_srv: "10.10.1.30"
+  eng_ws: "10.10.1.40"
+  plc_sim: "10.10.3.20"
+
+# Explicitly forbidden decoy hosts (Guard Check)
+forbidden_decoys:
+  - "10.10.2.20"  # Cowrie
+  - "10.10.2.30"  # OpenCanary
+  - "10.10.3.60"  # Decoy PLC
+
+# Actor parameters & action pools
+actors:
+  alice:
+    enabled: true
+    interval_range: [15, 30]  # Base seconds between actions
+  bob:
+    enabled: true
+    interval_range: [25, 45]
+  eng1:
+    enabled: true
+    read_interval: 10          # Seconds between Modbus reads
+  svc_backup:
+    enabled: true
+    interval_range: [40, 70]   # Periodic cron-style backup check
+
+noise:
+  alice_failed_login_prob: 0.05
+  disconnect_prob: 0.04
+

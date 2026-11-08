@@ -249,7 +249,8 @@ services:
     environment:
       - WAZUH_REGISTRATION_PASSWORD=${WAZUH_REGISTRATION_PASSWORD:-SentinelXRegistrationPass2026!}
     volumes:
-      - ./hosts/benign_loop.py:/usr/local/bin/benign_loop.py:ro
+      - ./benign/benign_loop.py:/usr/local/bin/benign_loop.py:ro
+      - ./benign/config.yaml:/etc/sentinelx/config.yaml:ro
     depends_on:
       file-srv:
         condition: service_healthy

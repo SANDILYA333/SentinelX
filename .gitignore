@@ -44,7 +44,9 @@ data/
 *.db
 *.db-wal
 *.db-shm
-!eval/captures/samples/
+eval/captures/*/*/*
+!eval/captures/samples/**
+!eval/captures/**/manifest.json
 .env
 .env.local
 lab/.env

@@ -41,10 +41,8 @@ class WazuhArchivesAdapter(BaseAdapter):
         self.last_ignore_reason = None
         try:
             record: dict[str, Any] = json.loads(line)
-        except Exception:
-            self.last_ignore_reason = "json_decode_error"
-            ctx.ignore_reason = self.last_ignore_reason
-            return None
+        except Exception as exc:
+            raise ValueError(f"json_decode_error: {exc}") from exc
 
         # Check if direct cmd.jsonl format
         if "cmd" in record and ("mode" in record or "cwd" in record):
@@ -67,6 +65,33 @@ class WazuhArchivesAdapter(BaseAdapter):
             self.last_ignore_reason = reason
             ctx.ignore_reason = reason
             return None
+
+    def classify(
+        self, line: str, ctx: SourceContext | None = None
+    ) -> tuple[str, list[Event] | None]:
+        """Classify input line into emitted:<action>, ignored:<reason>, or unparsed:<reason>."""
+        from pathlib import Path
+
+        if ctx is None:
+            ctx = SourceContext(
+                source_key="wazuh",
+                source_tool="wazuh",
+                file_path=Path("archives.json"),
+                offset=0,
+            )
+        try:
+            events = self.parse(line, ctx)
+        except Exception as exc:
+            return f"unparsed:{exc}", None
+
+        if events:
+            action = events[0].action
+            return f"emitted:{action}", events
+
+        reason = self.last_ignore_reason or ctx.ignore_reason or "ignored"
+        if "unparsed" in reason or "error" in reason:
+            return f"unparsed:{reason}", None
+        return f"ignored:{reason}", None
 
     def _parse_auth_log(
         self, record: dict[str, Any], ctx: SourceContext, host_name: str | None
@@ -225,10 +250,8 @@ class WazuhArchivesAdapter(BaseAdapter):
 
         try:
             inner = json.loads(full_log)
-        except Exception:
-            self.last_ignore_reason = "invalid_inner_json"
-            ctx.ignore_reason = self.last_ignore_reason
-            return None
+        except Exception as exc:
+            raise ValueError(f"malformed_cmd_full_log: {exc}") from exc
 
         event_time = parse_utc_timestamp(inner.get("ts") or record.get("timestamp"))
         ingested_at = parse_utc_timestamp(record.get("timestamp"))

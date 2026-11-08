@@ -1,0 +1,68 @@
+name: baseline
+description: "Standard cyber-physical kill chain demo paced to ~90s: initial access -> discovery -> credential theft -> decoy pivot -> lateral movement -> OT manipulation -> exfil & restore."
+target_duration_seconds: 90
+
+steps:
+  - id: step_1
+    name: "Initial Access via Stolen Jump-Host Credentials"
+    technique: "T1078.003"
+    actor: "attacker"
+    host: "jump-host"
+    action: "ssh_jump_login"
+    target: "10.10.1.10"
+    pacing_delay: [2.0, 4.0]
+
+  - id: step_2
+    name: "IT Subnet Network Service Discovery"
+    technique: "T1046"
+    actor: "attacker"
+    host: "jump-host"
+    action: "network_discovery"
+    target: "10.10.1.0/24"
+    pacing_delay: [4.0, 6.0]
+
+  - id: step_3
+    name: "Credential Harvesting from Backup Share"
+    technique: "T1552.001"
+    actor: "attacker"
+    host: "file-srv"
+    action: "credential_theft"
+    target: "10.10.1.20"
+    pacing_delay: [3.0, 5.0]
+
+  - id: step_4
+    name: "Lateral Decoy Pivot via Harvested Honey Credentials"
+    technique: "T1021.004"
+    actor: "attacker"
+    host: "cowrie,opencanary"
+    action: "decoy_pivot"
+    target: "10.10.2.20,10.10.2.30"
+    pacing_delay: [5.0, 8.0]
+
+  - id: step_5
+    name: "Lateral Movement to Engineering Workstation"
+    technique: "T1021.004"
+    actor: "attacker"
+    host: "eng-ws"
+    action: "lateral_movement"
+    target: "10.10.1.40"
+    pacing_delay: [4.0, 6.0]
+
+  - id: step_6
+    name: "Unauthorized OT Modbus Physical Manipulation"
+    technique: "T0855"
+    actor: "attacker"
+    host: "plc-sim"
+    action: "ot_manipulation"
+    target: "10.10.3.20"
+    pacing_delay: [15.0, 20.0]
+
+  - id: step_7
+    name: "OT Decoy Reconnaissance & Process Restoration"
+    technique: "T0846"
+    actor: "attacker"
+    host: "decoy-plc,plc-sim"
+    action: "ot_discovery_and_restore"
+    target: "10.10.3.60,10.10.3.20"
+    pacing_delay: [20.0, 25.0]
+
