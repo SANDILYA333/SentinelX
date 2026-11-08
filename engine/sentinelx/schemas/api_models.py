@@ -1,5 +1,7 @@
 """API response models for extended read-only frontend data contracts."""
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -81,3 +83,8 @@ class EvalSummaryResponse(BaseModel):
     guard_ot_interlock: str = "100% Deterministic"
     evaluated_at: str
     threshold: float = 0.50
+    headline: dict[str, Any] | None = None
+    ablation: list[dict[str, Any]] | None = None
+    threshold_curve: list[dict[str, Any]] | None = None
+    detector_ranking: list[dict[str, Any]] | None = None
+    organizer_test: dict[str, Any] | None = None

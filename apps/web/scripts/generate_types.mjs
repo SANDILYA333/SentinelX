@@ -60,6 +60,12 @@ async function main() {
     "$1string[];"
   );
 
+  outputTs += 'export type SourceStatus = "live" | "idle" | "stale" | "error";\n\n';
+  outputTs = outputTs.replace(
+    /(export interface SourceHealth\s*\{[\s\S]*?status:\s*)Status;/m,
+    "$1SourceStatus;"
+  );
+
   fs.mkdirSync(path.dirname(tsOutFile), { recursive: true });
   fs.writeFileSync(tsOutFile, outputTs.trim() + "\n", "utf-8");
   console.log(`Generated TypeScript contracts: ${tsOutFile}`);

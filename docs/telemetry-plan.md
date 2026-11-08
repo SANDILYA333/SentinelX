@@ -46,7 +46,7 @@ All operations are executed via genuine SSH sessions with real keys and credenti
 
 ## 2. Attack Scenario Catalog
 
-All attack scenarios are expressed declaratively in `content/scenarios/` and executed uniformly by [`engine/sentinelx/attack/runner.py`](file:///home/kafka/innovasia/SentinelX/engine/sentinelx/attack/runner.py).
+All attack scenarios are expressed declaratively in `content/scenarios/` and executed uniformly by `engine/sentinelx/attack/runner.py`.
 
 ### 2.1 `baseline.yaml` (Live Demo Scenario, ~90s)
 | Step | Name | ATT&CK ID | Actor / Host | Action | Target | Delay |
@@ -70,8 +70,8 @@ Uses identical underlying attack actions but dilates inter-step intervals (15–
 
 ## 3. Capture Tooling & Validation
 
-- [`eval/capture.py`](file:///home/kafka/innovasia/SentinelX/eval/capture.py): Orchestrates preflight disk checks (>= 15 GB free), clean lab reset (`make lab-reset`), background benign generation, attack scenario execution, log snapshotting, SHA-256 integrity calculation, and `manifest.json` generation.
-- [`eval/validate_captures.py`](file:///home/kafka/innovasia/SentinelX/eval/validate_captures.py): Replays capture directories into isolated scratch databases and enforces strict semantic contracts:
+- `eval/capture.py`: Orchestrates preflight disk checks (>= 15 GB free), clean lab reset (`make lab-reset`), background benign generation, attack scenario execution, log snapshotting, SHA-256 integrity calculation, and `manifest.json` generation.
+- `eval/validate_captures.py`: Replays capture directories into isolated scratch databases and enforces strict semantic contracts:
   - **Benign**: Exactly 0 decoy domain events, 0 `honey_user` tags, 0 `honey_file` tags.
   - **Attack**: >= 1 `honey_user`, >= 1 `ot.is_write=true`, >= 1 `cross_zone` tag, and verifiable log evidence for all scenario steps.
 

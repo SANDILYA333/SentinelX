@@ -12,8 +12,18 @@ import type {
   TelemetryStats,
 } from "@contracts/index";
 
+export function getApiBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  if (typeof window !== "undefined" && window.location.hostname) {
+    return `${window.location.protocol}//${window.location.hostname}:8000`;
+  }
+  return "http://127.0.0.1:8000";
+}
+
 export const API_BASE_URL: string =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 export interface HealthResponse {
   status: string;
@@ -22,7 +32,7 @@ export interface HealthResponse {
 }
 
 export async function fetchHealth(): Promise<HealthResponse> {
-  const res = await fetch(`${API_BASE_URL}/health`, {
+  const res = await fetch(`${getApiBaseUrl()}/health`, {
     headers: { "Content-Type": "application/json" },
   });
   if (!res.ok) {
@@ -44,7 +54,7 @@ export interface EventQueryParams {
 }
 
 export async function fetchEvents(params?: number | EventQueryParams): Promise<Event[]> {
-  const url = new URL(`${API_BASE_URL}/api/v1/events`);
+  const url = new URL(`${getApiBaseUrl()}/api/v1/events`);
   if (typeof params === "number") {
     url.searchParams.set("limit", params.toString());
   } else if (params) {
@@ -69,7 +79,7 @@ export async function fetchEvents(params?: number | EventQueryParams): Promise<E
 }
 
 export async function fetchEventById(eventId: string): Promise<Event> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/events/${encodeURIComponent(eventId)}`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/events/${encodeURIComponent(eventId)}`, {
     headers: { "Content-Type": "application/json" },
   });
   if (!res.ok) {
@@ -88,7 +98,7 @@ export interface SignalQueryParams {
 }
 
 export async function fetchSignals(params?: number | SignalQueryParams): Promise<Signal[]> {
-  const url = new URL(`${API_BASE_URL}/api/v1/signals`);
+  const url = new URL(`${getApiBaseUrl()}/api/v1/signals`);
   if (typeof params === "number") {
     url.searchParams.set("limit", params.toString());
   } else if (params) {
@@ -116,7 +126,7 @@ export interface SignalWithEvidence extends Signal {
 }
 
 export async function fetchSignalById(signalId: string): Promise<SignalWithEvidence> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/signals/${encodeURIComponent(signalId)}`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/signals/${encodeURIComponent(signalId)}`, {
     headers: { "Content-Type": "application/json" },
   });
   if (!res.ok) {
@@ -126,7 +136,7 @@ export async function fetchSignalById(signalId: string): Promise<SignalWithEvide
 }
 
 export async function fetchSourcesHealth(): Promise<SourceHealth[]> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/sources/health`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/sources/health`, {
     headers: { "Content-Type": "application/json" },
   });
   if (!res.ok) {
@@ -136,7 +146,7 @@ export async function fetchSourcesHealth(): Promise<SourceHealth[]> {
 }
 
 export async function fetchStats(windowSeconds: number = 300): Promise<TelemetryStats> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/stats?window_seconds=${windowSeconds}`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/stats?window_seconds=${windowSeconds}`, {
     headers: { "Content-Type": "application/json" },
   });
   if (!res.ok) {
@@ -146,7 +156,7 @@ export async function fetchStats(windowSeconds: number = 300): Promise<Telemetry
 }
 
 export async function emitTestEvent(): Promise<Event> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/dev/emit-test-event`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/dev/emit-test-event`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
   });
@@ -169,7 +179,7 @@ export interface IncidentWithEvidence extends Incident {
 }
 
 export async function fetchIncidents(params?: IncidentQueryParams): Promise<Incident[]> {
-  const url = new URL(`${API_BASE_URL}/api/v1/incidents`);
+  const url = new URL(`${getApiBaseUrl()}/api/v1/incidents`);
   if (params) {
     if (params.status) url.searchParams.set("status", params.status);
     if (params.min_score !== undefined) url.searchParams.set("min_score", params.min_score.toString());
@@ -187,7 +197,7 @@ export async function fetchIncidents(params?: IncidentQueryParams): Promise<Inci
 }
 
 export async function fetchIncidentById(incidentId: string): Promise<IncidentWithEvidence> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/incidents/${encodeURIComponent(incidentId)}`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/incidents/${encodeURIComponent(incidentId)}`, {
     headers: { "Content-Type": "application/json" },
   });
   if (!res.ok) {
@@ -202,8 +212,8 @@ export async function evaluateGuardAction(
   incidentId?: string,
 ): Promise<GuardDecision> {
   const url = incidentId
-    ? `${API_BASE_URL}/api/v1/incidents/${encodeURIComponent(incidentId)}/guard-action`
-    : `${API_BASE_URL}/api/v1/guard/evaluate`;
+    ? `${getApiBaseUrl()}/api/v1/incidents/${encodeURIComponent(incidentId)}/guard-action`
+    : `${getApiBaseUrl()}/api/v1/guard/evaluate`;
 
   const res = await fetch(url, {
     method: "POST",
@@ -217,7 +227,7 @@ export async function evaluateGuardAction(
 }
 
 export async function fetchGuardDecisions(limit: number = 20): Promise<GuardDecision[]> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/guard/decisions?limit=${limit}`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/guard/decisions?limit=${limit}`, {
     headers: { "Content-Type": "application/json" },
   });
   if (!res.ok) {
@@ -227,7 +237,7 @@ export async function fetchGuardDecisions(limit: number = 20): Promise<GuardDeci
 }
 
 export async function fetchBudget(): Promise<BudgetStatusResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/budget`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/budget`, {
     headers: { "Content-Type": "application/json" },
   });
   if (!res.ok) {
@@ -237,7 +247,7 @@ export async function fetchBudget(): Promise<BudgetStatusResponse> {
 }
 
 export async function setBudgetThreshold(threshold: number): Promise<BudgetStatusResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/budget`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/budget`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ threshold }),
@@ -249,7 +259,7 @@ export async function setBudgetThreshold(threshold: number): Promise<BudgetStatu
 }
 
 export async function fetchAssets(): Promise<AssetResponse[]> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/assets`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/assets`, {
     headers: { "Content-Type": "application/json" },
   });
   if (!res.ok) {
@@ -259,7 +269,7 @@ export async function fetchAssets(): Promise<AssetResponse[]> {
 }
 
 export async function fetchMitreTechniques(): Promise<Technique[]> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/mitre/techniques`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/mitre/techniques`, {
     headers: { "Content-Type": "application/json" },
   });
   if (!res.ok) {
@@ -269,7 +279,7 @@ export async function fetchMitreTechniques(): Promise<Technique[]> {
 }
 
 export async function fetchSystemStatus(): Promise<SystemStatusResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/status`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/status`, {
     headers: { "Content-Type": "application/json" },
   });
   if (!res.ok) {
@@ -279,7 +289,7 @@ export async function fetchSystemStatus(): Promise<SystemStatusResponse> {
 }
 
 export async function fetchEvalSummary(): Promise<EvalSummaryResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/v1/eval/summary`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/eval/summary`, {
     headers: { "Content-Type": "application/json" },
   });
   if (!res.ok) {

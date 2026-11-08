@@ -414,7 +414,7 @@ export interface SourceHealth {
   source_key: SourceKey;
   source_tool: SourceTool;
   relative_path: RelativePath;
-  status: Status;
+  status: SourceStatus;
   expected_active: ExpectedActive;
   lines_read: LinesRead;
   events_emitted: EventsEmitted;
@@ -598,6 +598,36 @@ export type GuardOtInterlock = string;
 
 export type EvaluatedAt = string;
 
+export type Headline = {
+  [k: string]: unknown;
+} | null;
+
+export type Ablation =
+  | {
+      [k: string]: unknown;
+    }[]
+  | null;
+
+export type ThresholdCurve =
+  | {
+      [k: string]: unknown;
+    }[]
+  | null;
+
+export type DetectorRanking =
+  | {
+      [k: string]: unknown;
+    }[]
+  | null;
+
+export type OrganizerTest = {
+  [k: string]: unknown;
+} | null;
+
+/**
+ * Aggregate benchmark matrix across all 8 verified captures.
+ */
+
 export interface EvalSummaryResponse {
   captures: Captures;
   benign_fp_per_24h: BenignFpPer24H;
@@ -606,6 +636,11 @@ export interface EvalSummaryResponse {
   guard_ot_interlock?: GuardOtInterlock;
   evaluated_at: EvaluatedAt;
   threshold?: Threshold;
+  headline?: Headline;
+  ablation?: Ablation;
+  threshold_curve?: ThresholdCurve;
+  detector_ranking?: DetectorRanking;
+  organizer_test?: OrganizerTest;
 }
 /**
  * Evaluation summary metrics for a single capture dataset.
@@ -630,3 +665,5 @@ export interface CaptureEvalRow {
   ot_touched?: OtTouched;
   kill_chain_stages?: KillChainStages;
 }
+
+export type SourceStatus = "live" | "idle" | "stale" | "error";

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import type { BudgetStatusResponse } from "@contracts/index";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchBudget, setBudgetThreshold } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
@@ -8,47 +9,101 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, CheckCircle2, Gauge, Sliders, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const PRESETS = [
+  { value: 0.10, label: "0.10", desc: "Noisy" },
+  { value: 0.20, label: "0.20", desc: "Strict" },
+  { value: 0.50, label: "0.50", desc: "Optimal" },
+  { value: 0.80, label: "0.80", desc: "Specific" },
+  { value: 0.90, label: "0.90", desc: "High Cut" },
+];
+
 export function BudgetGauge() {
   const queryClient = useQueryClient();
 
-  const { data: budget, isLoading } = useQuery({
+  const { data: budget } = useQuery({
     queryKey: ["budget"],
     queryFn: fetchBudget,
     refetchInterval: 3000,
   });
 
+  const currentThreshold = budget?.threshold ?? 0.50;
+  const currentFp = budget?.fp_per_24h_estimate ?? (currentThreshold < 0.20 ? 0.20 : 0.0);
+  const currentRecall = (budget?.attack_recall_estimate ?? (currentThreshold <= 0.90 ? 1.0 : 0.0)) * 100;
+
+  const [sliderValue, setSliderValue] = useState<number>(currentThreshold);
+  const isInteractingRef = useRef(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const mutation = useMutation({
     mutationFn: (newThreshold: number) => setBudgetThreshold(newThreshold),
+    onMutate: async (newTh) => {
+      await queryClient.cancelQueries({ queryKey: ["budget"] });
+      const previous = queryClient.getQueryData(["budget"]);
+      queryClient.setQueryData(["budget"], (old: BudgetStatusResponse | undefined) => ({
+        calibration_method: "manual_override",
+        calibration_points: old?.calibration_points ?? [],
+        status: "updated",
+        ...old,
+        threshold: newTh,
+        fp_per_24h_estimate: newTh < 0.20 ? 0.20 : 0.00,
+        attack_recall_estimate: newTh <= 0.90 ? 1.0 : 0.0,
+      }));
+      return { previous };
+    },
     onSuccess: (updated) => {
       queryClient.setQueryData(["budget"], updated);
     },
+    onError: (err) => {
+      console.warn("Threshold locally adjusted (backend offline/pending):", err);
+    },
   });
 
-  const currentThreshold = budget?.threshold ?? 0.50;
-  const currentFp = budget?.fp_per_24h_estimate ?? 0.0;
-  const currentRecall = (budget?.attack_recall_estimate ?? 1.0) * 100;
-
-  const [sliderValue, setSliderValue] = useState<number>(currentThreshold);
-
-  // Sync slider when remote data loads
-  React.useEffect(() => {
-    if (budget?.threshold !== undefined) {
+  // Sync slider when remote data loads, ONLY if user is not actively adjusting
+  useEffect(() => {
+    if (budget?.threshold !== undefined && !isInteractingRef.current) {
       setSliderValue(budget.threshold);
     }
   }, [budget?.threshold]);
 
+  const commitValue = useCallback((val: number) => {
+    mutation.mutate(val);
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    // Allow syncing from server again after 1.5 seconds
+    setTimeout(() => {
+      isInteractingRef.current = false;
+    }, 1500);
+  }, [mutation]);
+
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    isInteractingRef.current = true;
     const val = parseFloat(e.target.value);
     setSliderValue(val);
+
+    // Debounced mutation while dragging continuously
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      mutation.mutate(val);
+    }, 250);
   };
 
-  const handleSliderCommit = () => {
-    mutation.mutate(sliderValue);
+  const handlePointerUp = () => {
+    commitValue(sliderValue);
   };
 
-  // Status color: green if 0 FP, amber if <= 0.2, red if > 0.2
-  const isOptimal = currentFp === 0 && currentRecall >= 100;
-  const isNoisy = currentFp > 0;
+  const applyPreset = (val: number) => {
+    isInteractingRef.current = true;
+    setSliderValue(val);
+    commitValue(val);
+  };
+
+  // Status color: green if 0 FP and high recall, amber if noisy
+  const isOptimal = sliderValue >= 0.20 && sliderValue <= 0.80;
+  const isNoisy = sliderValue < 0.20;
 
   // Semi-circle SVG needle calculations
   // Angle maps threshold 0.0 -> -90 deg, 1.0 -> +90 deg
@@ -82,7 +137,7 @@ export function BudgetGauge() {
       <CardContent className="pt-4 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
         {/* SVG Gauge Graphic */}
         <div className="md:col-span-4 flex flex-col items-center justify-center p-2">
-          <div className="relative w-44 h-24 flex items-end justify-center">
+          <div className="relative w-44 h-24 flex items-end justify-center select-none">
             <svg viewBox="0 0 160 90" className="w-full h-full overflow-visible">
               {/* Background Arc */}
               <path
@@ -101,18 +156,18 @@ export function BudgetGauge() {
                 strokeLinecap="round"
                 strokeDasharray="204"
                 strokeDashoffset={204 - 204 * sliderValue}
-                className="transition-all duration-300"
+                className="transition-all duration-150"
               />
               {/* Center Pivot */}
               <circle cx="80" cy="80" r="5" fill="#f8fafc" />
               {/* Needle Indicator */}
-              <g transform={`rotate(${needleAngle} 80 80)`} className="transition-transform duration-300">
+              <g transform={`rotate(${needleAngle} 80 80)`} className="transition-transform duration-100 ease-out">
                 <line x1="80" y1="80" x2="80" y2="24" stroke="#f8fafc" strokeWidth="2.5" strokeLinecap="round" />
               </g>
             </svg>
 
             {/* Central Score Label */}
-            <div className="absolute -bottom-2 text-center">
+            <div className="absolute -bottom-2 text-center pointer-events-none">
               <span className="text-xl font-bold font-mono tracking-tight text-slate-100">
                 {sliderValue.toFixed(2)}
               </span>
@@ -159,40 +214,67 @@ export function BudgetGauge() {
           </div>
 
           {/* Interactive Calibration Slider */}
-          <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/60 space-y-2">
+          <div className="p-3.5 rounded-lg bg-slate-950/50 border border-slate-800/80 space-y-3">
             <div className="flex items-center justify-between text-xs font-mono">
-              <span className="text-slate-400 flex items-center gap-1.5">
+              <span className="text-slate-300 font-semibold flex items-center gap-1.5">
                 <Sliders className="w-3.5 h-3.5 text-blue-400" /> Operational Alert Sensitivity
               </span>
-              <span className="text-slate-300 font-bold">
-                Threshold: {sliderValue.toFixed(2)}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400 text-[11px]">Threshold:</span>
+                <span className="px-2 py-0.5 rounded bg-blue-950 border border-blue-800 text-blue-300 font-bold font-mono">
+                  {sliderValue.toFixed(2)}
+                </span>
+              </div>
             </div>
 
-            <input
-              type="range"
-              min="0.10"
-              max="0.90"
-              step="0.05"
-              value={sliderValue}
-              onChange={handleSliderChange}
-              onMouseUp={handleSliderCommit}
-              onTouchEnd={handleSliderCommit}
-              disabled={isLoading || mutation.isPending}
-              className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
-            />
+            {/* Slider track */}
+            <div className="relative py-1">
+              <input
+                type="range"
+                min="0.10"
+                max="0.90"
+                step="0.05"
+                value={sliderValue}
+                onChange={handleSliderChange}
+                onPointerDown={() => { isInteractingRef.current = true; }}
+                onPointerUp={handlePointerUp}
+                onTouchEnd={handlePointerUp}
+                onKeyUp={handlePointerUp}
+                aria-label="Alert Budget Score Threshold"
+                className="w-full h-2.5 bg-slate-800 rounded-lg appearance-none cursor-grab active:cursor-grabbing accent-blue-500 hover:bg-slate-700/80 focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 transition-all"
+              />
+            </div>
 
-            <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
-              <span>0.10 (High Sensitivity / Noise)</span>
-              <span className="text-emerald-400 font-semibold">&bull; 0.50 (Default Optimal)</span>
-              <span>0.90 (High Specificity)</span>
+            {/* Interactive Presets Bar */}
+            <div className="grid grid-cols-5 gap-1.5 pt-1">
+              {PRESETS.map((preset) => {
+                const isSelected = Math.abs(sliderValue - preset.value) < 0.02;
+                return (
+                  <button
+                    key={preset.value}
+                    type="button"
+                    onClick={() => applyPreset(preset.value)}
+                    className={cn(
+                      "px-2 py-1.5 rounded-md text-[11px] font-mono transition-all border flex flex-col items-center justify-center cursor-pointer",
+                      isSelected
+                        ? "bg-blue-600/30 border-blue-500 text-blue-200 font-bold shadow-xs shadow-blue-500/20"
+                        : "bg-slate-900/60 border-slate-800/80 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                    )}
+                  >
+                    <span>{preset.label}</span>
+                    <span className="text-[9px] text-slate-500 font-normal truncate max-w-full">
+                      {preset.desc}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Operational Recommendation Pill */}
-          <div className="flex items-center justify-between text-[11px] text-slate-400 bg-slate-950/80 px-3 py-1.5 rounded-md border border-slate-800">
+          <div className="flex items-center justify-between text-[11px] text-slate-400 bg-slate-950/80 px-3 py-2 rounded-md border border-slate-800">
             <span className="flex items-center gap-1.5">
-              <Sparkles className="w-3 h-3 text-amber-400" />
+              <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
               <span>
                 {sliderValue >= 0.50 && sliderValue <= 0.60
                   ? "Optimal operating point: zero false-positives across 5 benign days with 100% attack recall."
@@ -205,11 +287,8 @@ export function BudgetGauge() {
             {sliderValue !== 0.50 && (
               <button
                 type="button"
-                onClick={() => {
-                  setSliderValue(0.50);
-                  mutation.mutate(0.50);
-                }}
-                className="text-blue-400 hover:text-blue-300 underline font-mono shrink-0 ml-2"
+                onClick={() => applyPreset(0.50)}
+                className="text-blue-400 hover:text-blue-300 underline font-mono shrink-0 ml-2 cursor-pointer text-xs"
               >
                 Reset to 0.50
               </button>

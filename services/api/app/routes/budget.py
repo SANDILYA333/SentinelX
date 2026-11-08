@@ -95,6 +95,7 @@ async def get_budget_status(
 
 
 @router.post("", response_model=BudgetStatusResponse)
+@router.put("", response_model=BudgetStatusResponse)
 async def set_budget_threshold(
     payload: SetBudgetThresholdRequest,
     db: Annotated[sqlite3.Connection, Depends(get_db)],

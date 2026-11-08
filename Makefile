@@ -7,7 +7,8 @@ SHELL := /bin/bash
         benign-run attack-run capture-benign capture-attack captures-all captures-validate \
         train-baselines detect-replay detector-eval \
         guard-eval budget-calibrate incident-eval detect-correlate-replay \
-        demo-preflight demo-reset demo-attack
+        demo-preflight demo-reset demo-attack \
+        ablation metrics organizer-test eval-full
 
 help: ## Show available Makefile commands
 	@echo "Available commands:"
@@ -18,7 +19,7 @@ setup: ## Install backend (uv sync) and frontend (pnpm install) dependencies
 	if [ -d "apps/web" ] && [ -f "apps/web/package.json" ]; then cd apps/web && pnpm install; fi
 
 api: ## Run FastAPI backend with auto-reload on port 8000
-	uv run uvicorn app.main:app --reload --port 8000 --app-dir services/api
+	uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --app-dir services/api
 
 web: ## Run Next.js frontend dev server on port 3000
 	cd apps/web && pnpm dev --port 3000
@@ -58,12 +59,12 @@ db-reset: ## Wipe and re-initialize SentinelX SQLite database and checkpoints
 	uv run python -c "from sentinelx.store.sqlite import init_db; init_db('data/sentinelx.db')"
 
 ingest-live: ## Start SentinelX API with live telemetry ingestion from data/logs
-	SENTINELX_INGEST_MODE=live uv run uvicorn app.main:app --reload --port 8000 --app-dir services/api
+	SENTINELX_INGEST_MODE=live uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --app-dir services/api
 
 DIR ?= data/logs
 SPEED ?= 50
 ingest-replay: ## Replay telemetry from DIR at SPEED factor (default 50x)
-	SENTINELX_INGEST_MODE=replay SENTINELX_LOG_ROOT=$(DIR) SENTINELX_REPLAY_SPEED=$(SPEED) uv run uvicorn app.main:app --reload --port 8000 --app-dir services/api
+	SENTINELX_INGEST_MODE=replay SENTINELX_LOG_ROOT=$(DIR) SENTINELX_REPLAY_SPEED=$(SPEED) uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --app-dir services/api
 
 ingest-file: ## Ingest a JSON or CSV file using a YAML mapping (FILE=... MAPPING=...)
 	uv run python scripts/ingest_file.py "$(FILE)" "$(MAPPING)"
@@ -213,3 +214,18 @@ demo-reset: ## Reset DB and PLC to fresh clean baseline state for demo
 
 demo-attack: ## Trigger live paced baseline attack scenario (demo_baseline)
 	uv run python scripts/attack_runner.py baseline
+
+# ==============================================================================
+# Comprehensive Evaluation & Scorecard Targets (Phase 7)
+# ==============================================================================
+ablation: ## Run 4-configuration detector ablation study across all 8 captures
+	uv run python eval/ablation.py
+
+metrics: ## Run LOO precision, recall, F1, and threshold sensitivity evaluation
+	uv run python eval/metrics.py
+
+organizer-test: ## Run robustness test against unfamiliar Windows EVTX enterprise log
+	uv run python eval/organizer_test.py
+
+eval-full: ## Run unified Phase 7 master evaluation suite and regenerate scorecard.md
+	uv run python eval/eval_full.py

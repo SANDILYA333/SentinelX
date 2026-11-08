@@ -26,7 +26,7 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { presenterMode, togglePresenterMode } = useEventStore();
+  const { presenterMode, togglePresenterMode, status } = useEventStore();
 
   return (
     <aside className="w-64 border-r border-slate-800 bg-slate-950/80 flex flex-col shrink-0 min-h-screen">
@@ -99,7 +99,24 @@ export function Sidebar() {
 
         <div className="flex items-center justify-between">
           <span>Engine Pipeline</span>
-          <span className="text-emerald-400 font-mono text-[11px]">Online</span>
+          {status === "open" && (
+            <span className="text-emerald-400 font-mono text-[11px] flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              Online
+            </span>
+          )}
+          {status === "connecting" && (
+            <span className="text-amber-400 font-mono text-[11px] flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+              Connecting
+            </span>
+          )}
+          {status === "closed" && (
+            <span className="text-slate-400 font-mono text-[11px] flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+              Offline
+            </span>
+          )}
         </div>
         <div className="text-[11px] text-slate-500">Autonomous IT/OT Defense</div>
       </div>
