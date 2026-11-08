@@ -1,0 +1,59 @@
+{
+  "description": "Platform system status, telemetry pipeline mode, and live counts.",
+  "properties": {
+    "status": {
+      "title": "Status",
+      "type": "string"
+    },
+    "env": {
+      "title": "Env",
+      "type": "string"
+    },
+    "ingest_mode": {
+      "title": "Ingest Mode",
+      "type": "string"
+    },
+    "replay_speed": {
+      "title": "Replay Speed",
+      "type": "string"
+    },
+    "ingest_running": {
+      "title": "Ingest Running",
+      "type": "boolean"
+    },
+    "db_connected": {
+      "title": "Db Connected",
+      "type": "boolean"
+    },
+    "events_count": {
+      "title": "Events Count",
+      "type": "integer"
+    },
+    "signals_count": {
+      "title": "Signals Count",
+      "type": "integer"
+    },
+    "incidents_count": {
+      "title": "Incidents Count",
+      "type": "integer"
+    },
+    "budget_threshold": {
+      "title": "Budget Threshold",
+      "type": "number"
+    }
+  },
+  "required": [
+    "status",
+    "env",
+    "ingest_mode",
+    "replay_speed",
+    "ingest_running",
+    "db_connected",
+    "events_count",
+    "signals_count",
+    "incidents_count",
+    "budget_threshold"
+  ],
+  "title": "SystemStatusResponse",
+  "type": "object"
+}

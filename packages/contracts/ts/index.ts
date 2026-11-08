@@ -460,3 +460,116 @@ export interface ByCategory {
 export interface ByDomain {
   [k: string]: number;
 }
+
+export type Hostname = string | null;
+
+export type Role = string;
+
+export type Zone = string;
+
+export type IsDecoy = boolean;
+
+export type ProcessCritical = boolean;
+
+export type Criticality = string;
+
+export type AllowedOtWriters = string[];
+
+/**
+ * Network, computing, or industrial asset representation.
+ */
+
+export interface AssetResponse {
+  name: Name;
+  hostname?: Hostname;
+  role: Role;
+  zone: Zone;
+  ips?: Ips;
+  is_decoy?: IsDecoy;
+  process_critical?: ProcessCritical;
+  criticality: Criticality;
+  allowed_ot_writers?: AllowedOtWriters;
+}
+
+export interface Ips {
+  [k: string]: string;
+}
+
+export type Threshold = number;
+
+export type FpPer24HEstimate = number;
+
+export type AttackRecallEstimate = number;
+
+export type CalibrationMethod = string;
+
+export type Threshold1 = number;
+
+export type FpPer24H = number;
+
+export type Recall = number;
+
+export type Recommendation = string;
+
+export type CalibrationPoints = CalibrationPoint[];
+
+/**
+ * Alert budget operational threshold, FP estimates, and calibration matrix.
+ */
+
+export interface BudgetStatusResponse {
+  threshold: Threshold;
+  fp_per_24h_estimate?: FpPer24HEstimate;
+  attack_recall_estimate?: AttackRecallEstimate;
+  status?: Status;
+  calibration_method?: CalibrationMethod;
+  calibration_points?: CalibrationPoints;
+}
+/**
+ * Precision/recall calibration operating point from cross-validation.
+ *
+ * This interface was referenced by `BudgetStatusResponse`'s JSON-Schema
+ * via the `definition` "CalibrationPoint".
+ */
+
+export interface CalibrationPoint {
+  threshold: Threshold1;
+  fp_per_24h: FpPer24H;
+  recall: Recall;
+  recommendation: Recommendation;
+}
+
+export type Env = string;
+
+export type IngestMode = string;
+
+export type ReplaySpeed = string;
+
+export type IngestRunning = boolean;
+
+export type DbConnected = boolean;
+
+export type EventsCount = number;
+
+export type SignalsCount = number;
+
+export type IncidentsCount = number;
+
+export type BudgetThreshold = number;
+
+/**
+ * Platform system status, telemetry pipeline mode, and live counts.
+ */
+
+export interface SystemStatusResponse {
+  status: Status;
+  env: Env;
+  ingest_mode: IngestMode;
+  replay_speed: ReplaySpeed;
+  ingest_running: IngestRunning;
+  db_connected: DbConnected;
+  events_count: EventsCount;
+  signals_count: SignalsCount;
+  incidents_count: IncidentsCount;
+  budget_threshold: BudgetThreshold;
+}

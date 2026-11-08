@@ -1,461 +1,544 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import type { Signal, Technique } from "@contracts/index";
+import { fetchIncidentById, fetchMitreTechniques, type IncidentWithEvidence } from "@/lib/api";
+import { useEventStream } from "@/hooks/useEventStream";
+import { useEventStore } from "@/lib/store";
+import {
+  getDetectorStyle,
+  getSeverityStyle,
+  sortKillChainStages,
+  STAGE_META,
+} from "@/lib/theme";
+import { EvidenceLink } from "@/components/evidence-link";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertTriangle,
+  ArrowRight,
   CheckCircle2,
-  ChevronRight,
   Clock,
-  Layers,
-  Radio,
+  GitGraph,
+  Search,
+  Server,
   Shield,
-  ShieldAlert,
-  XCircle,
+  Sparkles,
+  User,
 } from "lucide-react";
-import type { GuardDecision } from "@contracts/index";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useEventStream } from "@/hooks/useEventStream";
-import { evaluateGuardAction, fetchIncidentById, type IncidentWithEvidence } from "@/lib/api";
-import { useEventStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
-const SEVERITY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  critical: { bg: "bg-red-950/60", text: "text-red-400", border: "border-red-800/60" },
-  high: { bg: "bg-orange-950/60", text: "text-orange-400", border: "border-orange-800/60" },
-  medium: { bg: "bg-amber-950/60", text: "text-amber-400", border: "border-amber-800/60" },
-  low: { bg: "bg-slate-900/60", text: "text-slate-400", border: "border-slate-800" },
-};
-
-const STAGE_LABELS: Record<string, string> = {
-  initial_access: "Initial Access",
-  discovery: "Discovery",
-  credential_access: "Cred Access",
-  lateral_movement: "Lateral Move",
-  ot_impact: "OT Impact",
-};
-
-export default function IncidentsPage() {
+function IncidentsContent() {
   useEventStream();
-  const { incidents, guardDecisions, status } = useEventStore();
+  const searchParams = useSearchParams();
+  const initialId = searchParams.get("id");
 
-  const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);
+  const { incidents, status } = useEventStore();
+  const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(initialId);
   const [incidentDetail, setIncidentDetail] = useState<IncidentWithEvidence | null>(null);
   const [loadingDetail, setLoadingDetail] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // Guard action tester state
-  const [guardAction, setGuardAction] = useState<string>("isolate_host");
-  const [guardTarget, setGuardTarget] = useState<string>("plc-sim");
-  const [testingGuard, setTestingGuard] = useState<boolean>(false);
-  const [latestGuardDecision, setLatestGuardDecision] = useState<GuardDecision | null>(null);
+  // MITRE Techniques catalog
+  const { data: mitreTechniques } = useQuery({
+    queryKey: ["mitreTechniques"],
+    queryFn: fetchMitreTechniques,
+    staleTime: 60000,
+  });
 
-  // Select incident and fetch detailed evidence
-  const handleSelectIncident = async (id: string) => {
-    if (selectedIncidentId === id) {
-      setSelectedIncidentId(null);
+  const mitreMap = useMemo(() => {
+    const map = new Map<string, Technique>();
+    if (mitreTechniques) {
+      for (const t of mitreTechniques) {
+        map.set(t.technique_id.toUpperCase(), t);
+      }
+    }
+    return map;
+  }, [mitreTechniques]);
+
+  // Sync initial query param ID
+  useEffect(() => {
+    if (initialId && !selectedIncidentId) {
+      setSelectedIncidentId(initialId);
+    }
+  }, [initialId, selectedIncidentId]);
+
+  // Load incident detail when selection changes
+  useEffect(() => {
+    if (!selectedIncidentId) {
       setIncidentDetail(null);
       return;
     }
-    setSelectedIncidentId(id);
+
+    let active = true;
     setLoadingDetail(true);
-    try {
-      const detail = await fetchIncidentById(id);
-      setIncidentDetail(detail);
-    } catch (err) {
-      console.error("Failed to load incident detail:", err);
-    } finally {
-      setLoadingDetail(false);
-    }
-  };
 
-  const handleTestGuard = async () => {
-    setTestingGuard(true);
-    try {
-      const dec = await evaluateGuardAction(
-        guardAction,
-        guardTarget,
-        selectedIncidentId || undefined,
-      );
-      setLatestGuardDecision(dec);
-    } catch (err) {
-      console.error("Failed to evaluate guard action:", err);
-    } finally {
-      setTestingGuard(false);
-    }
-  };
+    fetchIncidentById(selectedIncidentId)
+      .then((detail) => {
+        if (active) {
+          setIncidentDetail(detail);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load incident detail:", err);
+      })
+      .finally(() => {
+        if (active) {
+          setLoadingDetail(false);
+        }
+      });
 
-  const activeIncidents = useMemo(() => {
-    return incidents.filter((inc) => inc.score >= 0.50);
-  }, [incidents]);
+    return () => {
+      active = false;
+    };
+  }, [selectedIncidentId]);
+
+  // Filtered incidents
+  const filteredIncidents = useMemo(() => {
+    return incidents.filter((inc) => {
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      const idMatch = inc.incident_id.toLowerCase().includes(q);
+      const sevMatch = inc.severity.toLowerCase().includes(q);
+      const entityMatch = inc.entities.some((e) => e.value.toLowerCase().includes(q));
+      const stageMatch = inc.kill_chain_stages.some((s) => s.toLowerCase().includes(q));
+      return idMatch || sevMatch || entityMatch || stageMatch;
+    });
+  }, [incidents, searchQuery]);
+
+  // Group signals by detector type for "Why Flagged" panel
+  const signalsByDetector = useMemo(() => {
+    const groups: Record<string, Signal[]> = {
+      rule: [],
+      deception: [],
+      graph: [],
+      anomaly: [],
+      baseline: [],
+    };
+    if (incidentDetail?.signals) {
+      for (const sig of incidentDetail.signals) {
+        const det = sig.detector in groups ? sig.detector : "rule";
+        groups[det].push(sig);
+      }
+    }
+    return groups;
+  }, [incidentDetail]);
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-8 space-y-6 max-w-7xl mx-auto w-full">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-800/80">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-100 flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-100 flex items-center gap-2.5">
             <AlertTriangle className="w-6 h-6 text-red-400" />
-            Security Incidents & Response Guard
+            Correlated Security Incidents
           </h1>
           <p className="text-sm text-slate-400 mt-1">
-            Correlated multi-engine attack chains, kill-chain progression scoring, and safety-verified automated containment.
+            Multi-stage attack campaign progression, MITRE ATT&amp;CK matrix correlation, and TTFMA metrics.
           </p>
         </div>
+
         <div className="flex items-center gap-3">
           <Badge
             variant="outline"
-            className="bg-emerald-950/40 text-emerald-400 border-emerald-800/60 font-mono text-xs px-2.5 py-1"
+            className={cn(
+              "px-3 py-1 font-mono text-xs",
+              status === "open"
+                ? "bg-emerald-950/60 text-emerald-400 border-emerald-800/60"
+                : "bg-amber-950/60 text-amber-400 border-amber-800/60"
+            )}
           >
-            Budget: 0.50 Thresh (0.000 FP/24h)
+            {status === "open" ? "Live Correlation" : "Connecting..."}
           </Badge>
-          <div className="flex items-center gap-2 font-mono text-xs px-3 py-1.5 rounded-md border border-slate-800 bg-slate-900/60">
-            <Radio
-              className={cn(
-                "w-3 h-3 animate-pulse",
-                status === "open" ? "text-emerald-400" : "text-amber-400",
-              )}
-            />
-            <span className="text-slate-300">Live WS: {status}</span>
-          </div>
+          <Badge variant="outline" className="bg-slate-900 border-slate-800 text-slate-300 font-mono text-xs">
+            {incidents.length} Total ({incidents.filter((i) => i.score >= 0.50).length} Active)
+          </Badge>
         </div>
       </div>
 
-      {/* Main Grid: Incident Cards & Guard Action Tester */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Incidents List (2 cols) */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
-              <Layers className="w-5 h-5 text-slate-400" />
-              Active Correlated Incidents ({activeIncidents.length})
-            </h2>
-            <span className="text-xs text-slate-500 font-mono">
-              Total Recorded: {incidents.length}
-            </span>
+      {/* Main Grid: Left Column (Incident List) / Right Column (Incident Detail) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column: Incidents List */}
+        <div className="lg:col-span-5 space-y-3">
+          {/* Search box */}
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <input
+              type="text"
+              placeholder="Search incidents by entity, stage, ID..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-slate-200 focus:outline-hidden focus:border-blue-500"
+            />
           </div>
 
-          {activeIncidents.length === 0 ? (
-            <Card className="border-slate-800 bg-slate-900/40 p-8 text-center">
-              <p className="text-slate-400 text-sm">
-                No active incidents above the 0.50 budget threshold. Ingest telemetry or run a replay scenario to observe incident correlation.
-              </p>
-            </Card>
-          ) : (
-            activeIncidents.map((inc) => {
-              const sev = SEVERITY_COLORS[inc.severity] || SEVERITY_COLORS.low;
-              const isSelected = selectedIncidentId === inc.incident_id;
+          <div className="space-y-3">
+            {filteredIncidents.length === 0 ? (
+              <Card className="border-slate-800 bg-slate-900/40 p-8 text-center space-y-2">
+                <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto opacity-60" />
+                <h4 className="text-sm font-semibold text-slate-300">Zero Incidents Match</h4>
+                <p className="text-xs text-slate-500">
+                  {incidents.length === 0
+                    ? "No multi-stage attack incidents have been correlated yet. All telemetry within baseline."
+                    : "No incidents matched your search filter."}
+                </p>
+              </Card>
+            ) : (
+              filteredIncidents.map((inc) => {
+                const isSelected = inc.incident_id === selectedIncidentId;
+                const sevStyle = getSeverityStyle(inc.severity);
+                const userEnt = inc.entities.find((e) => e.type === "user")?.value;
+                const hostEnt = inc.entities.find((e) => e.type === "host")?.value;
 
-              return (
-                <Card
-                  key={inc.incident_id}
-                  onClick={() => handleSelectIncident(inc.incident_id)}
-                  className={cn(
-                    "cursor-pointer border transition-all duration-200 bg-slate-900/50 hover:bg-slate-900/80",
-                    isSelected ? "border-red-500/80 ring-1 ring-red-500/50" : "border-slate-800",
-                  )}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <CardTitle className="text-base font-mono text-slate-100">
-                            {inc.incident_id}
-                          </CardTitle>
-                          <Badge
-                            className={cn(
-                              "font-mono text-xs uppercase px-2 py-0.5 border",
-                              sev.bg,
-                              sev.text,
-                              sev.border,
-                            )}
-                          >
-                            {inc.severity} ({inc.score.toFixed(2)})
-                          </Badge>
-                          {inc.decoy_touched && (
-                            <Badge className="bg-rose-950/60 text-rose-300 border-rose-800/60 text-xs">
-                              Decoy Touched
-                            </Badge>
-                          )}
-                          {inc.ot_touched && (
-                            <Badge className="bg-red-950/60 text-red-300 border-red-800/60 text-xs">
-                              OT Impacted
-                            </Badge>
-                          )}
-                        </div>
-                        <CardDescription className="text-xs text-slate-400 mt-1 flex items-center gap-4">
-                          <span>
-                            Started: {new Date(inc.first_signal_ts).toLocaleTimeString()}
-                          </span>
-                          <span>
-                            TTFMA: {inc.ttfma_seconds !== null && inc.ttfma_seconds !== undefined ? `${inc.ttfma_seconds.toFixed(1)}s` : "0.0s"}
-                          </span>
-                          <span>Signals: {inc.signal_ids.length}</span>
-                          <span>Events: {inc.event_ids.length}</span>
-                        </CardDescription>
-                      </div>
-                      <ChevronRight
-                        className={cn(
-                          "w-5 h-5 text-slate-500 transition-transform",
-                          isSelected && "rotate-90 text-red-400",
-                        )}
-                      />
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="space-y-3 pt-0">
-                    {/* Kill Chain Stage Progress Bar */}
-                    <div className="space-y-1">
-                      <div className="text-xs text-slate-400 flex justify-between">
-                        <span>Kill Chain Progression:</span>
-                        <span className="font-mono text-slate-300">
-                          {inc.kill_chain_stages.length} stages
+                return (
+                  <div
+                    key={inc.incident_id}
+                    onClick={() => setSelectedIncidentId(inc.incident_id)}
+                    className={cn(
+                      "p-4 rounded-xl border transition-all cursor-pointer space-y-3",
+                      isSelected
+                        ? "bg-slate-900/90 border-blue-500/80 shadow-lg shadow-blue-950/30"
+                        : "bg-slate-900/40 border-slate-800 hover:border-slate-700 hover:bg-slate-900/60"
+                    )}
+                  >
+                    {/* Top Row: Severity, ID, Score, TTFMA */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={cn("text-[10px] font-mono uppercase", sevStyle.badge)}>
+                          {inc.severity}
+                        </Badge>
+                        <span className="font-mono text-xs font-bold text-slate-200">
+                          {inc.incident_id}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {inc.kill_chain_stages.map((stg) => (
-                          <span
-                            key={stg}
-                            className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700"
-                          >
-                            {STAGE_LABELS[stg] || stg}
+
+                      <div className="flex items-center gap-2 text-xs font-mono">
+                        {inc.ttfma_seconds != null && (
+                          <span className="text-emerald-400 text-[11px]">
+                            TTFMA: <strong>{inc.ttfma_seconds.toFixed(1)}s</strong>
                           </span>
-                        ))}
+                        )}
+                        <span className="text-slate-300 font-bold">
+                          {(inc.score * 100).toFixed(0)}%
+                        </span>
                       </div>
                     </div>
 
-                    {/* Forensic Narrative Sample */}
-                    {inc.explanation.length > 0 && (
-                      <div className="p-2.5 rounded bg-slate-950/60 border border-slate-800/60 text-xs text-slate-300 font-mono space-y-1">
-                        <div className="text-slate-500 font-semibold mb-1">
-                          Forensic Milestones:
-                        </div>
-                        {inc.explanation.slice(0, 3).map((line, idx) => (
-                          <div key={idx} className="truncate">
-                            • {line}
-                          </div>
-                        ))}
-                        {inc.explanation.length > 3 && (
-                          <div className="text-slate-500 text-[11px] italic">
-                            + {inc.explanation.length - 3} additional evidence items...
-                          </div>
+                    {/* Score Bar */}
+                    <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className={cn("h-full transition-all duration-300", sevStyle.bar)}
+                        style={{ width: `${Math.min(100, inc.score * 100)}%` }}
+                      />
+                    </div>
+
+                    {/* Kill Chain Stage Pills (In Logical Order) */}
+                    <div className="flex flex-wrap gap-1">
+                      {sortKillChainStages(inc.kill_chain_stages).map((stage) => {
+                        const meta = STAGE_META[stage];
+                        return (
+                          <span
+                            key={stage}
+                            className={cn(
+                              "text-[10px] px-1.5 py-0.5 rounded border font-medium",
+                              meta?.badge || "bg-slate-800 text-slate-300 border-slate-700"
+                            )}
+                          >
+                            {meta?.short || stage}
+                          </span>
+                        );
+                      })}
+                    </div>
+
+                    {/* Bottom Metadata & Badges */}
+                    <div className="flex items-center justify-between text-xs text-slate-400 font-mono pt-1 border-t border-slate-800/60 text-[11px]">
+                      <div className="flex items-center gap-3">
+                        {userEnt && (
+                          <span className="flex items-center gap-1">
+                            <User className="w-3 h-3 text-slate-500" /> {userEnt}
+                          </span>
+                        )}
+                        {hostEnt && (
+                          <span className="flex items-center gap-1">
+                            <Server className="w-3 h-3 text-slate-500" /> {hostEnt}
+                          </span>
                         )}
                       </div>
-                    )}
 
-                    {/* MITRE Technique Chips */}
-                    {inc.techniques.length > 0 && (
-                      <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                        {inc.techniques.slice(0, 6).map((t) => (
-                          <span
-                            key={t.technique_id}
-                            className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-950/40 text-purple-300 border border-purple-800/40"
-                          >
-                            {t.technique_id}: {t.name}
+                      <div className="flex items-center gap-1.5">
+                        {inc.decoy_touched && (
+                          <span className="text-purple-400 text-[10px] font-semibold">
+                            &bull; Decoy
                           </span>
-                        ))}
+                        )}
+                        {inc.ot_touched && (
+                          <span className="text-rose-400 text-[10px] font-semibold">
+                            &bull; OT
+                          </span>
+                        )}
+                        <span className="text-slate-500">
+                          {inc.signal_ids.length} sigs
+                        </span>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
-
-          {/* Drilldown Evidence Panel */}
-          {selectedIncidentId && (
-            <Card className="border-slate-800 bg-slate-900/60 p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                  <ShieldAlert className="w-4 h-4 text-red-400" />
-                  Forensic Drilldown: {selectedIncidentId}
-                </h3>
-                {loadingDetail && (
-                  <span className="text-xs text-slate-400 animate-pulse">Loading evidence...</span>
-                )}
-              </div>
-
-              {incidentDetail && (
-                <div className="space-y-4 text-xs">
-                  {/* Narrative Section */}
-                  <div>
-                    <h4 className="font-semibold text-slate-300 mb-2">Chronological Attack Narrative</h4>
-                    <div className="space-y-1.5 max-h-48 overflow-y-auto pr-2 font-mono text-slate-400">
-                      {incidentDetail.explanation.map((line, idx) => (
-                        <div key={idx} className="p-1.5 rounded bg-slate-950 border border-slate-800/80">
-                          {line}
-                        </div>
-                      ))}
                     </div>
                   </div>
-
-                  {/* Attached Signals */}
-                  <div>
-                    <h4 className="font-semibold text-slate-300 mb-2">
-                      Constituent Signals ({incidentDetail.signals.length})
-                    </h4>
-                    <div className="space-y-1.5 max-h-40 overflow-y-auto pr-2 font-mono text-[11px]">
-                      {incidentDetail.signals.map((sig) => (
-                        <div
-                          key={sig.signal_id}
-                          className="flex items-center justify-between p-1.5 rounded bg-slate-950/80 border border-slate-800"
-                        >
-                          <span className="text-slate-200 font-semibold">{sig.rule_id || sig.detector.toUpperCase()}: {sig.title}</span>
-                          <span className="text-slate-400">conf: {sig.confidence.toFixed(2)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </Card>
-          )}
+                );
+              })
+            )}
+          </div>
         </div>
 
-        {/* Right Column: Response Safety Guard Tester */}
-        <div className="space-y-6">
-          <Card className="border-slate-800 bg-slate-900/50">
-            <CardHeader>
-              <CardTitle className="text-base text-slate-200 flex items-center gap-2">
-                <Shield className="w-5 h-5 text-indigo-400" />
-                Response Safety Guard Tester
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-400">
-                Evaluate proposed automated containment actions against asset criticality and live PLC physics states.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-300">Containment Action</label>
-                <select
-                  value={guardAction}
-                  onChange={(e) => setGuardAction(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
-                >
-                  <option value="isolate_host">isolate_host (Sever Host Network)</option>
-                  <option value="block_ip">block_ip (Boundary Firewall Drop)</option>
-                  <option value="disable_account">disable_account (Revoke Credential)</option>
-                  <option value="block_modbus_write">block_modbus_write (Modbus FC05/06 Filter)</option>
-                  <option value="kill_process">kill_process (Terminate Process Tree)</option>
-                </select>
-              </div>
+        {/* Right Column: Detailed Incident Drilldown */}
+        <div className="lg:col-span-7">
+          {loadingDetail && (
+            <Card className="border-slate-800 bg-slate-900/40 p-12 text-center text-slate-400 space-y-3">
+              <div className="w-8 h-8 border-2 border-slate-700 border-t-blue-500 rounded-full animate-spin mx-auto" />
+              <p className="text-xs font-mono">Loading incident evidence &amp; signals...</p>
+            </Card>
+          )}
 
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-300">Target Asset / Identity</label>
-                <input
-                  type="text"
-                  value={guardTarget}
-                  onChange={(e) => setGuardTarget(e.target.value)}
-                  placeholder="e.g. plc-sim, 10.10.1.5, jump-host, svc_backup"
-                  className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-xs text-slate-200 font-mono focus:outline-none focus:border-indigo-500"
-                />
-                <div className="flex gap-1.5 flex-wrap text-[10px]">
-                  <span className="text-slate-500">Presets:</span>
-                  <button
-                    onClick={() => { setGuardAction("isolate_host"); setGuardTarget("plc-sim"); }}
-                    className="text-slate-400 hover:text-indigo-400 underline font-mono"
-                  >
-                    plc-sim (OT)
-                  </button>
-                  <button
-                    onClick={() => { setGuardAction("block_ip"); setGuardTarget("10.10.1.5"); }}
-                    className="text-slate-400 hover:text-indigo-400 underline font-mono"
-                  >
-                    10.10.1.5 (Attacker)
-                  </button>
-                  <button
-                    onClick={() => { setGuardAction("disable_account"); setGuardTarget("svc_backup"); }}
-                    className="text-slate-400 hover:text-indigo-400 underline font-mono"
-                  >
-                    svc_backup
-                  </button>
-                </div>
-              </div>
-
-              <Button
-                onClick={handleTestGuard}
-                disabled={testingGuard}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs py-2"
-              >
-                {testingGuard ? "Evaluating Policies..." : "Evaluate Guard Decision"}
-              </Button>
-
-              {/* Guard Decision Result Card */}
-              {latestGuardDecision && (
-                <div
-                  className={cn(
-                    "p-4 rounded border space-y-2",
-                    latestGuardDecision.decision === "allow" && "bg-emerald-950/40 border-emerald-800 text-emerald-300",
-                    latestGuardDecision.decision === "deny" && "bg-red-950/40 border-red-800 text-red-300",
-                    latestGuardDecision.decision === "needs_human" && "bg-amber-950/40 border-amber-800 text-amber-300",
-                  )}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-sm uppercase flex items-center gap-1.5">
-                      {latestGuardDecision.decision === "allow" && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
-                      {latestGuardDecision.decision === "deny" && <XCircle className="w-4 h-4 text-red-400" />}
-                      {latestGuardDecision.decision === "needs_human" && <AlertTriangle className="w-4 h-4 text-amber-400" />}
-                      Decision: {latestGuardDecision.decision}
-                    </span>
-                    <Badge variant="outline" className="text-[10px] font-mono">
-                      {latestGuardDecision.rule_ids[0] || "GUARD-DEFAULT"}
-                    </Badge>
-                  </div>
-
-                  <div className="text-[11px] font-mono opacity-90">
-                    Target Criticality: {latestGuardDecision.asset_criticality || "low"}
-                  </div>
-
-                  <div className="space-y-1 text-xs pt-1 border-t border-slate-800/60">
-                    {latestGuardDecision.reasons.map((r, i) => (
-                      <p key={i} className="text-slate-300 leading-relaxed">• {r}</p>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Recent Guard Decision History */}
-          <Card className="border-slate-800 bg-slate-900/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-xs font-semibold text-slate-300 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-slate-400" />
-                Recent Safety Guard Evaluations ({guardDecisions.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {guardDecisions.length === 0 ? (
-                <p className="text-xs text-slate-500">No evaluations logged yet.</p>
-              ) : (
-                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                  {guardDecisions.map((dec) => (
-                    <div
-                      key={dec.decision_id}
-                      className="p-2 rounded bg-slate-950 border border-slate-800 text-xs flex items-center justify-between"
-                    >
-                      <div className="font-mono text-[11px]">
-                        <span className="text-slate-300 font-semibold">{dec.action}</span>
-                        <span className="text-slate-500"> ({dec.target})</span>
+          {!loadingDetail && incidentDetail && (
+            <div className="space-y-6">
+              {/* Incident Header Card */}
+              <Card className="border-slate-800 bg-slate-900/60 shadow-lg">
+                <CardHeader className="pb-3 border-b border-slate-800/80">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={getSeverityStyle(incidentDetail.severity).badge}>
+                          {incidentDetail.severity.toUpperCase()} SEVERITY
+                        </Badge>
+                        <CardTitle className="text-base font-bold font-mono text-slate-100">
+                          {incidentDetail.incident_id}
+                        </CardTitle>
                       </div>
-                      <Badge
-                        className={cn(
-                          "text-[10px] uppercase font-mono px-1.5 py-0.5",
-                          dec.decision === "allow" && "bg-emerald-950 text-emerald-400 border-emerald-800",
-                          dec.decision === "deny" && "bg-red-950 text-red-400 border-red-800",
-                          dec.decision === "needs_human" && "bg-amber-950 text-amber-400 border-amber-800",
-                        )}
-                      >
-                        {dec.decision}
-                      </Badge>
+                      <CardDescription className="text-xs text-slate-400 mt-1">
+                        First signal {new Date(incidentDetail.first_signal_ts || incidentDetail.created_at).toISOString()} &bull; Updated {new Date(incidentDetail.updated_at).toISOString()}
+                      </CardDescription>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/graph?incident_id=${encodeURIComponent(incidentDetail.incident_id)}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/40 text-xs font-medium transition"
+                      >
+                        <GitGraph className="w-3.5 h-3.5" />
+                        <span>Interactive Attack Graph</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="pt-4 space-y-4">
+                  {/* Summary Metric Strip */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
+                      <span className="text-[10px] text-slate-500 uppercase font-mono block">Progression Score</span>
+                      <span className="text-lg font-bold font-mono text-slate-100">
+                        {incidentDetail.score.toFixed(2)}
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
+                      <span className="text-[10px] text-slate-500 uppercase font-mono block">TTFMA Latency</span>
+                      <span className="text-lg font-bold font-mono text-emerald-400">
+                        {incidentDetail.ttfma_seconds != null ? `${incidentDetail.ttfma_seconds.toFixed(2)}s` : "N/A"}
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
+                      <span className="text-[10px] text-slate-500 uppercase font-mono block">Contributing Signals</span>
+                      <span className="text-lg font-bold font-mono text-purple-300">
+                        {incidentDetail.signal_ids.length}
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
+                      <span className="text-[10px] text-slate-500 uppercase font-mono block">Evidence Telemetry</span>
+                      <span className="text-lg font-bold font-mono text-sky-300">
+                        {incidentDetail.event_ids.length} evts
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* MITRE ATT&CK & ICS Techniques Rollup */}
+                  {incidentDetail.techniques && incidentDetail.techniques.length > 0 && (
+                    <div className="space-y-2 pt-2 border-t border-slate-800/80">
+                      <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                        <Shield className="w-3.5 h-3.5 text-blue-400" />
+                        Correlated ATT&amp;CK / ATT&amp;CK-ICS Techniques ({incidentDetail.techniques.length})
+                      </span>
+
+                      <div className="flex flex-wrap gap-1.5">
+                        {incidentDetail.techniques.map((t) => {
+                          const catalogInfo = mitreMap.get(t.technique_id.toUpperCase());
+                          const techName = catalogInfo?.name || t.name;
+                          const techTactic = catalogInfo?.tactic || t.tactic;
+
+                          return (
+                            <div
+                              key={t.technique_id}
+                              className="px-2 py-1 rounded bg-slate-950 border border-slate-800 text-xs font-mono flex items-center gap-1.5 text-slate-200"
+                              title={`${t.technique_id}: ${techName} (${techTactic})`}
+                            >
+                              <span className="text-blue-400 font-bold">{t.technique_id}</span>
+                              <span className="text-slate-400 text-[11px] truncate max-w-[180px]">
+                                {techName}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Chronological Attack Narrative Timeline */}
+              <Card className="border-slate-800 bg-slate-900/60 shadow-lg">
+                <CardHeader className="pb-3 border-b border-slate-800/80">
+                  <CardTitle className="text-sm font-semibold tracking-tight text-slate-100 flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-emerald-400" />
+                    Attack Progression Narrative Timeline
+                  </CardTitle>
+                  <CardDescription className="text-xs text-slate-400">
+                    Step-by-step kill-chain evolution derived directly from correlation engine narrative
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="pt-4">
+                  {incidentDetail.explanation && incidentDetail.explanation.length > 0 ? (
+                    <div className="space-y-3 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-slate-800">
+                      {incidentDetail.explanation.map((line, idx) => {
+                        // Find potential signal / rule id match in line (e.g. RULE-AUTH-001)
+                        const ruleMatch = line.match(/\((RULE-[A-Z0-9-]+|GRAPH-[A-Z0-9-]+|BASE-[A-Z0-9-]+|ANOM-[A-Z0-9-]+)\)/);
+                        const matchedRule = ruleMatch ? ruleMatch[1] : null;
+
+                        return (
+                          <div key={idx} className="relative flex items-start gap-4 pl-7 text-xs">
+                            <span className="absolute left-1.5 top-1.5 w-3.5 h-3.5 rounded-full border-2 border-slate-950 bg-blue-500 shadow-xs" />
+                            <div className="p-3 rounded-lg bg-slate-950/70 border border-slate-800/80 flex-1 space-y-1.5">
+                              <p className="text-slate-200 leading-relaxed font-mono text-[11px]">
+                                {line}
+                              </p>
+
+                              {matchedRule && (
+                                <div className="flex items-center gap-2 pt-1 border-t border-slate-800/60 text-[10px]">
+                                  <span className="text-slate-500">Evidence Citation:</span>
+                                  <Badge variant="outline" className="bg-slate-900 border-slate-700 text-purple-300 font-mono py-0">
+                                    {matchedRule}
+                                  </Badge>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 py-4 font-mono">
+                      No narrative explanation entries generated.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* "Why Flagged" Panel (Grouped by Detector) */}
+              <Card className="border-slate-800 bg-slate-900/60 shadow-lg">
+                <CardHeader className="pb-3 border-b border-slate-800/80">
+                  <CardTitle className="text-sm font-semibold tracking-tight text-slate-100 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-purple-400" />
+                    Why Flagged: Contributing Detection Signals
+                  </CardTitle>
+                  <CardDescription className="text-xs text-slate-400">
+                    Independent detector signals linked to this incident with underlying evidence events
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="pt-4 space-y-4">
+                  {Object.entries(signalsByDetector).map(([detector, sigs]) => {
+                    if (sigs.length === 0) return null;
+                    const detStyle = getDetectorStyle(detector);
+
+                    return (
+                      <div key={detector} className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className={cn("text-xs uppercase font-mono", detStyle.badge)}>
+                            {detector} ({sigs.length})
+                          </Badge>
+                        </div>
+
+                        <div className="space-y-2">
+                          {sigs.map((sig) => (
+                            <div
+                              key={sig.signal_id}
+                              className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80 space-y-2"
+                            >
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-semibold text-slate-200">
+                                  {sig.title}
+                                </span>
+                                <span className="font-mono text-[11px] text-purple-300">
+                                  {sig.rule_id}
+                                </span>
+                              </div>
+
+                              <p className="text-[11px] text-slate-400 font-mono leading-relaxed">
+                                {sig.explanation}
+                              </p>
+
+                              <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/60 text-[10px] font-mono">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-slate-500">
+                                    Conf: <strong className="text-slate-300">{(sig.confidence * 100).toFixed(0)}%</strong>
+                                  </span>
+                                  <span className="text-slate-500">
+                                    Score: <strong className="text-slate-300">{sig.score.toFixed(2)}</strong>
+                                  </span>
+                                </div>
+
+                                {/* Clickable evidence event links */}
+                                <div className="flex items-center gap-1">
+                                  <span className="text-slate-500 mr-1">Events:</span>
+                                  {sig.evidence_event_ids.map((eid) => (
+                                    <EvidenceLink key={eid} id={eid} label={eid.slice(-8)} />
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {!loadingDetail && !incidentDetail && (
+            <Card className="border-slate-800 bg-slate-900/40 p-16 text-center space-y-3">
+              <AlertTriangle className="w-10 h-10 text-slate-600 mx-auto" />
+              <h3 className="text-base font-semibold text-slate-300">No Incident Selected</h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                Select an incident from the list on the left to inspect its chronological narrative timeline, contributing detection signals, and ATT&amp;CK mappings.
+              </p>
+            </Card>
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+export default function IncidentsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-slate-400 font-mono text-xs">Loading incident feed...</div>}>
+      <IncidentsContent />
+    </Suspense>
   );
 }

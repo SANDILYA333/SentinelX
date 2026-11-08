@@ -6,7 +6,8 @@ SHELL := /bin/bash
         ingest-live ingest-replay ingest-file db-reset \
         benign-run attack-run capture-benign capture-attack captures-all captures-validate \
         train-baselines detect-replay detector-eval \
-        guard-eval budget-calibrate incident-eval detect-correlate-replay
+        guard-eval budget-calibrate incident-eval detect-correlate-replay \
+        demo-preflight demo-reset demo-attack
 
 help: ## Show available Makefile commands
 	@echo "Available commands:"
@@ -200,3 +201,15 @@ incident-eval: ## Run full Incident evaluation across all 8 captures and golden 
 detect-correlate-replay: ## Run ingestion, detection, and correlation together against capture (DIR=... SPEED=...)
 	@if [ -z "$(DIR)" ]; then echo "Error: DIR is required (e.g. make detect-correlate-replay DIR=eval/captures/attack/demo_baseline)"; exit 1; fi
 	uv run python scripts/detect_correlate_replay.py --dir "$(DIR)" --speed "$${SPEED:-max}" --check-idempotency
+
+# ==============================================================================
+# Demo Operations Targets (Phase 6)
+# ==============================================================================
+demo-preflight: ## Run SentinelX live demo readiness and preflight validation
+	uv run python scripts/demo_preflight.py
+
+demo-reset: ## Reset DB and PLC to fresh clean baseline state for demo
+	uv run python scripts/demo_reset.py
+
+demo-attack: ## Trigger live paced baseline attack scenario (demo_baseline)
+	uv run python scripts/attack_runner.py baseline

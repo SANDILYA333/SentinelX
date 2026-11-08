@@ -18,13 +18,16 @@ from app.config import settings
 from app.db import close_db, get_db
 from app.ingest import set_ingestor
 from app.pipeline_state import set_correlation_pipeline, set_guard_evaluator
+from app.routes.assets import router as assets_router
 from app.routes.budget import router as budget_router
 from app.routes.events import router as events_router
 from app.routes.guard import router as guard_router
 from app.routes.health import router as health_router
 from app.routes.incidents import router as incidents_router
+from app.routes.mitre import router as mitre_router
 from app.routes.signals import router as signals_router
 from app.routes.sources import router as sources_router
+from app.routes.status import router as status_router
 from app.ws import manager
 
 logger = logging.getLogger(__name__)
@@ -101,12 +104,15 @@ app.add_middleware(
 
 # Standard endpoints
 app.include_router(health_router)
+app.include_router(status_router)
 app.include_router(events_router)
 app.include_router(signals_router)
 app.include_router(incidents_router)
 app.include_router(guard_router)
 app.include_router(budget_router)
 app.include_router(sources_router)
+app.include_router(assets_router)
+app.include_router(mitre_router)
 
 # Dev-only endpoints
 if settings.SENTINELX_ENV == "dev":

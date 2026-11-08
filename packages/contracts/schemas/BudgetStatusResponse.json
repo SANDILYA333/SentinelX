@@ -1,0 +1,72 @@
+{
+  "$defs": {
+    "CalibrationPoint": {
+      "description": "Precision/recall calibration operating point from cross-validation.",
+      "properties": {
+        "threshold": {
+          "title": "Threshold",
+          "type": "number"
+        },
+        "fp_per_24h": {
+          "title": "Fp Per 24H",
+          "type": "number"
+        },
+        "recall": {
+          "title": "Recall",
+          "type": "number"
+        },
+        "recommendation": {
+          "title": "Recommendation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "threshold",
+        "fp_per_24h",
+        "recall",
+        "recommendation"
+      ],
+      "title": "CalibrationPoint",
+      "type": "object"
+    }
+  },
+  "description": "Alert budget operational threshold, FP estimates, and calibration matrix.",
+  "properties": {
+    "threshold": {
+      "title": "Threshold",
+      "type": "number"
+    },
+    "fp_per_24h_estimate": {
+      "default": 0.0,
+      "title": "Fp Per 24H Estimate",
+      "type": "number"
+    },
+    "attack_recall_estimate": {
+      "default": 1.0,
+      "title": "Attack Recall Estimate",
+      "type": "number"
+    },
+    "status": {
+      "default": "calibrated",
+      "title": "Status",
+      "type": "string"
+    },
+    "calibration_method": {
+      "default": "leave_one_out_cross_validation",
+      "title": "Calibration Method",
+      "type": "string"
+    },
+    "calibration_points": {
+      "items": {
+        "$ref": "#/$defs/CalibrationPoint"
+      },
+      "title": "Calibration Points",
+      "type": "array"
+    }
+  },
+  "required": [
+    "threshold"
+  ],
+  "title": "BudgetStatusResponse",
+  "type": "object"
+}

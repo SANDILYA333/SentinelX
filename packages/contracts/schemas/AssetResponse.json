@@ -1,0 +1,65 @@
+{
+  "description": "Network, computing, or industrial asset representation.",
+  "properties": {
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "hostname": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Hostname"
+    },
+    "role": {
+      "title": "Role",
+      "type": "string"
+    },
+    "zone": {
+      "title": "Zone",
+      "type": "string"
+    },
+    "ips": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Ips",
+      "type": "object"
+    },
+    "is_decoy": {
+      "default": false,
+      "title": "Is Decoy",
+      "type": "boolean"
+    },
+    "process_critical": {
+      "default": false,
+      "title": "Process Critical",
+      "type": "boolean"
+    },
+    "criticality": {
+      "title": "Criticality",
+      "type": "string"
+    },
+    "allowed_ot_writers": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Allowed Ot Writers",
+      "type": "array"
+    }
+  },
+  "required": [
+    "name",
+    "role",
+    "zone",
+    "criticality"
+  ],
+  "title": "AssetResponse",
+  "type": "object"
+}

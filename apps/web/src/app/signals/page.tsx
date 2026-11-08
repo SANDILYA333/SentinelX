@@ -7,17 +7,11 @@ import {
   Radio,
   Search,
 } from "lucide-react";
+import { EvidenceLink } from "@/components/evidence-link";
 import { useEventStream } from "@/hooks/useEventStream";
 import { useEventStore } from "@/lib/store";
+import { getDetectorStyle } from "@/lib/theme";
 import { cn } from "@/lib/utils";
-
-const DETECTOR_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  rule: { bg: "bg-purple-950/60", text: "text-purple-300", border: "border-purple-800/60" },
-  baseline: { bg: "bg-blue-950/60", text: "text-blue-300", border: "border-blue-800/60" },
-  anomaly: { bg: "bg-amber-950/60", text: "text-amber-300", border: "border-amber-800/60" },
-  graph: { bg: "bg-emerald-950/60", text: "text-emerald-300", border: "border-emerald-800/60" },
-  deception: { bg: "bg-rose-950/60", text: "text-rose-300", border: "border-rose-800/60" },
-};
 
 export default function SignalsPage() {
   useEventStream();
@@ -183,7 +177,7 @@ export default function SignalsPage() {
           </div>
         ) : (
           filteredSignals.map((sig) => {
-            const colors = DETECTOR_COLORS[sig.detector] || DETECTOR_COLORS.rule;
+            const detStyle = getDetectorStyle(sig.detector);
             const isConfirmedHoney =
               Boolean(sig.metadata?.confirmed_honeytoken) ||
               (Array.isArray(sig.metadata?.tags) && sig.metadata.tags.includes("confirmed_honeytoken"));
@@ -201,9 +195,7 @@ export default function SignalsPage() {
                     <span
                       className={cn(
                         "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border",
-                        colors.bg,
-                        colors.text,
-                        colors.border
+                        detStyle.badge
                       )}
                     >
                       {sig.detector}
@@ -256,6 +248,15 @@ export default function SignalsPage() {
                           >
                             {e.type}:{e.value}
                           </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {sig.evidence_event_ids && sig.evidence_event_ids.length > 0 && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-slate-500 font-mono">Evt:</span>
+                        {sig.evidence_event_ids.slice(0, 2).map((eid) => (
+                          <EvidenceLink key={eid} id={eid} label={eid.slice(-8)} />
                         ))}
                       </div>
                     )}

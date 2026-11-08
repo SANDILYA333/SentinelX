@@ -18,6 +18,9 @@ async function main() {
     "GuardDecision.json",
     "SourceHealth.json",
     "TelemetryStats.json",
+    "AssetResponse.json",
+    "BudgetStatusResponse.json",
+    "SystemStatusResponse.json",
   ];
 
   let outputTs = "/* eslint-disable */\n/**\n * Auto-generated TypeScript data contracts for SentinelX.\n * DO NOT EDIT MANUALLY - Generated from Pydantic schemas via scripts/export_contracts.py\n */\n\n";

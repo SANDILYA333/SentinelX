@@ -8,8 +8,11 @@ interface AppStore {
   signals: Signal[];
   incidents: Incident[];
   guardDecisions: GuardDecision[];
+  presenterMode: boolean;
   status: WsStatus;
   setStatus: (status: WsStatus) => void;
+  setPresenterMode: (val: boolean) => void;
+  togglePresenterMode: () => void;
   addEvent: (event: Event) => void;
   setEvents: (events: Event[]) => void;
   addSignal: (signal: Signal) => void;
@@ -25,8 +28,11 @@ export const useEventStore = create<AppStore>((set) => ({
   signals: [],
   incidents: [],
   guardDecisions: [],
+  presenterMode: false,
   status: "connecting",
   setStatus: (status) => set({ status }),
+  setPresenterMode: (presenterMode) => set({ presenterMode }),
+  togglePresenterMode: () => set((state) => ({ presenterMode: !state.presenterMode })),
   addEvent: (event) =>
     set((state) => {
       if (state.events.some((e) => e.event_id === event.event_id)) {

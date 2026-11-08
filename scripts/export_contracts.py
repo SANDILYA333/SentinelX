@@ -15,6 +15,11 @@ from sentinelx.schemas import (
     TelemetryStats,
     WSMessage,
 )
+from sentinelx.schemas.api_models import (
+    AssetResponse,
+    BudgetStatusResponse,
+    SystemStatusResponse,
+)
 
 MODELS = {
     "Event": Event,
@@ -26,6 +31,9 @@ MODELS = {
     "Technique": Technique,
     "SourceHealth": SourceHealth,
     "TelemetryStats": TelemetryStats,
+    "AssetResponse": AssetResponse,
+    "BudgetStatusResponse": BudgetStatusResponse,
+    "SystemStatusResponse": SystemStatusResponse,
 }
 
 

@@ -1,4 +1,15 @@
-import type { Event, GuardDecision, Incident, Signal, SourceHealth, TelemetryStats } from "@contracts/index";
+import type {
+  AssetResponse,
+  BudgetStatusResponse,
+  Event,
+  GuardDecision,
+  Incident,
+  Signal,
+  SourceHealth,
+  SystemStatusResponse,
+  Technique,
+  TelemetryStats,
+} from "@contracts/index";
 
 export const API_BASE_URL: string =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -214,18 +225,54 @@ export async function fetchGuardDecisions(limit: number = 20): Promise<GuardDeci
   return res.json();
 }
 
-export interface BudgetStatus {
-  threshold: number;
-  fp_per_24h_estimate: number;
-  status: string;
-}
-
-export async function fetchBudget(): Promise<BudgetStatus> {
+export async function fetchBudget(): Promise<BudgetStatusResponse> {
   const res = await fetch(`${API_BASE_URL}/api/v1/budget`, {
     headers: { "Content-Type": "application/json" },
   });
   if (!res.ok) {
     throw new Error(`Failed to fetch budget status: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function setBudgetThreshold(threshold: number): Promise<BudgetStatusResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/budget`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ threshold }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to update budget threshold: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchAssets(): Promise<AssetResponse[]> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/assets`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch assets: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchMitreTechniques(): Promise<Technique[]> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/mitre/techniques`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch MITRE techniques: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchSystemStatus(): Promise<SystemStatusResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/status`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch system status: ${res.statusText}`);
   }
   return res.json();
 }

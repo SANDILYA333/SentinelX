@@ -7,10 +7,12 @@ import {
   AlertTriangle,
   FlaskConical,
   GitGraph,
+  Presentation,
   Radio,
   Shield,
   ShieldAlert,
 } from "lucide-react";
+import { useEventStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -24,6 +26,7 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { presenterMode, togglePresenterMode } = useEventStore();
 
   return (
     <aside className="w-64 border-r border-slate-800 bg-slate-950/80 flex flex-col shrink-0 min-h-screen">
@@ -66,13 +69,39 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer status */}
-      <div className="p-4 border-t border-slate-800 text-xs text-slate-500">
+      {/* Footer controls & status */}
+      <div className="p-4 border-t border-slate-800 text-xs text-slate-500 space-y-3">
+        <button
+          type="button"
+          onClick={togglePresenterMode}
+          className={cn(
+            "w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors",
+            presenterMode
+              ? "bg-purple-950/60 border-purple-800/80 text-purple-300"
+              : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <Presentation className="w-3.5 h-3.5 text-purple-400" />
+            <span>Presenter Mode</span>
+          </div>
+          <span
+            className={cn(
+              "text-[10px] uppercase font-mono px-1.5 py-0.5 rounded",
+              presenterMode
+                ? "bg-purple-900 text-purple-200"
+                : "bg-slate-800 text-slate-500"
+            )}
+          >
+            {presenterMode ? "ON" : "OFF"}
+          </span>
+        </button>
+
         <div className="flex items-center justify-between">
-          <span>Engine Core</span>
-          <span className="text-emerald-400 font-mono text-[11px]">Ready</span>
+          <span>Engine Pipeline</span>
+          <span className="text-emerald-400 font-mono text-[11px]">Online</span>
         </div>
-        <div className="mt-1 text-[11px] text-slate-500">Phase 0 Foundation</div>
+        <div className="text-[11px] text-slate-500">Autonomous IT/OT Defense</div>
       </div>
     </aside>
   );
