@@ -1,6 +1,7 @@
 import type {
   AssetResponse,
   BudgetStatusResponse,
+  EvalSummaryResponse,
   Event,
   GuardDecision,
   Incident,
@@ -273,6 +274,16 @@ export async function fetchSystemStatus(): Promise<SystemStatusResponse> {
   });
   if (!res.ok) {
     throw new Error(`Failed to fetch system status: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchEvalSummary(): Promise<EvalSummaryResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/eval/summary`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch evaluation summary: ${res.statusText}`);
   }
   return res.json();
 }

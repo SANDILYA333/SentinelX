@@ -20,6 +20,7 @@ from app.ingest import set_ingestor
 from app.pipeline_state import set_correlation_pipeline, set_guard_evaluator
 from app.routes.assets import router as assets_router
 from app.routes.budget import router as budget_router
+from app.routes.eval import router as eval_router
 from app.routes.events import router as events_router
 from app.routes.guard import router as guard_router
 from app.routes.health import router as health_router
@@ -113,6 +114,7 @@ app.include_router(budget_router)
 app.include_router(sources_router)
 app.include_router(assets_router)
 app.include_router(mitre_router)
+app.include_router(eval_router)
 
 # Dev-only endpoints
 if settings.SENTINELX_ENV == "dev":

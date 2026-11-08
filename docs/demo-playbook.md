@@ -126,3 +126,4 @@ make demo-preflight
 *Remedy*:
 - Navigate to `http://localhost:3000/eval` to inspect the frozen capture benchmark matrix and detection results.
 - Demonstrate the **Guard Action Tester** on `/deception`, which operates standalone against safety policy rules.
+

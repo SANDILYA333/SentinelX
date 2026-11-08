@@ -50,3 +50,34 @@ class SystemStatusResponse(BaseModel):
     signals_count: int
     incidents_count: int
     budget_threshold: float
+
+
+class CaptureEvalRow(BaseModel):
+    """Evaluation summary metrics for a single capture dataset."""
+
+    name: str
+    scenario_type: str
+    display_type: str
+    hours: str
+    events: int
+    signals: int
+    incidents: int
+    score: float | None = None
+    severity: str | None = None
+    ttfma_seconds: float | None = None
+    status: str
+    decoy_touched: bool = False
+    ot_touched: bool = False
+    kill_chain_stages: list[str] = Field(default_factory=list)
+
+
+class EvalSummaryResponse(BaseModel):
+    """Aggregate benchmark matrix across all 8 verified captures."""
+
+    captures: list[CaptureEvalRow]
+    benign_fp_per_24h: float
+    attack_recall: float
+    mean_ttfma_seconds: float | None = None
+    guard_ot_interlock: str = "100% Deterministic"
+    evaluated_at: str
+    threshold: float = 0.50

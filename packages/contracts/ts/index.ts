@@ -573,3 +573,60 @@ export interface SystemStatusResponse {
   incidents_count: IncidentsCount;
   budget_threshold: BudgetThreshold;
 }
+
+export type ScenarioType = string;
+
+export type DisplayType = string;
+
+export type Hours = string;
+
+export type Events = number;
+
+export type Signals = number;
+
+export type Incidents = number;
+
+export type Captures = CaptureEvalRow[];
+
+export type BenignFpPer24H = number;
+
+export type AttackRecall = number;
+
+export type MeanTtfmaSeconds = number | null;
+
+export type GuardOtInterlock = string;
+
+export type EvaluatedAt = string;
+
+export interface EvalSummaryResponse {
+  captures: Captures;
+  benign_fp_per_24h: BenignFpPer24H;
+  attack_recall: AttackRecall;
+  mean_ttfma_seconds?: MeanTtfmaSeconds;
+  guard_ot_interlock?: GuardOtInterlock;
+  evaluated_at: EvaluatedAt;
+  threshold?: Threshold;
+}
+/**
+ * Evaluation summary metrics for a single capture dataset.
+ *
+ * This interface was referenced by `EvalSummaryResponse`'s JSON-Schema
+ * via the `definition` "CaptureEvalRow".
+ */
+
+export interface CaptureEvalRow {
+  name: Name;
+  scenario_type: ScenarioType;
+  display_type: DisplayType;
+  hours: Hours;
+  events: Events;
+  signals: Signals;
+  incidents: Incidents;
+  score?: Score;
+  severity?: Severity;
+  ttfma_seconds?: TtfmaSeconds;
+  status: Status;
+  decoy_touched?: DecoyTouched;
+  ot_touched?: OtTouched;
+  kill_chain_stages?: KillChainStages;
+}

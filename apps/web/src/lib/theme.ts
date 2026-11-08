@@ -208,3 +208,4 @@ export function sortKillChainStages(stages: string[]): string[] {
     return posA - posB;
   });
 }
+

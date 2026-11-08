@@ -78,3 +78,4 @@ export function EntityNode({ data }: { data: EntityNodeData }) {
     </div>
   );
 }
+

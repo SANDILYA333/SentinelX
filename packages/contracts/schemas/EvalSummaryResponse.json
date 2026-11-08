@@ -1,0 +1,158 @@
+{
+  "$defs": {
+    "CaptureEvalRow": {
+      "description": "Evaluation summary metrics for a single capture dataset.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "scenario_type": {
+          "title": "Scenario Type",
+          "type": "string"
+        },
+        "display_type": {
+          "title": "Display Type",
+          "type": "string"
+        },
+        "hours": {
+          "title": "Hours",
+          "type": "string"
+        },
+        "events": {
+          "title": "Events",
+          "type": "integer"
+        },
+        "signals": {
+          "title": "Signals",
+          "type": "integer"
+        },
+        "incidents": {
+          "title": "Incidents",
+          "type": "integer"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Score"
+        },
+        "severity": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Severity"
+        },
+        "ttfma_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ttfma Seconds"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "decoy_touched": {
+          "default": false,
+          "title": "Decoy Touched",
+          "type": "boolean"
+        },
+        "ot_touched": {
+          "default": false,
+          "title": "Ot Touched",
+          "type": "boolean"
+        },
+        "kill_chain_stages": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Kill Chain Stages",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "scenario_type",
+        "display_type",
+        "hours",
+        "events",
+        "signals",
+        "incidents",
+        "status"
+      ],
+      "title": "CaptureEvalRow",
+      "type": "object"
+    }
+  },
+  "description": "Aggregate benchmark matrix across all 8 verified captures.",
+  "properties": {
+    "captures": {
+      "items": {
+        "$ref": "#/$defs/CaptureEvalRow"
+      },
+      "title": "Captures",
+      "type": "array"
+    },
+    "benign_fp_per_24h": {
+      "title": "Benign Fp Per 24H",
+      "type": "number"
+    },
+    "attack_recall": {
+      "title": "Attack Recall",
+      "type": "number"
+    },
+    "mean_ttfma_seconds": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Mean Ttfma Seconds"
+    },
+    "guard_ot_interlock": {
+      "default": "100% Deterministic",
+      "title": "Guard Ot Interlock",
+      "type": "string"
+    },
+    "evaluated_at": {
+      "title": "Evaluated At",
+      "type": "string"
+    },
+    "threshold": {
+      "default": 0.5,
+      "title": "Threshold",
+      "type": "number"
+    }
+  },
+  "required": [
+    "captures",
+    "benign_fp_per_24h",
+    "attack_recall",
+    "evaluated_at"
+  ],
+  "title": "EvalSummaryResponse",
+  "type": "object"
+}

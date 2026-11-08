@@ -2,7 +2,7 @@
 """SentinelX Live Demo Preflight Readiness & Health Check.
 
 Verifies all seven prerequisites for a smooth live demonstration:
-1. Docker Lab containers healthy (jump-host, file-srv, db-srv, eng-ws, plc-sim, cowrie, opencanary, decoy-plc, wazuh-manager)
+1. Docker Lab containers healthy (jump-host, file-srv, db-srv, eng-ws, plc-sim, cowrie, opencanary, decoy-plc, wazuh-manager, zeek-it, zeek-dmz, zeek-ot)
 2. Host storage safety (>= 15 GB free disk space)
 3. API server reachable (GET /health)
 4. Telemetry sources healthy (GET /api/v1/sources/health)
@@ -56,6 +56,9 @@ def check_lab_containers() -> tuple[bool, str]:
         ("opencanary", "sentinelx-opencanary"),
         ("decoy-plc", "sentinelx-decoy-plc"),
         ("wazuh-manager", "sentinelx-wazuh-manager"),
+        ("zeek-it", "sentinelx-zeek-it"),
+        ("zeek-dmz", "sentinelx-zeek-dmz"),
+        ("zeek-ot", "sentinelx-zeek-ot"),
     ]
     try:
         proc = subprocess.run(
@@ -283,7 +286,7 @@ def main() -> int:
 
     checks = [
         ("Host Free Storage (>= 15GB)", lambda: check_disk_space(15.0)),
-        ("Docker Lab Containers (9/9)", check_lab_containers),
+        ("Docker Lab Containers (12/12)", check_lab_containers),
         ("SentinelX API Reachability", lambda: check_api_health(args.api_url)),
         ("Telemetry Sources Health (5/5)", lambda: check_sources_health(args.api_url)),
         ("OT PLC Physics & Registers", check_plc_state),
