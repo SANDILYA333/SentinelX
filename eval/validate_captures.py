@@ -15,6 +15,7 @@ import json
 import logging
 import sqlite3
 import sys
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -122,6 +123,34 @@ def validate_capture(capture_dir: Path) -> bool:
     print("By Category:")
     for cat, cnt in categories:
         print(f"  {cat:<18}: {cnt}")
+
+    # Simulated Hourly Activity Distribution (diurnal day-shape validation)
+    w_start_str = manifest.get("wall_start")
+    s_start_str = manifest.get("sim_start")
+    sim_speed = float(manifest.get("sim_speed", 1.0))
+    if w_start_str and s_start_str:
+        try:
+            w_start = datetime.fromisoformat(w_start_str)
+            s_start = datetime.fromisoformat(s_start_str)
+            rows = conn.execute("SELECT ts FROM events").fetchall()
+            hourly_counts: dict[int, int] = {}
+            for (ts_str,) in rows:
+                try:
+                    t_ev = datetime.fromisoformat(ts_str)
+                    elapsed_wall = (t_ev - w_start).total_seconds()
+                    sim_dt = s_start + timedelta(seconds=max(0.0, elapsed_wall) * sim_speed)
+                    h = sim_dt.hour
+                    hourly_counts[h] = hourly_counts.get(h, 0) + 1
+                except Exception:
+                    continue
+            if hourly_counts:
+                print("\n--- Simulated Hourly Activity Distribution ---")
+                for h in sorted(hourly_counts.keys()):
+                    cnt = hourly_counts[h]
+                    bar = "#" * max(1, min(40, cnt))
+                    print(f"  Sim Hour {h:02d}:00 : {bar:<40} ({cnt} events)")
+        except Exception:
+            pass
 
     # 3. Category-Specific Semantic Guarantees
     all_passed = True

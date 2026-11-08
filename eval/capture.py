@@ -131,6 +131,7 @@ def run_capture(
     sim_speed: float = 96.0,
     seed: int = 42,
     skip_reset: bool = False,
+    start_hour: int | None = None,
 ) -> Path:
     """Run full capture workflow: preflight -> reset -> traffic generation -> snapshot -> manifest."""
     free_gb = check_free_disk()
@@ -147,16 +148,23 @@ def run_capture(
     target_dir.mkdir(parents=True, exist_ok=True)
 
     wall_start = datetime.now(UTC)
-    sim_start = wall_start
+    if start_hour is not None:
+        sim_start = wall_start.replace(hour=int(start_hour) % 24, minute=0, second=0, microsecond=0)
+    else:
+        sim_start = wall_start
 
     print("\n" + "=" * 80)
     print(f"RUNNING CAPTURE: {category.upper()}/{name}")
-    print(f"  Mode       : {mode}")
-    print(f"  Scenario   : {scenario_name or 'N/A'}")
-    print(f"  Duration   : {duration:.1f}s")
-    print(f"  SIM_SPEED  : {sim_speed}x")
-    print(f"  Seed       : {seed}")
-    print(f"  Output Dir : {target_dir}")
+    print(f"  Mode            : {mode}")
+    print(f"  Scenario        : {scenario_name or 'N/A'}")
+    print(f"  Duration        : {duration:.1f}s")
+    print(f"  SIM_SPEED       : {sim_speed}x")
+    print(f"  Seed            : {seed}")
+    print(
+        f"  Sim Start Hour  : {sim_start.hour:02d}:00"
+        + (f" (requested {start_hour})" if start_hour is not None else "")
+    )
+    print(f"  Output Dir      : {target_dir}")
     print("=" * 80 + "\n")
 
     benign_proc = None
@@ -165,11 +173,8 @@ def run_capture(
         # Start background benign traffic generator if benign or hybrid
         if mode in ("benign", "hybrid"):
             logger.info(
-                f"Starting benign activity generator (sim_speed: {sim_speed}x, seed: {seed})..."
+                f"Starting benign activity generator (sim_speed: {sim_speed}x, seed: {seed}, start_hour: {sim_start.hour:02d}:00)..."
             )
-            env = os.environ.copy()
-            env["SIM_SPEED"] = str(sim_speed)
-            env["BENIGN_SEED"] = str(seed)
             benign_cmd = [
                 "docker",
                 "exec",
@@ -177,16 +182,25 @@ def run_capture(
                 f"SIM_SPEED={sim_speed}",
                 "-e",
                 f"RANDOM_SEED={seed}",
-                "sentinelx-benign",
-                "python3",
-                "/usr/local/bin/benign_loop.py",
-                "--duration",
-                str(duration + 300 if mode == "hybrid" else duration),
-                "--sim-speed",
-                str(sim_speed),
-                "--seed",
-                str(seed),
             ]
+            if start_hour is not None:
+                benign_cmd.extend(["-e", f"SIM_START_HOUR={start_hour}"])
+            benign_cmd.extend(
+                [
+                    "sentinelx-benign",
+                    "python3",
+                    "/usr/local/bin/benign_loop.py",
+                    "--duration",
+                    str(int(duration + 600) if mode == "hybrid" else int(duration)),
+                    "--sim-speed",
+                    str(sim_speed),
+                    "--seed",
+                    str(seed),
+                ]
+            )
+            if start_hour is not None:
+                benign_cmd.extend(["--start-hour", str(start_hour)])
+
             benign_proc = subprocess.Popen(
                 benign_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
@@ -256,6 +270,8 @@ def run_capture(
         "wall_end": wall_end.isoformat(),
         "sim_start": sim_start.isoformat(),
         "sim_end": sim_end.isoformat(),
+        "sim_start_hour": sim_start.hour,
+        "sim_end_hour": sim_end.hour,
         "total_wall_seconds": round(wall_duration, 2),
         "total_sim_hours": round(sim_duration_hours, 2),
         "total_size_mb": round(total_size_mb, 3),
@@ -299,6 +315,12 @@ def main():
         "--sim-speed", type=float, default=96.0, help="Diurnal compression speed factor"
     )
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    parser.add_argument(
+        "--start-hour",
+        type=int,
+        default=None,
+        help="Simulated start hour (0-23) for diurnal staggering",
+    )
     parser.add_argument("--skip-reset", action="store_true", help="Skip lab reset if already clean")
     args = parser.parse_args()
 
@@ -320,6 +342,7 @@ def main():
         sim_speed=args.sim_speed,
         seed=args.seed,
         skip_reset=args.skip_reset,
+        start_hour=args.start_hour,
     )
 
 

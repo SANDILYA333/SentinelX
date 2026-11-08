@@ -176,7 +176,11 @@ class BenignActivityRunner:
     """Manages actor scheduling, diurnal rate compression, and maintenance windows."""
 
     def __init__(
-        self, config: dict[str, Any], sim_speed: float | None = None, seed: int | None = None
+        self,
+        config: dict[str, Any],
+        sim_speed: float | None = None,
+        seed: int | None = None,
+        start_hour: int | None = None,
     ):
         self.config = config
         self.sim_speed = float(sim_speed or os.getenv("SIM_SPEED") or config.get("sim_speed", 96))
@@ -191,7 +195,26 @@ class BenignActivityRunner:
 
         self.running = False
         self.wall_start_time = time.time()
-        self.sim_start_time = datetime.now(UTC)
+
+        # Staggered simulated start time support
+        sh_val = (
+            start_hour
+            if start_hour is not None
+            else int(os.getenv("SIM_START_HOUR"))
+            if os.getenv("SIM_START_HOUR") is not None
+            else config.get("start_hour")
+        )
+        now_utc = datetime.now(UTC)
+        if sh_val is not None:
+            self.sim_start_time = now_utc.replace(
+                hour=int(sh_val) % 24, minute=0, second=0, microsecond=0
+            )
+            logger.info(
+                f"Initialized simulated start time: {self.sim_start_time.isoformat()} "
+                f"(sim_hour: {int(sh_val) % 24:02d}:00)"
+            )
+        else:
+            self.sim_start_time = now_utc
 
         # Action timers
         self.last_alice_time = 0.0
@@ -353,11 +376,19 @@ def main():
         help="Compression factor (default: from config or 96x)",
     )
     parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility")
+    parser.add_argument(
+        "--start-hour",
+        type=int,
+        default=None,
+        help="Simulated start hour (0-23) for diurnal staggering",
+    )
     parser.add_argument("--config", type=Path, default=None, help="Path to config.yaml")
     args = parser.parse_args()
 
     cfg = load_config(args.config)
-    runner = BenignActivityRunner(cfg, sim_speed=args.sim_speed, seed=args.seed)
+    runner = BenignActivityRunner(
+        cfg, sim_speed=args.sim_speed, seed=args.seed, start_hour=args.start_hour
+    )
     runner.loop(duration_seconds=args.duration)
 
 

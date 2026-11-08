@@ -79,14 +79,14 @@ Uses identical underlying attack actions but dilates inter-step intervals (15–
 
 | Name | Category | Wall Duration | Sim Span | Size | Raw Lines | Events | Hard-Neg / Steps |
 |---|---|---|---|---|---|---|---|
-| `benign/day_101` | Benign | 60.0s | 1.6h | 1.165 MB | 525 | 56 | 0 Decoy / 0 Honey (**PASS**) |
-| `benign/day_102` | Benign | 60.0s | 1.6h | 1.167 MB | 543 | 54 | 0 Decoy / 0 Honey (**PASS**) |
-| `benign/day_103` | Benign | 60.0s | 1.6h | 1.170 MB | 543 | 58 | 0 Decoy / 0 Honey (**PASS**) |
-| `benign/day_104` | Benign | 60.0s | 1.6h | 1.164 MB | 532 | 55 | 0 Decoy / 0 Honey (**PASS**) |
-| `benign/day_105` | Benign | 60.0s | 1.6h | 1.167 MB | 532 | 56 | 0 Decoy / 0 Honey (**PASS**) |
+| `benign/day_101` | Benign | 60.0s | 5.0h (00:00–05:00) | 1.163 MB | 521 | 55 | 0 Decoy / 0 Honey (**PASS**) |
+| `benign/day_102` | Benign | 60.0s | 5.0h (05:00–10:00) | 1.191 MB | 618 | 77 | 0 Decoy / 0 Honey (**PASS**) |
+| `benign/day_103` | Benign | 60.0s | 5.0h (10:00–15:00) | 1.186 MB | 599 | 75 | 0 Decoy / 0 Honey (**PASS**) |
+| `benign/day_104` | Benign | 60.0s | 5.0h (15:00–20:00) | 1.176 MB | 571 | 67 | 0 Decoy / 0 Honey (**PASS**) |
+| `benign/day_105` | Benign | 60.0s | 5.0h (20:00–01:00) | 1.159 MB | 507 | 48 | 0 Decoy / 0 Honey (**PASS**) |
 | `attack/demo_baseline` | Attack | 118.8s | 3.2h | 1.324 MB | 1011 | 275 | All 7 Steps Proven (**PASS**) |
 | `attack/reordered` | Attack | 120.0s | 3.2h | 1.337 MB | 1046 | 277 | All 7 Steps Proven (**PASS**) |
-| `attack/slow_burn` | Attack | 234.3s | 6.2h | 1.510 MB | 1587 | 442 | All 7 Steps Proven (**PASS**) |
+| `attack/slow_burn` | Attack | 996.7s | 26.6h (00:00–02:35) | 2.130 MB | 3518 | 831 | All 7 Steps Proven (**PASS**) |
 
-*Note: Raw captures are local data assets (~11 MB total) and gitignored per security and repository footprint requirements (`eval/captures/*/*/*`). Only reproducible `manifest.json` metadata files are tracked in version control.*
+*Note: Raw captures are local data assets (~12 MB total) and gitignored per security and repository footprint requirements (`eval/captures/*/*/*`). Only reproducible `manifest.json` metadata files are tracked in version control.*
 

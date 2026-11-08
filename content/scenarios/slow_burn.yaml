@@ -1,6 +1,6 @@
 name: slow_burn
-description: "Patient low-and-slow variant attack scenario spread over extended duration with realistic dwell times."
-target_duration_seconds: 240
+description: "Patient low-and-slow variant attack scenario spread over extended duration with realistic dwell times (10-15x baseline, 900-1350s)."
+target_duration_seconds: 1020
 
 steps:
   - id: step_1
@@ -10,7 +10,7 @@ steps:
     host: "jump-host"
     action: "ssh_jump_login"
     target: "10.10.1.10"
-    pacing_delay: [15.0, 25.0]
+    pacing_delay: [120.0, 160.0]
 
   - id: step_2
     name: "IT Subnet Network Service Discovery (Low-Rate Probe)"
@@ -19,7 +19,7 @@ steps:
     host: "jump-host"
     action: "network_discovery"
     target: "10.10.1.0/24"
-    pacing_delay: [20.0, 30.0]
+    pacing_delay: [140.0, 180.0]
 
   - id: step_3
     name: "Credential Harvesting from Backup Share"
@@ -28,7 +28,7 @@ steps:
     host: "file-srv"
     action: "credential_theft"
     target: "10.10.1.20"
-    pacing_delay: [18.0, 28.0]
+    pacing_delay: [130.0, 170.0]
 
   - id: step_4
     name: "Lateral Decoy Pivot via Harvested Honey Credentials"
@@ -37,7 +37,7 @@ steps:
     host: "cowrie,opencanary"
     action: "decoy_pivot"
     target: "10.10.2.20,10.10.2.30"
-    pacing_delay: [25.0, 35.0]
+    pacing_delay: [150.0, 190.0]
 
   - id: step_5
     name: "Lateral Movement to Engineering Workstation"
@@ -46,7 +46,7 @@ steps:
     host: "eng-ws"
     action: "lateral_movement"
     target: "10.10.1.40"
-    pacing_delay: [20.0, 30.0]
+    pacing_delay: [140.0, 180.0]
 
   - id: step_6
     name: "Unauthorized OT Modbus Physical Manipulation"
@@ -55,7 +55,7 @@ steps:
     host: "plc-sim"
     action: "ot_manipulation"
     target: "10.10.3.20"
-    pacing_delay: [25.0, 35.0]
+    pacing_delay: [150.0, 190.0]
 
   - id: step_7
     name: "OT Decoy Reconnaissance & Process Restoration"
@@ -64,5 +64,5 @@ steps:
     host: "decoy-plc,plc-sim"
     action: "ot_discovery_and_restore"
     target: "10.10.3.60,10.10.3.20"
-    pacing_delay: [25.0, 35.0]
+    pacing_delay: [30.0, 45.0]
 

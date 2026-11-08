@@ -27,6 +27,12 @@ def test_scenario_yaml_loading_and_validation():
             assert step.pacing_delay[0] <= step.pacing_delay[1]
             assert step.pacing_delay[0] >= 0.0
 
+    # Specifically verify slow_burn is 10-15x baseline (900-1350s)
+    slow_burn = load_scenario(SCENARIOS_DIR / "slow_burn.yaml")
+    assert 900 <= slow_burn.target_duration_seconds <= 1350, (
+        f"slow_burn duration must be 10-15x baseline: {slow_burn.target_duration_seconds}"
+    )
+
 
 def test_benign_config_validation():
     """Verify benign activity configuration has complete diurnal weights and maintenance window."""
