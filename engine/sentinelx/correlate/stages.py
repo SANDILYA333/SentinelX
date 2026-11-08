@@ -29,8 +29,25 @@ def classify_signal_stage(signal: Signal) -> str:
         return "discovery"
     if rule_id in ("RULE-CRED-001", "RULE-DECOY-001"):
         return "credential_access"
-    if rule_id in ("RULE-NET-001", "GRAPH-PATH-001", "GRAPH-EDGE-001"):
+    if rule_id in ("RULE-NET-001", "GRAPH-PATH-001"):
         return "lateral_movement"
+    if rule_id in ("GRAPH-EDGE-001",):
+        kind = signal.metadata.get("kind", "")
+        if kind == "net":
+            return "discovery"
+        if kind == "ot":
+            return "ot_impact"
+        if kind == "auth":
+            src = signal.metadata.get("source_node", "")
+            if src.startswith("ip:"):
+                ip = src[3:]
+                from sentinelx.normalize.assets import get_assets
+
+                assets = get_assets()
+                if not assets.get_host_by_ip(ip):
+                    return "initial_access"
+            return "lateral_movement"
+        return "discovery"
     if rule_id in ("RULE-OT-001",):
         return "ot_impact"
 

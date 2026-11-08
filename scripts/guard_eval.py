@@ -117,15 +117,15 @@ def run_guard_evaluation():
         },
     ]
 
-    print("\n" + "=" * 125)
+    print("\n" + "=" * 140)
     print("RESPONSE SAFETY GUARD POLICY EVALUATION TABLE")
-    print("=" * 125)
+    print("=" * 140)
     header = (
-        f"{'Action':<19} | {'Target':<12} | {'Criticality':<16} | "
+        f"{'Action':<19} | {'Target':<12} | {'PLC State':<14} | {'Criticality':<16} | "
         f"{'Decision':<11} | {'Rule ID':<13} | {'Reason Summary & Alternative'}"
     )
     print(header)
-    print("-" * 125)
+    print("-" * 140)
 
     all_passed = True
 
@@ -157,13 +157,16 @@ def run_guard_evaluation():
             all_passed = False
 
         status_marker = " " if passed else "X"
+        state_str = (
+            str(plc_state.get("flag", "normal")) if isinstance(plc_state, dict) else str(plc_state)
+        )
         row_str = (
-            f"{status_marker}{action:<18} | {target:<12} | {crit_str:<16} | "
+            f"{status_marker}{action:<18} | {target:<12} | {state_str:<14} | {crit_str:<16} | "
             f"{decision.decision.upper():<11} | {rule_str:<13} | {reason_summary}"
         )
         print(row_str)
 
-    print("=" * 125)
+    print("=" * 140)
 
     if not all_passed:
         print("\nERROR: One or more guard evaluation test cases failed expectations!")

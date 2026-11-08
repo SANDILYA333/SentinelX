@@ -1,11 +1,10 @@
 """Enrichment service for correlated incidents (MITRE rollup, TTFMA, and narrative explanation)."""
 
-from sentinelx.correlate.stages import classify_signal_stage
 from sentinelx.schemas.common import Technique, UtcDatetime
 from sentinelx.schemas.signal import Signal
 
-# Meaningful alert threshold: high confidence (>= 0.80) or high-fidelity detector (rule/deception)
-MEANINGFUL_CONFIDENCE_THRESHOLD: float = 0.80
+# Meaningful alert threshold: high confidence (>= 0.85) or high-fidelity detector (rule/deception)
+MEANINGFUL_CONFIDENCE_THRESHOLD: float = 0.85
 MEANINGFUL_DETECTORS: set[str] = {"rule", "deception"}
 
 
@@ -53,6 +52,8 @@ def compute_ttfma(
 
 def generate_explanation(signals: list[Signal]) -> list[str]:
     """Build a short, chronological, human-readable narrative of the incident's attack progression."""
+    from sentinelx.correlate.stages import classify_signal_stage
+
     sorted_signals = sorted(signals, key=lambda s: s.ts)
     narrative: list[str] = []
     seen_narratives: set[str] = set()
