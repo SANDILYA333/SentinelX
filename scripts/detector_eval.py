@@ -169,11 +169,11 @@ def run_leave_one_out_validation(benign_dirs: list[Path]):
 
 def print_golden_step_table(attack_signals: dict[str, list[Signal]]):
     """Print golden scenario step coverage table across all 3 attack scenarios."""
-    print("\n" + "=" * 95)
+    print("\n" + "=" * 145)
     print("TABLE 4: GOLDEN ATTACK STEP DETECTION COVERAGE")
-    print("=" * 95)
-    print(f"{'Scenario Step':<38} | {'demo_baseline':<16} | {'reordered':<16} | {'slow_burn':<16}")
-    print("-" * 95)
+    print("=" * 145)
+    print(f"{'Scenario Step':<38} | {'demo_baseline':<32} | {'reordered':<32} | {'slow_burn':<32}")
+    print("-" * 145)
 
     step_definitions = [
         (
@@ -229,13 +229,13 @@ def print_golden_step_table(attack_signals: dict[str, list[Signal]]):
             sigs = attack_signals[cap_name]
             catching_dets = sorted(set(s.detector for s in sigs if matcher(s)))
             if not catching_dets:
-                row_str += f"{'MISSING!':<16} | "
+                row_str += f"{'MISSING!':<32} | "
                 all_steps_passed = False
             else:
-                det_str = ",".join(catching_dets)[:16]
-                row_str += f"{det_str:<16} | "
+                det_str = ", ".join(catching_dets)
+                row_str += f"{det_str:<32} | "
         print(row_str.rstrip(" |"))
-    print("=" * 95)
+    print("=" * 145)
     return all_steps_passed
 
 

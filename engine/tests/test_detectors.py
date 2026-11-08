@@ -143,6 +143,62 @@ def test_malformed_rule_fails_loudly_at_load_time():
         RulesEngine([bad_rule_op])
 
 
+def test_rule_auth_001_context_aware_genericness(test_event_factory):
+    """Verify Phase 4.2 genericness: RULE-AUTH-001 fires on unexpected zone/unauthorized IPs, not just 10.10.1.5."""
+    rules = load_rules()
+    engine = RulesEngine(rules)
+
+    # 1. Synthetic event: login from unauthorized IP in unexpected zone (10.10.9.99 mgmt subnet)
+    unauth_mgmt_ev = test_event_factory(
+        event_id="evt_synth_unauth_mgmt",
+        user="svc_backup",
+        host="jump-host",
+        src_ip="10.10.9.99",
+        dst_ip="10.10.1.10",
+        category="authentication",
+        action="ssh_login",
+    )
+    sigs_mgmt = engine.evaluate_event(unauth_mgmt_ev)
+    auth_sigs_mgmt = [s for s in sigs_mgmt if s.rule_id == "RULE-AUTH-001"]
+    assert len(auth_sigs_mgmt) == 1, (
+        "RULE-AUTH-001 must fire on unauthorized IP from mgmt zone (10.10.9.99)"
+    )
+    assert auth_sigs_mgmt[0].rule_id == "RULE-AUTH-001"
+    assert "T1078.003" in [t.technique_id for t in auth_sigs_mgmt[0].techniques]
+
+    # 2. Synthetic event: login from unapproved rogue IP in IT subnet (10.10.1.77)
+    unauth_it_ev = test_event_factory(
+        event_id="evt_synth_unauth_it",
+        user="alice",
+        host="jump-host",
+        src_ip="10.10.1.77",
+        dst_ip="10.10.1.10",
+        category="authentication",
+        action="ssh_login",
+    )
+    sigs_it = engine.evaluate_event(unauth_it_ev)
+    auth_sigs_it = [s for s in sigs_it if s.rule_id == "RULE-AUTH-001"]
+    assert len(auth_sigs_it) == 1, (
+        "RULE-AUTH-001 must fire on unapproved client origin (10.10.1.77)"
+    )
+
+    # 3. Benign login from authorized workstation (10.10.1.50)
+    benign_ev = test_event_factory(
+        event_id="evt_synth_benign",
+        user="alice",
+        host="jump-host",
+        src_ip="10.10.1.50",
+        dst_ip="10.10.1.10",
+        category="authentication",
+        action="ssh_login",
+    )
+    sigs_benign = engine.evaluate_event(benign_ev)
+    auth_sigs_benign = [s for s in sigs_benign if s.rule_id == "RULE-AUTH-001"]
+    assert len(auth_sigs_benign) == 0, (
+        "RULE-AUTH-001 must NOT fire on authorized client origin (10.10.1.50)"
+    )
+
+
 # ==============================================================================
 # Task 3: Baseline Behavioral Profile Detector Tests
 # ==============================================================================

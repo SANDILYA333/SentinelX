@@ -19,6 +19,8 @@ class HostAsset(BaseModel):
     process_critical: bool = False
     criticality: Literal["low", "medium", "high", "process_critical"] = "low"
     ssh_users: list[str] = Field(default_factory=list)
+    allowed_ssh_src_zones: list[str] = Field(default_factory=list)
+    allowed_ssh_src_hosts: list[str] = Field(default_factory=list)
 
 
 class HoneyCredential(BaseModel):
@@ -91,6 +93,47 @@ class AssetInventory(BaseModel):
             if path_clean == hf or path_clean.endswith(hf):
                 return True
         return False
+
+    def is_ssh_source_authorized(
+        self,
+        src_ip: str | None,
+        dst_host: str | None = None,
+        dst_ip: str | None = None,
+    ) -> bool:
+        """Check whether an incoming SSH connection is authorized for the destination host."""
+        if not src_ip:
+            return False
+
+        # Resolve destination host asset
+        dst_asset = None
+        if dst_host:
+            dst_asset = self.get_host_by_name(dst_host)
+        if not dst_asset and dst_ip:
+            dst_asset = self.get_host_by_ip(dst_ip)
+
+        if not dst_asset:
+            return False
+
+        src_zone = self.get_zone_for_ip(src_ip)
+        src_asset = self.get_host_by_ip(src_ip)
+        src_host_name = src_asset.name if src_asset else None
+
+        # Check allowed zones if configured
+        if dst_asset.allowed_ssh_src_zones:
+            if not src_zone or src_zone not in dst_asset.allowed_ssh_src_zones:
+                return False
+
+        # Check allowed hosts if configured
+        if dst_asset.allowed_ssh_src_hosts:
+            if not src_host_name or src_host_name not in dst_asset.allowed_ssh_src_hosts:
+                return False
+
+        # If neither is configured, fallback to destination's own zone
+        if not dst_asset.allowed_ssh_src_zones and not dst_asset.allowed_ssh_src_hosts:
+            if not src_zone or src_zone != dst_asset.zone:
+                return False
+
+        return True
 
 
 def load_assets(path: str | Path | None = None) -> AssetInventory:

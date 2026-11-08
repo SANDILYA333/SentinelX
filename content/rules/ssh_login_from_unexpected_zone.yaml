@@ -15,10 +15,9 @@ condition:
     - field: "action"
       operator: "eq"
       value: "ssh_login"
-    - field: "src_ip"
-      operator: "in"
-      value:
-        - "10.10.1.5"  # Attacker container IP
+    - field: "tags"
+      operator: "contains"
+      value: "unauthorized_ssh_source"
 explanation_template: "Successful SSH login to {host} for user {user} originating from unapproved client origin {src_ip}"
 metadata:
   category: "Initial Access"

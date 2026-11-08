@@ -62,6 +62,14 @@ class EventEnricher:
             if cross_tag not in tags:
                 tags.append(cross_tag)
 
+        # 2b. SSH Authorization Tagging (Context-aware based on assets policy)
+        if event.action == "ssh_login":
+            if not self.assets.is_ssh_source_authorized(
+                src_ip=src_ip, dst_host=host, dst_ip=dst_ip
+            ):
+                if "unauthorized_ssh_source" not in tags:
+                    tags.append("unauthorized_ssh_source")
+
         # 3. Decoy Tagging
         is_dst_decoy = bool(
             (dst_ip and self.assets.is_decoy(dst_ip)) or (host and self.assets.is_decoy(host))

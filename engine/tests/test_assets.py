@@ -59,3 +59,26 @@ def test_honey_credential_and_file_checks():
 def test_missing_assets_file_raises():
     with pytest.raises(FileNotFoundError):
         load_assets(Path("/nonexistent/assets.yaml"))
+
+
+def test_is_ssh_source_authorized():
+    get_assets.cache_clear()
+    assets = get_assets()
+
+    # Authorized benign workstation into jump-host
+    assert assets.is_ssh_source_authorized("10.10.1.50", dst_host="jump-host") is True
+
+    # Authorized jump-host pivot into eng-ws and file-srv
+    assert assets.is_ssh_source_authorized("10.10.1.10", dst_host="eng-ws") is True
+    assert assets.is_ssh_source_authorized("10.10.1.10", dst_host="file-srv") is True
+
+    # Unauthorized attacker host
+    assert assets.is_ssh_source_authorized("10.10.1.5", dst_host="jump-host") is False
+    assert assets.is_ssh_source_authorized("10.10.1.5", dst_host="eng-ws") is False
+    assert assets.is_ssh_source_authorized("10.10.1.5", dst_host="file-srv") is False
+
+    # Unauthorized origin from unexpected zone (mgmt IP into jump-host)
+    assert assets.is_ssh_source_authorized("10.10.9.99", dst_host="jump-host") is False
+
+    # Unknown IP on IT subnet (unauthorized rogue host)
+    assert assets.is_ssh_source_authorized("10.10.1.99", dst_host="jump-host") is False

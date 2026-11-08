@@ -186,6 +186,20 @@ class RulesEngine:
 
     def evaluate_event(self, event: Event) -> list[Signal]:
         """Evaluate a single Event against all loaded rules, returning emitted Signals."""
+        # Ensure context-aware tag is present if evaluating a bare/un-enriched event
+        if (
+            event.action == "ssh_login"
+            and "unauthorized_ssh_source" not in event.tags
+            and not self.assets.is_ssh_source_authorized(
+                src_ip=event.src_ip,
+                dst_host=event.host,
+                dst_ip=event.dst_ip,
+            )
+        ):
+            event = event.model_copy(
+                update={"tags": list(event.tags) + ["unauthorized_ssh_source"]}
+            )
+
         signals: list[Signal] = []
 
         for rule in self.rules:
