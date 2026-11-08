@@ -6,7 +6,7 @@ confidence: 0.85
 applies_to:
   - category: "process"
 technique_ids:
-  - "T1059.004"
+  - "T1059"
 condition:
   any_of:
     - field: "cmdline"
@@ -17,6 +17,13 @@ condition:
         - "base64 --decode"
         - "curl -s http"
         - "/dev/tcp/"
+        - "-EncodedCommand"
+        - "-encodedcommand"
+        - "-enc "
+        - "Invoke-WebRequest"
+        - "certutil"
+        - "schtasks"
+        - "wmic"
 explanation_template: "Suspicious command invocation detected on host {host} by user {user}: {cmdline}"
 metadata:
   category: "Execution"

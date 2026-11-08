@@ -30,6 +30,23 @@ from sentinelx.correlate.stages import STAGE_BASE_WEIGHTS, classify_signal_stage
 from sentinelx.schemas.common import Severity
 from sentinelx.schemas.signal import Signal
 
+NOVELTY_DETECTORS: set[str] = {"baseline", "graph", "anomaly"}
+CORROBORATING_DETECTORS: set[str] = {"rule", "deception"}
+
+
+def is_novelty_only(signals: list[Signal]) -> bool:
+    """Check if an incident's signals derive strictly from novelty/unsupervised detectors.
+
+    Returns True if signals exist and ALL signals come from {baseline, graph, anomaly}
+    without any corroboration from deterministic rules or deception assets.
+    """
+    if not signals:
+        return False
+    return all(
+        (s.detector.value if hasattr(s.detector, "value") else str(s.detector)) in NOVELTY_DETECTORS
+        for s in signals
+    )
+
 
 def detect_session_tainted_ot(signals: list[Signal]) -> bool:
     """Check if any OT signal in the list occurred after a prior suspicious signal.
@@ -63,6 +80,7 @@ def detect_session_tainted_ot(signals: list[Signal]) -> bool:
 def score_incident(
     signals: list[Signal],
     force_session_taint: bool | None = None,
+    novelty_cap: float = 0.40,
 ) -> tuple[float, list[str], Severity]:
     """Calculate incident score (0.0 - 1.0), ordered kill-chain stages, and severity."""
     if not signals:
@@ -108,6 +126,12 @@ def score_incident(
         raw_score += 0.35
 
     final_score = min(1.0, max(0.05, round(raw_score, 4)))
+
+    # 5. Cold-Start Novelty Corroboration Cap
+    # Incidents supported solely by unsupervised anomaly/baseline/graph deviations
+    # without deterministic rule or deception corroboration are capped below the budget threshold.
+    if is_novelty_only(sorted_signals):
+        final_score = min(final_score, novelty_cap)
 
     # Determine Severity
     if final_score >= 0.85:

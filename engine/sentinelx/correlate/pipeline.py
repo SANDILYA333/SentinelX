@@ -19,10 +19,11 @@ class CorrelationPipeline:
         db: Any = None,
         window_sec: float = 1800.0,
         budget_threshold: float = 0.50,
+        novelty_cap: float = 0.40,
         on_incident: Callable[[Incident], Awaitable[None]] | None = None,
     ):
         self.db = db
-        self.correlator = Correlator(window_sec=window_sec, db=db)
+        self.correlator = Correlator(window_sec=window_sec, db=db, novelty_cap=novelty_cap)
         self.budget = BudgetController(threshold=budget_threshold)
         self.on_incident = on_incident
 

@@ -66,11 +66,27 @@ To prevent isolated anomalous bursts (e.g. benign scan noise) from triggering fa
 The composite score is computed as:
 $$S_{\text{final}} = \min\left(1.00, \; S_{\text{base}} \times M_{\text{stage}} \times M_{\text{zone}} \times M_{\text{decep}} \times M_{\text{ot}}\right)$$
 
-### 2.4 Empirical Score Discrimination (Verified in Phase 5.1)
+### 2.4 Empirical Score Discrimination & Session-Aware OT Weighting
 The progression formula ensures sharp discrimination between partial/isolated anomalies and complete attack chains:
 - **Single Step Only** (Step 1 Initial Access): Score $\approx \mathbf{0.35}$ (Suppressed by budget threshold $0.50$).
 - **Partial Chain** (Step 1 + Step 2 Discovery, no decoy, no OT): Score $\approx \mathbf{0.55}$ (Elevated to Medium alert).
 - **Full Attack Chain** (All 7 steps including decoy pivot and OT manipulation): Score = $\mathbf{1.00}$ (CRITICAL incident).
+
+#### Worked Example: Session-Aware OT Weighting (0.30 Isolated vs 0.9750 Session-Tainted)
+To prevent routine industrial maintenance from triggering false positive critical alarms while ensuring compromised operator sessions are immediately caught, SentinelX evaluates session context via `detect_session_tainted_ot`:
+1. **Isolated OT Write (Authorized Host `eng-ws`)**:
+   - Signal: `RULE-OT-001` (Modbus coil 1 write to `plc-sim` from `eng-ws`).
+   - Stages: `['ot_impact']` (base weight = $0.30$).
+   - Progression Multiplier: 1 unique stage $\implies 1.00\times$.
+   - Session Taint: No prior suspicious signals in session $\implies \text{boost} = 0.00$.
+   - Score: $0.30 \times 1.00 = \mathbf{0.3000}$ (LOW severity; safely filtered below $0.50$ budget threshold).
+2. **Session-Tainted OT Write (Identical Write with Prior Suspicious Context)**:
+   - Signals: `RULE-AUTH-001` (Unexpected cross-zone SSH login from `10.10.1.5` by `svc_backup`) followed by `RULE-OT-001` on `plc-sim`.
+   - Stages: `['initial_access', 'ot_impact']` (base sum: $0.20 + 0.30 = 0.50$).
+   - Progression Multiplier: 2 unique stages $\implies 1.0 + 0.25 \times (2 - 1) = 1.25\times$.
+   - Intermediate Score: $0.50 \times 1.25 = 0.6250$.
+   - Session Taint Boost: Prior initial access detected on the user/session $\implies +0.35$.
+   - Final Composite Score: $0.6250 + 0.3500 = \mathbf{0.9750}$ (CRITICAL severity; immediate budget escalation).
 
 ---
 
@@ -82,11 +98,13 @@ $$\text{TTFMA} = t_{\text{threshold\_cross}} - t_{\text{first\_adversary\_event}
 where $t_{\text{threshold\_cross}}$ is the timestamp of the event generating the signal that pushes the correlated incident score $\ge 0.50$.
 
 ### 3.2 Measured TTFMA Across Attack Captures
-| Scenario Capture | First Adversary Event | Threshold Crossing Signal | TTFMA Latency |
+Verified against actual capture telemetry timestamps (`first_signal_ts` and `first_meaningful_alert_ts`):
+
+| Scenario Capture | First Adversary Event (`first_signal_ts`) | Threshold Crossing Signal (`first_meaningful_alert_ts`) | TTFMA Latency |
 | :--- | :--- | :--- | :---: |
-| `demo_baseline` | `2026-11-08T01:15:00.000Z` (SSH probe) | `RULE-AUTH-001` (Unauthorized Zone Login) | **1.54s** |
-| `reordered` | `2026-11-08T01:15:00.000Z` (SSH probe) | `RULE-AUTH-001` (Unauthorized Zone Login) | **0.94s** |
-| `slow_burn` | `2026-11-08T00:00:00.000Z` (SSH probe) | `RULE-AUTH-001` (Unauthorized Zone Login) | **2.58s** |
+| `demo_baseline` | `2026-11-08T04:22:44.000Z` (SSH probe) | `2026-11-08T04:22:45.544Z` (`RULE-AUTH-001`) | **1.54s** |
+| `reordered` | `2026-11-08T04:25:12.000Z` (SSH probe) | `2026-11-08T04:25:12.938Z` (`RULE-AUTH-001`) | **0.94s** |
+| `slow_burn` | `2026-11-08T04:52:34.000Z` (SSH probe) | `2026-11-08T04:52:36.579Z` (`RULE-AUTH-001`) | **2.58s** |
 | **Ensemble Mean** | — | — | **1.69s** |
 
 Across all scenarios, actionable alerting occurs in under 3 seconds, providing defenders with immediate containment options before lateral movement or industrial damage can transpire.

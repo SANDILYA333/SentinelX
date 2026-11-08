@@ -28,9 +28,32 @@ async def test_organizer_windows_fixture_execution():
     assert 0.0 <= result.top_score <= 1.0
     assert result.top_score >= 0.50  # Correlates above threshold
     assert "RULE-SHELL-001" in result.fired_rules
-    assert any("T1059" in t or "T1078" in t for t in result.detected_techniques)
+    # Assert Windows-appropriate technique mapping: generic T1059 and T1021, not Unix/SSH sub-techniques
+    assert "T1059" in result.detected_techniques
+    assert "T1021" in result.detected_techniques
+    assert "T1059.004" not in result.detected_techniques
+    assert "T1021.004" not in result.detected_techniques
     assert len(result.what_detected) >= 3
     assert len(result.what_missed) >= 3
+
+
+@pytest.mark.anyio
+async def test_organizer_windows_benign_fixture_execution():
+    """Verify benign Windows fixture is evaluated and test unfamiliar telemetry false-positive behavior."""
+    benign_fixture_path = REPO_ROOT / "eval" / "fixtures" / "organizer_windows_benign.jsonl"
+    assert benign_fixture_path.exists(), "organizer_windows_benign.jsonl fixture must exist"
+
+    events, signals, incidents, result = await run_organizer_evaluation(
+        benign_fixture_path, threshold=0.50
+    )
+
+    assert result.events_ingested == 7
+    assert result.signals_emitted > 0  # Baseline & Graph emit novelty signals
+    # Unfamiliar baseline signals must only come from baseline and graph, NOT rules
+    assert "RULE-SHELL-001" not in result.fired_rules
+    assert set(result.detectors_fired).issubset({"baseline", "graph"})
+    assert "T1059" not in result.detected_techniques
+    assert 0.0 <= result.top_score <= 1.0
 
 
 def test_metrics_computation_ranges():
@@ -98,7 +121,8 @@ def test_scorecard_artifact_integrity():
     assert "## 2. Detector Layer Ablation Study" in content
     assert "## 3. Incident-Level Precision, Recall, and Confusion Matrix" in content
     assert "## 4. Golden Attack Step Coverage & TTFMA Summary" in content
-    assert "## 5. Detector Contribution & Trust Ranking Matrix" in content
+    assert "## 5. Detector Contribution & Real Ranking Matrix" in content
     assert "## 6. Organizer-Log Robustness Test & Context Boundaries" in content
+    assert "## 7. Operational Limitations & Threat Model Boundaries" in content
     assert "100.0%" in content
     assert "0.000 FP / 24h" in content

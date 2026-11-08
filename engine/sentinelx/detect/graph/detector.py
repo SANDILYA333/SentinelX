@@ -13,6 +13,7 @@ from sentinelx.detect.graph.trainer import is_valid_unicast
 from sentinelx.detect.utils import extract_event_entities
 from sentinelx.enrich.mitre import MitreCatalog, get_mitre_catalog
 from sentinelx.normalize.assets import AssetInventory, get_assets
+from sentinelx.schemas.common import SourceTool
 from sentinelx.schemas.event import Event
 from sentinelx.schemas.signal import Signal
 
@@ -115,7 +116,10 @@ class GraphDetector:
                 if edge_key not in self._alerted_edges:
                     self._alerted_edges.add(edge_key)
 
-                    tid = "T1021.004" if kind in ("auth", "net") else "T0882"
+                    if event.source_tool == SourceTool.evtx:
+                        tid = "T1021" if kind in ("auth", "net") else "T0882"
+                    else:
+                        tid = "T1021.004" if kind in ("auth", "net") else "T0882"
                     tech = self.mitre.get(tid) or self.mitre.get("T1046")
                     techniques = [tech] if tech else []
 
@@ -174,7 +178,8 @@ class GraphDetector:
                         if path_key not in self._alerted_edges:
                             self._alerted_edges.add(path_key)  # type: ignore[arg-type]
 
-                            tech = self.mitre.get("T1021.004") or self.mitre.get("T1046")
+                            tid = "T1021" if event.source_tool == SourceTool.evtx else "T1021.004"
+                            tech = self.mitre.get(tid) or self.mitre.get("T1046")
                             techniques = [tech] if tech else []
 
                             id_mat = f"GRAPH-PATH-001_{event.event_id}_{path_str}"

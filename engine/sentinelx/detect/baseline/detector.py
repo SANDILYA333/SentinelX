@@ -7,7 +7,7 @@ from pathlib import Path
 from sentinelx.detect.baseline.model import BaselineModel
 from sentinelx.detect.utils import extract_event_entities
 from sentinelx.enrich.mitre import MitreCatalog, get_mitre_catalog
-from sentinelx.schemas.common import Technique
+from sentinelx.schemas.common import SourceTool, Technique
 from sentinelx.schemas.event import Event
 from sentinelx.schemas.signal import Signal
 
@@ -72,7 +72,9 @@ class BaselineDetector:
                         score += 0.40
                         factors.append("rare_host_for_user")
                         reasons.append(f"User '{user}' accessing unprecedented host '{host}'")
-                        technique_ids.append("T1021.004")
+                        technique_ids.append(
+                            "T1021" if event.source_tool == SourceTool.evtx else "T1021.004"
+                        )
 
                     # Check command execution
                     if cmd:
@@ -87,7 +89,9 @@ class BaselineDetector:
                             reasons.append(
                                 f"Unseen command '{clean_cmd}' executed by user '{user}'"
                             )
-                            technique_ids.append("T1059.004")
+                            technique_ids.append(
+                                "T1059" if event.source_tool == SourceTool.evtx else "T1059.004"
+                            )
 
                     # Check zone
                     if event.domain and event.domain.value not in profile.allowed_zones:
@@ -96,7 +100,9 @@ class BaselineDetector:
                         reasons.append(
                             f"User '{user}' active in unprecedented zone '{event.domain.value}'"
                         )
-                        technique_ids.append("T1021.004")
+                        technique_ids.append(
+                            "T1021" if event.source_tool == SourceTool.evtx else "T1021.004"
+                        )
 
         elif host:
             # Check host profile without user

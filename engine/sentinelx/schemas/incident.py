@@ -61,6 +61,7 @@ class Incident(BaseModel):
     techniques: list[Technique]
     decoy_touched: bool
     ot_touched: bool
+    novelty_only: bool = False
     explanation: list[str]
     summary: str | None = None
     summary_citations: list[str] = Field(default_factory=list)

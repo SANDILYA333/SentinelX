@@ -243,3 +243,177 @@ def test_incident_graph_construction():
     assert "unexpected_ssh_login" in edge_labels
     assert "lateral_pivot" in edge_labels
     assert "modbus_write_command" in edge_labels
+
+
+def test_novelty_only_corroboration_cap():
+    """Prove Task 3 (a): An incident whose signals come ONLY from {baseline, graph, anomaly}
+
+    is capped below the budget threshold (default 0.40) and flagged novelty_only=True.
+    Without the cap, 2 stages (initial_access + lateral_movement) score 0.5625.
+    """
+    now = datetime(2026, 11, 8, 10, 0, 0, tzinfo=UTC)
+    correlator = Correlator(novelty_cap=0.40)
+
+    # 1. Baseline detector signal (maps to initial_access, weight 0.20)
+    sig_base = make_test_signal(
+        signal_id="sig_base_001",
+        ts=now,
+        detector="baseline",
+        rule_id="BASE-DEV-001",
+        title="Baseline deviation",
+        entities=[
+            Entity(type=EntityType.host, value="WIN-CORP-DC01"),
+            Entity(type=EntityType.user, value="svc_payroll"),
+        ],
+        techniques=[
+            Technique(
+                framework="enterprise",
+                technique_id="T1078.003",
+                name="Valid Accounts",
+                tactic="initial-access",
+            )
+        ],
+    )
+
+    # 2. Graph detector signal (maps to lateral_movement, weight 0.25)
+    sig_graph = make_test_signal(
+        signal_id="sig_graph_001",
+        ts=now + timedelta(seconds=10),
+        detector="graph",
+        rule_id="GRAPH-EDGE-001",
+        title="Unprecedented interaction edge",
+        entities=[
+            Entity(type=EntityType.host, value="WIN-CORP-DC01"),
+            Entity(type=EntityType.user, value="svc_payroll"),
+        ],
+        metadata={"kind": "auth", "source_node": "user:svc_payroll"},
+    )
+
+    correlator.process_signal(sig_base)
+    inc = correlator.process_signal(sig_graph)
+
+    # In isolation without cap: base_sum = 0.45, multiplier = 1.25x -> 0.5625
+    # With cold-start novelty cap: must be capped at 0.40
+    assert inc.novelty_only is True
+    assert inc.score == 0.40
+    assert inc.severity == Severity.low
+    assert any("novelty" in exp.lower() for exp in inc.explanation)
+
+
+def test_novelty_with_rule_corroboration_not_capped():
+    """Prove Task 3 (b): The same novelty incident plus one rule signal is NOT capped."""
+    now = datetime(2026, 11, 8, 10, 0, 0, tzinfo=UTC)
+    correlator = Correlator(novelty_cap=0.40)
+
+    sig_base = make_test_signal(
+        signal_id="sig_base_002",
+        ts=now,
+        detector="baseline",
+        rule_id="BASE-DEV-001",
+        title="Baseline deviation",
+        entities=[
+            Entity(type=EntityType.host, value="WIN-CORP-DC01"),
+            Entity(type=EntityType.user, value="svc_payroll"),
+        ],
+        techniques=[
+            Technique(
+                framework="enterprise",
+                technique_id="T1078.003",
+                name="Valid Accounts",
+                tactic="initial-access",
+            )
+        ],
+    )
+    sig_graph = make_test_signal(
+        signal_id="sig_graph_002",
+        ts=now + timedelta(seconds=10),
+        detector="graph",
+        rule_id="GRAPH-EDGE-001",
+        title="Unprecedented interaction edge",
+        entities=[
+            Entity(type=EntityType.host, value="WIN-CORP-DC01"),
+            Entity(type=EntityType.user, value="svc_payroll"),
+        ],
+        metadata={"kind": "auth", "source_node": "user:svc_payroll"},
+    )
+    # Add deterministic rule signal
+    sig_rule = make_test_signal(
+        signal_id="sig_rule_001",
+        ts=now + timedelta(seconds=20),
+        detector="rule",
+        rule_id="RULE-SHELL-001",
+        title="Suspicious shell execution",
+        entities=[
+            Entity(type=EntityType.host, value="WIN-CORP-DC01"),
+            Entity(type=EntityType.user, value="svc_payroll"),
+        ],
+    )
+
+    correlator.process_signal(sig_base)
+    correlator.process_signal(sig_graph)
+    inc = correlator.process_signal(sig_rule)
+
+    # Must NOT be capped: retains true multi-stage score 0.5625
+    assert inc.novelty_only is False
+    assert inc.score == 0.5625
+    assert inc.severity == Severity.medium
+
+
+def test_novelty_with_deception_corroboration_not_capped():
+    """Prove Task 3 (c): A deception signal counts as corroboration and removes the cap."""
+    now = datetime(2026, 11, 8, 10, 0, 0, tzinfo=UTC)
+    correlator = Correlator(novelty_cap=0.40)
+
+    sig_base = make_test_signal(
+        signal_id="sig_base_003",
+        ts=now,
+        detector="baseline",
+        rule_id="BASE-DEV-001",
+        title="Baseline deviation",
+        entities=[
+            Entity(type=EntityType.host, value="WIN-CORP-DC01"),
+            Entity(type=EntityType.user, value="svc_payroll"),
+        ],
+        techniques=[
+            Technique(
+                framework="enterprise",
+                technique_id="T1078.003",
+                name="Valid Accounts",
+                tactic="initial-access",
+            )
+        ],
+    )
+    sig_graph = make_test_signal(
+        signal_id="sig_graph_003",
+        ts=now + timedelta(seconds=10),
+        detector="graph",
+        rule_id="GRAPH-EDGE-001",
+        title="Unprecedented interaction edge",
+        entities=[
+            Entity(type=EntityType.host, value="WIN-CORP-DC01"),
+            Entity(type=EntityType.user, value="svc_payroll"),
+        ],
+        metadata={"kind": "auth", "source_node": "user:svc_payroll"},
+    )
+    # Add deception honeytoken signal
+    sig_decoy = make_test_signal(
+        signal_id="sig_decoy_001",
+        ts=now + timedelta(seconds=20),
+        detector="deception",
+        rule_id="RULE-DECOY-001",
+        title="Honeytoken touched",
+        entities=[
+            Entity(type=EntityType.host, value="WIN-CORP-DC01"),
+            Entity(type=EntityType.user, value="svc_payroll"),
+        ],
+        metadata={"confirmed_honeytoken": True},
+    )
+
+    correlator.process_signal(sig_base)
+    correlator.process_signal(sig_graph)
+    inc = correlator.process_signal(sig_decoy)
+
+    # Must NOT be capped: honeytoken boost elevates score >= 0.85
+    assert inc.novelty_only is False
+    assert inc.score >= 0.85
+    assert inc.severity == Severity.critical

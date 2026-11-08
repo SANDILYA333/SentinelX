@@ -31,16 +31,24 @@ The rules engine evaluates declarative YAML conditions against normalized and en
 
 #### Evolution of Key Context Rules:
 1. **`RULE-AUTH-001` (SSH Login From Unexpected Zone)**:
-   - *Previous Anti-Pattern*: Hardcoded attacker IP `src_ip == "10.10.1.5"`. This was an inflexible signature that failed against alternate network paths or organizer replays.
-   - *Production Architecture*: The enricher resolves source and destination IP addresses against `content/assets.yaml` into operational zones (`IT`, `DMZ`, `OT`, `INTERNET`). It cross-references the destination asset's `allowed_src_zones` and `allowed_src_hosts`. If an SSH login succeeds from an unapproved zone or host, the event is tagged with `unauthorized_ssh_source`. The rule evaluates `tags.contains("unauthorized_ssh_source")`, ensuring zero false positives on authorized administrative hops (`alice`, `bob`) while catching external or cross-zone intrusions.
+   - *Previous Anti-Pattern (Before)*: Hardcoded attacker IP `src_ip == "10.10.1.5"`. This was an inflexible signature that failed against alternate network paths or organizer replays.
+   - *Production Architecture (After)*: The enricher resolves source and destination IP addresses against `content/assets.yaml` into operational zones (`IT`, `DMZ`, `OT`, `INTERNET`). It cross-references the destination asset's `allowed_src_zones` and `allowed_src_hosts`. If an SSH login succeeds from an unapproved zone or host, the event is tagged with `unauthorized_ssh_source`. The rule evaluates `tags.contains("unauthorized_ssh_source")`, ensuring zero false positives on authorized administrative hops (`alice`, `bob`) while catching external or cross-zone intrusions.
+   - *Three-Case Verification Proof* (verified in `engine/tests/test_detectors.py:test_rule_auth_001_context_aware_genericness`):
+     - **Case 1 (Unauthorized IP in unapproved zone)**: `10.10.9.99` (mgmt subnet) logging into `jump-host` $\implies$ **FIRES** (`RULE-AUTH-001`, `T1078.003`).
+     - **Case 2 (Unapproved rogue IP in IT subnet)**: `10.10.1.77` logging into `jump-host` $\implies$ **FIRES** (`RULE-AUTH-001`).
+     - **Case 3 (Authorized workstation)**: `10.10.1.50` logging into `jump-host` $\implies$ **SUPPRESSED** (0 signals emitted).
 2. **`RULE-OT-001` (Unauthorized OT Write)**:
-   - *Previous Anti-Pattern*: Hardcoded register matching `ot.register == 1 AND ot.value == 0` (matching only the specific "close valve" attack script).
-   - *Production Architecture*: Evaluates industrial protocol write semantics (`ot.is_write == true`) combined with two strict criteria:
+   - *Previous Anti-Pattern (Before)*: Hardcoded register matching `ot.register == 1 AND ot.value == 0` (matching only the specific "close valve" attack script).
+   - *Production Architecture (After)*: Evaluates industrial protocol write semantics (`ot.is_write == true`) combined with two strict criteria:
      1. Is the source host or actor listed in `assets.yaml`'s `allowed_ot_writers` for `plc-sim`? (Only `eng-ws` is permitted).
      2. Does the write occur within the authorized maintenance window (`02:00–04:00` daily)?
      If an unauthorized entity attempts a write, or if any write occurs outside the maintenance window, the enricher tags the event with `unauthorized_ot_write`. The rule fires deterministically with critical severity.
+   - *Three-Case Verification Proof* (verified in `engine/tests/test_detectors.py:test_rule_ot_001_context_aware_genericness`):
+     - **Case 1 (Unauthorized actor writing during maintenance window)**: `attacker` (`10.10.1.5`) writing register 42, value 100 at 02:30 UTC $\implies$ **FIRES** (`RULE-OT-001`, `T0855`).
+     - **Case 2 (Authorized actor writing during maintenance window)**: `eng-ws` (`10.10.3.40`) writing register 1, value 0 at 02:30 UTC $\implies$ **SUPPRESSED** (0 signals emitted).
+     - **Case 3 (Authorized actor writing outside maintenance window)**: `eng-ws` (`10.10.3.40`) writing register 0, value 55 at 14:30 UTC $\implies$ **FIRES** (`RULE-OT-001`, `T0855`).
 3. **`RULE-SHELL-001` (Interactive Shell / Remote Execution)**:
-   - Inspects command-line executions for reverse shell syntax, pipe-to-shell patterns (`sh -i`, `/dev/tcp`, `curl | bash`), and automated credential injection (`sshpass`).
+   - Inspects command-line executions for reverse shell syntax, pipe-to-shell patterns (`sh -i`, `/dev/tcp`, `curl | bash`), automated credential injection (`sshpass`), and Windows-native execution indicators (`-EncodedCommand`, `certutil`, `wmic`, `schtasks`, `Invoke-WebRequest`). Maps to parent MITRE technique `T1059` across both Linux and Windows environments.
 4. **`RULE-CRED-001` (Credential Access & Dumping)**:
    - Detects read access to sensitive credential stores (`/srv/share/.db_creds`, `id_rsa`, shadow files) by non-whitelisted service accounts.
 5. **`RULE-DECOY-001` (Honeytoken Tripping)**:

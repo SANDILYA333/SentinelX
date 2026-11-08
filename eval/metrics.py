@@ -45,6 +45,12 @@ BENIGN_NAMES = ["day_101", "day_102", "day_103", "day_104", "day_105"]
 ATTACK_NAMES = ["demo_baseline", "reordered", "slow_burn"]
 
 
+BENIGN_HOURS_TOTAL: float = 25.0
+BENIGN_SIMULATED_DAYS: float = (
+    BENIGN_HOURS_TOTAL / 24.0
+)  # 1.04167 days across 5 diurnal slices (5.0h each)
+
+
 @dataclass
 class ConfusionMatrix:
     tp: int
@@ -68,6 +74,7 @@ class ThresholdMetrics:
     recall: float
     f1_score: float
     recommendation: str
+    fp_rate_per_24h: float = 0.0
 
 
 @dataclass
@@ -77,6 +84,13 @@ class MetricsReport:
     threshold_curve: list[ThresholdMetrics]
     loo_benign_scores: dict[str, list[float]]
     attack_scores: dict[str, float]
+    score_margin: float = 0.0
+    min_attack_score: float = 0.0
+    max_benign_score: float = 0.0
+    benign_hours_total: float = BENIGN_HOURS_TOTAL
+    benign_simulated_days: float = BENIGN_SIMULATED_DAYS
+    benign_fp_per_24h: float = 0.0
+    benign_fp_upper_bound_95: float = 3.0 / BENIGN_SIMULATED_DAYS
 
 
 async def evaluate_attack_capture(cap_dir: Path) -> float:
@@ -157,9 +171,15 @@ def compute_metrics_report(
     attack_scores: dict[str, float],
     calibrated_threshold: float = 0.50,
 ) -> MetricsReport:
-    """Compute headline confusion matrix and threshold sensitivity table."""
+    """Compute headline confusion matrix and threshold sensitivity table with derived commentary."""
     thresholds = [0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90]
     curve: list[ThresholdMetrics] = []
+
+    # Score margins computed directly from data
+    min_atk = min(attack_scores.values()) if attack_scores else 0.0
+    all_benign_scores = [s for scores in loo_benign_scores.values() for s in scores]
+    max_ben = max(all_benign_scores) if all_benign_scores else 0.0
+    margin = round(min_atk - max_ben, 4)
 
     for th in thresholds:
         tp = sum(1 for s in attack_scores.values() if s >= th)
@@ -169,19 +189,25 @@ def compute_metrics_report(
         fp = sum(1 for scores in loo_benign_scores.values() if any(s >= th for s in scores))
         tn = len(loo_benign_scores) - fp
 
-        rec = (
-            "Too noisy (burst anomalies survive)"
-            if th < 0.20
-            else "Recommended Default (Zero FP, 100% Recall)"
-            if abs(th - 0.50) < 0.01
-            else "Viable operating point"
-            if th <= 0.80
-            else "Over-constrained (leaves thin margin for slow burn)"
-        )
+        # Derive classification/recommendation dynamically from computed TP, FP, FN and margins
+        if fp > 0:
+            rec = (
+                f"Sub-optimal: {fp} benign FP(s) (threshold <= max LOO benign score {max_ben:.2f})"
+            )
+        elif fn > 0:
+            rec = f"Sub-optimal: {fn} attack(s) missed (threshold > min attack score {min_atk:.2f})"
+        else:
+            dist_ben = round(th - max_ben, 2)
+            dist_atk = round(min_atk - th, 2)
+            if abs(th - calibrated_threshold) < 0.01:
+                rec = f"Recommended (Zero FP, 100% Recall; margin: +{dist_ben:.2f} above benign, +{dist_atk:.2f} below attack)"
+            else:
+                rec = f"Viable operating band (Zero FP, 100% Recall; margin: +{dist_ben:.2f} above benign, +{dist_atk:.2f} below attack)"
 
         prec = tp / (tp + fp) if (tp + fp) > 0 else 1.0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
         f1 = 2 * (prec * recall) / (prec + recall) if (prec + recall) > 0 else 0.0
+        fp_rate = (fp / BENIGN_SIMULATED_DAYS) if fp > 0 else 0.0
 
         curve.append(
             ThresholdMetrics(
@@ -194,6 +220,7 @@ def compute_metrics_report(
                 recall=recall,
                 f1_score=f1,
                 recommendation=rec,
+                fp_rate_per_24h=round(fp_rate, 4),
             )
         )
 
@@ -211,12 +238,26 @@ def compute_metrics_report(
         / (headline_th.tp + headline_th.tn + headline_th.fp + headline_th.fn),
     )
 
+    headline_fp_rate = (headline_cm.fp / BENIGN_SIMULATED_DAYS) if headline_cm.fp > 0 else 0.0
+    headline_ub_95 = (
+        3.0 / BENIGN_SIMULATED_DAYS
+        if headline_cm.fp == 0
+        else (headline_cm.fp + 3.0) / BENIGN_SIMULATED_DAYS
+    )
+
     return MetricsReport(
         threshold=calibrated_threshold,
         headline=headline_cm,
         threshold_curve=curve,
         loo_benign_scores=loo_benign_scores,
         attack_scores=attack_scores,
+        score_margin=margin,
+        min_attack_score=min_atk,
+        max_benign_score=max_ben,
+        benign_hours_total=BENIGN_HOURS_TOTAL,
+        benign_simulated_days=BENIGN_SIMULATED_DAYS,
+        benign_fp_per_24h=round(headline_fp_rate, 4),
+        benign_fp_upper_bound_95=round(headline_ub_95, 3),
     )
 
 
@@ -238,7 +279,17 @@ def print_metrics_report(report: MetricsReport) -> None:
     print(
         f"  * Classification:  {hl.accuracy * 100.0:.2f}% ({hl.tp + hl.tn}/{hl.tp + hl.tn + hl.fp + hl.fn} captures correctly gated)"
     )
-    print(f"  * Benign FP/24h:   {hl.fp / 5.0:.3f} FP / 24h across 5 Leave-One-Out benign folds")
+    print(
+        f"  * Benign FP Rate:  {report.benign_fp_per_24h:.3f} FP / 24h "
+        f"({hl.fp} FP across {report.benign_hours_total:.1f} simulated hours = {report.benign_simulated_days:.3f} simulated days)"
+    )
+    print(
+        f"  * 95% Upper Bound: {report.benign_fp_upper_bound_95:.3f} FP / 24h (Rule of Three: 3 / days when FP = 0)"
+    )
+    print(
+        f"  * Score Separation Margin: {report.score_margin:.4f} "
+        f"(Min Attack: {report.min_attack_score:.4f} - Max LOO Benign: {report.max_benign_score:.4f})"
+    )
 
     print("\n2. INCIDENT CONFUSION MATRIX (At Calibrated Threshold 0.50):")
     print("  " + "-" * 62)

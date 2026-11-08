@@ -33,8 +33,10 @@ class Correlator:
         self,
         window_sec: float = DEFAULT_CORRELATION_WINDOW_SEC,
         db: Any = None,
+        novelty_cap: float = 0.40,
     ):
         self.window_sec = window_sec
+        self.novelty_cap = novelty_cap
         if isinstance(db, sqlite3.Connection):
             self.db = db
         elif db is not None:
@@ -183,7 +185,9 @@ class Correlator:
         event_ids = list(dict.fromkeys(event_ids))
 
         # Score and Kill-Chain Stages
-        score, kill_chain_stages, severity = score_incident(sorted_signals)
+        score, kill_chain_stages, severity = score_incident(
+            sorted_signals, novelty_cap=self.novelty_cap
+        )
 
         # MITRE rollup
         techniques = compute_technique_rollup(sorted_signals)
@@ -193,6 +197,22 @@ class Correlator:
 
         # Explanation narrative
         explanation = generate_explanation(sorted_signals)
+
+        # Novelty-only flag & explanation line
+        novelty_only = (
+            all(
+                (s.detector.value if hasattr(s.detector, "value") else str(s.detector))
+                in ("baseline", "graph", "anomaly")
+                for s in sorted_signals
+            )
+            if sorted_signals
+            else False
+        )
+        if novelty_only:
+            explanation.append(
+                f"Cold-start novelty guard applied: score capped at {self.novelty_cap:.2f} "
+                "(lacks deterministic rule or deception corroboration)"
+            )
 
         # Domain touch flags
         decoy_touched, ot_touched = check_domain_touches(sorted_signals)
@@ -217,6 +237,7 @@ class Correlator:
             techniques=techniques,
             decoy_touched=decoy_touched,
             ot_touched=ot_touched,
+            novelty_only=novelty_only,
             explanation=explanation,
             summary=None,
             summary_citations=[],
