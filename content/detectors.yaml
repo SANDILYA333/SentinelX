@@ -1,0 +1,28 @@
+# SentinelX Detector Configuration & Ablation Toggles
+# Enables runtime activation/deactivation of detection engines
+
+detectors:
+  rule:
+    enabled: true
+    description: "Context-aware declarative YAML rules engine"
+
+  baseline:
+    enabled: true
+    description: "Per-entity behavioral deviation baseline detector"
+    threshold: 0.60
+
+  anomaly:
+    enabled: true
+    description: "Isolation Forest unsupervised sliding-window anomaly detector"
+    window_sec: 300.0
+
+  graph:
+    enabled: true
+    description: "Incremental NetworkX interaction graph detector"
+    scan_window_seconds: 60.0
+    scan_threshold: 5
+
+  deception:
+    enabled: true
+    description: "High-confidence honeypot and confirmed honeytoken detector"
+

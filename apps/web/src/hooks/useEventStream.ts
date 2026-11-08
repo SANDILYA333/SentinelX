@@ -1,19 +1,20 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { Event, WSMessage } from "@contracts/index";
-import { fetchEvents } from "@/lib/api";
+import type { Event, Signal, WSMessage } from "@contracts/index";
+import { fetchEvents, fetchSignals } from "@/lib/api";
 import { useEventStore } from "@/lib/store";
 import { getWebSocketUrl } from "@/lib/ws";
 
 export function useEventStream() {
-  const { events, status, setStatus, addEvent, setEvents } = useEventStore();
+  const { events, signals, status, setStatus, addEvent, setEvents, addSignal, setSignals } =
+    useEventStore();
   const reconnectDelayRef = useRef<number>(500);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const isHydratedRef = useRef<boolean>(false);
 
-  // Initial event hydration from REST API
+  // Initial event and signal hydration from REST API
   useEffect(() => {
     if (isHydratedRef.current) return;
     isHydratedRef.current = true;
@@ -25,7 +26,15 @@ export function useEventStream() {
       .catch((err) => {
         console.error("Failed to hydrate events from REST API:", err);
       });
-  }, [setEvents]);
+
+    fetchSignals(50)
+      .then((initialSignals) => {
+        setSignals(initialSignals);
+      })
+      .catch((err) => {
+        console.error("Failed to hydrate signals from REST API:", err);
+      });
+  }, [setEvents, setSignals]);
 
   // WebSocket lifecycle with exponential backoff reconnect
   useEffect(() => {
@@ -54,6 +63,9 @@ export function useEventStream() {
           const msg = JSON.parse(messageEvent.data) as WSMessage;
           if (msg.type === "event" && msg.payload) {
             addEvent(msg.payload as unknown as Event);
+          }
+          if (msg.type === "signal" && msg.payload) {
+            addSignal(msg.payload as unknown as Signal);
           }
         } catch (err) {
           console.error("Error parsing WebSocket message:", err);
@@ -89,7 +101,7 @@ export function useEventStream() {
         wsRef.current.close();
       }
     };
-  }, [setStatus, addEvent]);
+  }, [setStatus, addEvent, addSignal]);
 
-  return { events, status };
+  return { events, signals, status };
 }

@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from sentinelx.detect.runtime import DetectorPipeline
 from sentinelx.ingest.runtime import Ingestor
 from sentinelx.schemas.common import SCHEMA_VERSION, WSMessage
 from sentinelx.schemas.event import Event
@@ -16,6 +17,7 @@ from app.db import close_db, get_db
 from app.ingest import set_ingestor
 from app.routes.events import router as events_router
 from app.routes.health import router as health_router
+from app.routes.signals import router as signals_router
 from app.routes.sources import router as sources_router
 from app.ws import manager
 
@@ -26,10 +28,14 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Application lifespan manager to setup DB, Ingestor, and background tasks."""
     db = get_db()
+    pipeline = DetectorPipeline(db=db)
 
     # Callback when Ingestor flushes events
     async def on_event(ev: Event) -> None:
         await manager.broadcast_event(ev)
+        signals = pipeline.process_event(ev)
+        for sig in signals:
+            await manager.broadcast_signal(sig)
 
     ingestor = Ingestor(
         log_root=settings.SENTINELX_LOG_ROOT,
@@ -79,6 +85,7 @@ app.add_middleware(
 # Standard endpoints
 app.include_router(health_router)
 app.include_router(events_router)
+app.include_router(signals_router)
 app.include_router(sources_router)
 
 # Dev-only endpoints

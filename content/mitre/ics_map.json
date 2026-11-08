@@ -1,0 +1,33 @@
+{
+  "T0855": {
+    "framework": "ics",
+    "technique_id": "T0855",
+    "name": "Unauthorized Command Message",
+    "tactic": "Impair Process Control"
+  },
+  "T0846": {
+    "framework": "ics",
+    "technique_id": "T0846",
+    "name": "Remote System Discovery",
+    "tactic": "Discovery"
+  },
+  "T0836": {
+    "framework": "ics",
+    "technique_id": "T0836",
+    "name": "Modify Parameter",
+    "tactic": "Impair Process Control"
+  },
+  "T0816": {
+    "framework": "ics",
+    "technique_id": "T0816",
+    "name": "Device Restart/Shutdown",
+    "tactic": "Inhibit Response Function"
+  },
+  "T0882": {
+    "framework": "ics",
+    "technique_id": "T0882",
+    "name": "Theft of Operational Information",
+    "tactic": "Collection"
+  }
+}
+

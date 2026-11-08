@@ -1,0 +1,24 @@
+id: "RULE-SHELL-001"
+title: "Suspicious Shell Invocation or Automated Credential Injection"
+severity_hint: "high"
+score: 0.85
+confidence: 0.85
+applies_to:
+  - category: "process"
+technique_ids:
+  - "T1059.004"
+condition:
+  any_of:
+    - field: "cmdline"
+      operator: "contains_any"
+      value:
+        - "sshpass"
+        - "base64 -d"
+        - "base64 --decode"
+        - "curl -s http"
+        - "/dev/tcp/"
+explanation_template: "Suspicious command invocation detected on host {host} by user {user}: {cmdline}"
+metadata:
+  category: "Execution"
+  proxy_rationale: "Detects living-off-the-land automated shell invocations including password-inlining via sshpass and pipe-to-interpreter sequences."
+

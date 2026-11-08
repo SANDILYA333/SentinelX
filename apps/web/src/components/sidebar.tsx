@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   FlaskConical,
   GitGraph,
+  Radio,
   Shield,
   ShieldAlert,
 } from "lucide-react";
@@ -14,6 +15,7 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { label: "Overview", href: "/", icon: Activity },
+  { label: "Signals", href: "/signals", icon: Radio },
   { label: "Incidents", href: "/incidents", icon: AlertTriangle },
   { label: "Attack Graph", href: "/graph", icon: GitGraph },
   { label: "Deception & Guard", href: "/deception", icon: ShieldAlert },

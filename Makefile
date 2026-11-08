@@ -4,7 +4,8 @@ SHELL := /bin/bash
         lab-build lab-up lab-down lab-reset lab-logs lab-check lab-probe \
         lab-smoke lab-samples plc-reset lab-disk lab-prune \
         ingest-live ingest-replay ingest-file db-reset \
-        benign-run attack-run capture-benign capture-attack captures-all captures-validate
+        benign-run attack-run capture-benign capture-attack captures-all captures-validate \
+        train-baselines detect-replay detector-eval
 
 help: ## Show available Makefile commands
 	@echo "Available commands:"
@@ -169,3 +170,16 @@ captures-all: ## Generate full set of 8 captures (5 benign days + 3 attack scena
 
 captures-validate: ## Validate all existing captures through Phase 2 replay pipeline
 	uv run python eval/validate_captures.py
+
+# ==============================================================================
+# Detection Targets (Phase 4)
+# ==============================================================================
+train-baselines: ## Fit behavioral baselines, isolation forest, and interaction graph models
+	uv run python scripts/train_baselines.py
+
+detect-replay: ## Replay capture telemetry through detector pipeline (DIR=... SPEED=...)
+	@if [ -z "$(DIR)" ]; then echo "Error: DIR is required (e.g. make detect-replay DIR=eval/captures/attack/demo_baseline)"; exit 1; fi
+	uv run python scripts/detect_replay.py "$(DIR)" --speed "$${SPEED:-max}"
+
+detector-eval: ## Run evaluation suite across all 8 captures and print detector performance matrices
+	uv run python scripts/detector_eval.py

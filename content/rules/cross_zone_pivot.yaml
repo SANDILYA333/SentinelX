@@ -1,0 +1,27 @@
+id: "RULE-NET-001"
+title: "Cross-Zone Network Perimeter Boundary Pivot"
+severity_hint: "medium"
+score: 0.70
+confidence: 0.75
+applies_to:
+  - category: "network"
+technique_ids:
+  - "T1021.004"
+  - "T1046"
+context:
+  track_session_history: true
+  authorized_sources:
+    - "eng-ws"
+    - "10.10.3.40"
+condition:
+  all_of:
+    - field: "tags"
+      operator: "contains_any"
+      value:
+        - "cross_zone:it->dmz"
+        - "cross_zone:it->ot"
+        - "cross_zone:dmz->ot"
+explanation_template: "Cross-zone perimeter pivot from {src_ip} towards {dst_ip} across zone boundary"
+metadata:
+  category: "Lateral Movement"
+  description: "Detects inter-zone network transitions across segregated IT, DMZ, and OT subnets."

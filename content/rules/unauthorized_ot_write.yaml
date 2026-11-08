@@ -1,0 +1,26 @@
+id: "RULE-OT-001"
+title: "Unauthorized Modbus Physical Process Control Manipulation"
+severity_hint: "critical"
+score: 0.95
+confidence: 0.95
+applies_to:
+  - category: "ot_command"
+technique_ids:
+  - "T0855"
+condition:
+  all_of:
+    - field: "ot.is_write"
+      operator: "eq"
+      value: true
+    - any_of:
+        - field: "ot.register"
+          operator: "eq"
+          value: 1  # Discharge valve manipulation (never written during benign maintenance)
+        - field: "ot.value"
+          operator: "eq"
+          value: 0  # Forced closure
+explanation_template: "Unauthorized Modbus physical write to register {ot.register} (value: {ot.value}) on PLC {host}"
+metadata:
+  category: "OT Process Impairment"
+  description: "Detects unauthorized physical manipulation of critical discharge valve registers."
+

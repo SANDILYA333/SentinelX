@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from sentinelx.schemas.event import Event
+from sentinelx.schemas.signal import Signal
 
 
 def init_db(path: str | Path) -> sqlite3.Connection:
@@ -70,6 +71,10 @@ def init_db(path: str | Path) -> sqlite3.Connection:
                 json TEXT NOT NULL
             );
         """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_signals_ts ON signals(ts DESC);")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_signals_detector_ts ON signals(json_extract(json, '$.detector'), ts DESC);"
+        )
         conn.execute("""
             CREATE TABLE IF NOT EXISTS incidents (
                 incident_id TEXT PRIMARY KEY,
@@ -255,3 +260,90 @@ def get_stats(db: sqlite3.Connection, window_seconds: int = 300) -> dict[str, An
         "by_category": by_category,
         "by_domain": by_domain,
     }
+
+
+def insert_signal(db: sqlite3.Connection, signal: Signal) -> bool:
+    """Insert a Signal into the signals table with INSERT OR IGNORE."""
+    with db:
+        cur = db.execute(
+            """
+            INSERT OR IGNORE INTO signals (signal_id, ts, json)
+            VALUES (?, ?, ?)
+            """,
+            (
+                signal.signal_id,
+                signal.ts.isoformat(),
+                signal.model_dump_json(),
+            ),
+        )
+        return cur.rowcount > 0
+
+
+def insert_signals_batch(db: sqlite3.Connection, signals: list[Signal]) -> int:
+    """Batch insert Signals into the signals table with INSERT OR IGNORE."""
+    if not signals:
+        return 0
+    params = [
+        (
+            s.signal_id,
+            s.ts.isoformat(),
+            s.model_dump_json(),
+        )
+        for s in signals
+    ]
+    with db:
+        cur = db.executemany(
+            """
+            INSERT OR IGNORE INTO signals (signal_id, ts, json)
+            VALUES (?, ?, ?)
+            """,
+            params,
+        )
+        return cur.rowcount
+
+
+def get_signal_by_id(db: sqlite3.Connection, signal_id: str) -> Signal | None:
+    """Retrieve full Signal by signal_id."""
+    row = db.execute("SELECT json FROM signals WHERE signal_id = ?", (signal_id,)).fetchone()
+    if row:
+        return Signal.model_validate_json(row[0])
+    return None
+
+
+def list_signals(
+    db: sqlite3.Connection,
+    limit: int = 50,
+    before: str | None = None,
+    since: str | None = None,
+    detector: str | None = None,
+    entity: str | None = None,
+    min_confidence: float | None = None,
+) -> list[Signal]:
+    """Retrieve latest signals matching filters, sorted newest-first."""
+    query = "SELECT json FROM signals WHERE 1=1"
+    params: list[Any] = []
+
+    if detector:
+        query += " AND json_extract(json, '$.detector') = ?"
+        params.append(detector)
+    if min_confidence is not None:
+        query += " AND json_extract(json, '$.confidence') >= ?"
+        params.append(min_confidence)
+    if entity:
+        # Check if entity string matches any entity value in json
+        query += " AND json_extract(json, '$.entities') LIKE ?"
+        params.append(f"%{entity}%")
+    if since:
+        query += " AND ts >= ?"
+        params.append(since)
+    if before:
+        query += " AND ts < ?"
+        params.append(before)
+
+    query += " ORDER BY ts DESC LIMIT ?"
+    params.append(limit)
+
+    cursor = db.cursor()
+    cursor.execute(query, tuple(params))
+    rows = cursor.fetchall()
+    return [Signal.model_validate_json(row[0]) for row in rows]

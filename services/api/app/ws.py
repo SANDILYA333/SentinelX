@@ -9,6 +9,7 @@ from datetime import UTC, datetime
 from fastapi import WebSocket
 from sentinelx.schemas.common import WSMessage
 from sentinelx.schemas.event import Event
+from sentinelx.schemas.signal import Signal
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,15 @@ class ConnectionManager:
         )
         await self.broadcast(msg)
         return True
+
+    async def broadcast_signal(self, signal: Signal) -> None:
+        """Broadcast a detection Signal envelope to connected UI clients."""
+        msg = WSMessage(
+            type="signal",
+            ts=signal.ts,
+            payload=json.loads(signal.model_dump_json()),
+        )
+        await self.broadcast(msg)
 
     async def start_health_ticker(self) -> None:
         """Emits a periodic health message every 2 seconds reporting dropped_for_ui."""

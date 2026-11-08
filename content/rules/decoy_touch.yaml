@@ -1,0 +1,20 @@
+id: "RULE-DECOY-001"
+title: "Interaction with High-Interaction Decoy Asset"
+severity_hint: "critical"
+score: 0.95
+confidence: 0.95
+applies_to:
+  - domain: "decoy"
+technique_ids:
+  - "T1021.004"
+  - "T0846"
+condition:
+  all_of:
+    - field: "domain"
+      operator: "eq"
+      value: "decoy"
+explanation_template: "Unauthorized interaction with decoy asset {host} ({dst_ip}) via action '{action}'"
+metadata:
+  category: "Deception"
+  description: "Near-signature by design: decoy assets (Cowrie SSH, OpenCanary MySQL/FTP/HTTP, Decoy PLC) have zero legitimate production business function; any interaction is inherently suspicious."
+

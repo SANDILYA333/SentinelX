@@ -1,0 +1,69 @@
+{
+  "T1078": {
+    "framework": "enterprise",
+    "technique_id": "T1078",
+    "name": "Valid Accounts",
+    "tactic": "Defense Evasion, Persistence, Privilege Escalation, Initial Access"
+  },
+  "T1078.003": {
+    "framework": "enterprise",
+    "technique_id": "T1078.003",
+    "name": "Valid Accounts: Local Accounts",
+    "tactic": "Defense Evasion, Persistence, Privilege Escalation, Initial Access"
+  },
+  "T1046": {
+    "framework": "enterprise",
+    "technique_id": "T1046",
+    "name": "Network Service Discovery",
+    "tactic": "Discovery"
+  },
+  "T1552": {
+    "framework": "enterprise",
+    "technique_id": "T1552",
+    "name": "Unsecured Credentials",
+    "tactic": "Credential Access"
+  },
+  "T1552.001": {
+    "framework": "enterprise",
+    "technique_id": "T1552.001",
+    "name": "Unsecured Credentials: Credentials In Files",
+    "tactic": "Credential Access"
+  },
+  "T1021": {
+    "framework": "enterprise",
+    "technique_id": "T1021",
+    "name": "Remote Services",
+    "tactic": "Lateral Movement"
+  },
+  "T1021.004": {
+    "framework": "enterprise",
+    "technique_id": "T1021.004",
+    "name": "Remote Services: SSH",
+    "tactic": "Lateral Movement"
+  },
+  "T1059": {
+    "framework": "enterprise",
+    "technique_id": "T1059",
+    "name": "Command and Scripting Interpreter",
+    "tactic": "Execution"
+  },
+  "T1059.004": {
+    "framework": "enterprise",
+    "technique_id": "T1059.004",
+    "name": "Command and Scripting Interpreter: Unix Shell",
+    "tactic": "Execution"
+  },
+  "T1036": {
+    "framework": "enterprise",
+    "technique_id": "T1036",
+    "name": "Masquerading",
+    "tactic": "Defense Evasion"
+  },
+  "T1005": {
+    "framework": "enterprise",
+    "technique_id": "T1005",
+    "name": "Data from Local System",
+    "tactic": "Collection"
+  }
+}
+

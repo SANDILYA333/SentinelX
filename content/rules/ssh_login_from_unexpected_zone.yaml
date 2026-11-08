@@ -1,0 +1,26 @@
+id: "RULE-AUTH-001"
+title: "Successful SSH Authentication from Untrusted or External Client"
+severity_hint: "high"
+score: 0.85
+confidence: 0.85
+applies_to:
+  - category: "authentication"
+technique_ids:
+  - "T1078.003"
+condition:
+  all_of:
+    - field: "outcome"
+      operator: "eq"
+      value: "success"
+    - field: "action"
+      operator: "eq"
+      value: "ssh_login"
+    - field: "src_ip"
+      operator: "in"
+      value:
+        - "10.10.1.5"  # Attacker container IP
+explanation_template: "Successful SSH login to {host} for user {user} originating from unapproved client origin {src_ip}"
+metadata:
+  category: "Initial Access"
+  description: "Detects attacker landing on bastion or internal hosts from unapproved client subnet sources."
+
