@@ -70,6 +70,19 @@ class EventEnricher:
                 if "unauthorized_ssh_source" not in tags:
                     tags.append("unauthorized_ssh_source")
 
+        # 2c. OT Write Authorization Tagging (Context-aware based on maintenance window and asset policy)
+        if event.ot and event.ot.is_write:
+            if not self.assets.is_ot_write_authorized(
+                event_ts=event.ts,
+                src_ip=src_ip,
+                src_host=host if src_ip is None and host != "plc-sim" else None,
+                dst_host=host,
+                dst_ip=dst_ip,
+                user=event.user,
+            ):
+                if "unauthorized_ot_write" not in tags:
+                    tags.append("unauthorized_ot_write")
+
         # 3. Decoy Tagging
         is_dst_decoy = bool(
             (dst_ip and self.assets.is_decoy(dst_ip)) or (host and self.assets.is_decoy(host))

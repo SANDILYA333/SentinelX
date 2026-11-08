@@ -200,6 +200,21 @@ class RulesEngine:
                 update={"tags": list(event.tags) + ["unauthorized_ssh_source"]}
             )
 
+        if (
+            event.ot
+            and event.ot.is_write
+            and "unauthorized_ot_write" not in event.tags
+            and not self.assets.is_ot_write_authorized(
+                event_ts=event.ts,
+                src_ip=event.src_ip,
+                src_host=event.host if event.src_ip is None and event.host != "plc-sim" else None,
+                dst_host=event.host,
+                dst_ip=event.dst_ip,
+                user=event.user,
+            )
+        ):
+            event = event.model_copy(update={"tags": list(event.tags) + ["unauthorized_ot_write"]})
+
         signals: list[Signal] = []
 
         for rule in self.rules:
@@ -227,10 +242,8 @@ class RulesEngine:
             # 3. Context constraints validation
             if rule.context:
                 ctx = rule.context
-                # Maintenance window constraint
-                # Maintenance window is simulated hours 02:00-04:00
-                event_hour = event.ts.hour
-                is_maint = 2 <= event_hour < 4
+                # Maintenance window constraint from assets policy / benign config
+                is_maint = self.assets.is_in_maintenance_window(event.ts)
 
                 if ctx.outside_maintenance_window and is_maint:
                     # Rule only applies outside maintenance window
@@ -240,8 +253,14 @@ class RulesEngine:
                     continue
 
                 if ctx.authorized_sources:
-                    if (event.host and event.host in ctx.authorized_sources) or (
-                        event.src_ip and event.src_ip in ctx.authorized_sources
+                    src_host_obj = (
+                        self.assets.get_host_by_ip(event.src_ip) if event.src_ip else None
+                    )
+                    src_host_name = src_host_obj.name if src_host_obj else None
+                    if (
+                        (event.host and event.host in ctx.authorized_sources)
+                        or (event.src_ip and event.src_ip in ctx.authorized_sources)
+                        or (src_host_name and src_host_name in ctx.authorized_sources)
                     ):
                         # Legitimate authorized source, suppress alert
                         continue

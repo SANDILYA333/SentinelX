@@ -199,6 +199,73 @@ def test_rule_auth_001_context_aware_genericness(test_event_factory):
     )
 
 
+def test_rule_ot_001_context_aware_genericness(test_event_factory):
+    """Verify Phase 4.3 genericness: RULE-OT-001 checks actor authorization and maintenance window."""
+    rules = load_rules()
+    engine = RulesEngine(rules)
+
+    # (a) Unauthorized actor (attacker / rogue IP 10.10.1.5)
+    # writing a DIFFERENT register/value than register=1/value=0 (e.g. register=42, value=100)
+    # Even during maintenance window (02:30 UTC), an unauthorized actor MUST fire!
+    t_maint = datetime(2026, 11, 8, 2, 30, 0, tzinfo=UTC)
+    unauth_ot_ev = test_event_factory(
+        event_id="evt_ot_unauth_actor",
+        user="attacker",
+        host="plc-sim",
+        src_ip="10.10.1.5",
+        dst_ip="10.10.3.20",
+        category="ot_command",
+        action="modbus_write",
+        ot=OTFields(unit_id=1, function_code=6, register=42, value=100, is_write=True),
+    ).model_copy(update={"ts": t_maint, "ingested_at": t_maint})
+
+    sigs_unauth = engine.evaluate_event(unauth_ot_ev)
+    ot_sigs_unauth = [s for s in sigs_unauth if s.rule_id == "RULE-OT-001"]
+    assert len(ot_sigs_unauth) == 1, (
+        "RULE-OT-001 must fire on unauthorized actor writing to PLC (even on different register/value)"
+    )
+    assert "T0855" in [t.technique_id for t in ot_sigs_unauth[0].techniques]
+
+    # (b) Authorized actor (eng-ws / 10.10.3.40) writing ANY value during the maintenance window (02:30 UTC)
+    # Must be suppressed (allowed maintenance)
+    auth_maint_ev = test_event_factory(
+        event_id="evt_ot_auth_maint",
+        user="eng1",
+        host="plc-sim",
+        src_ip="10.10.3.40",
+        dst_ip="10.10.3.20",
+        category="ot_command",
+        action="modbus_write",
+        ot=OTFields(unit_id=1, function_code=6, register=1, value=0, is_write=True),
+    ).model_copy(update={"ts": t_maint, "ingested_at": t_maint})
+
+    sigs_maint = engine.evaluate_event(auth_maint_ev)
+    ot_sigs_maint = [s for s in sigs_maint if s.rule_id == "RULE-OT-001"]
+    assert len(ot_sigs_maint) == 0, (
+        "RULE-OT-001 must be SUPPRESSED for authorized actor (eng-ws) during maintenance window"
+    )
+
+    # (c) Authorized actor (eng-ws / 10.10.3.40) writing OUTSIDE the maintenance window (e.g. 14:30 UTC)
+    # Must fire (unauthorized change control violation)
+    t_outside = datetime(2026, 11, 8, 14, 30, 0, tzinfo=UTC)
+    auth_outside_ev = test_event_factory(
+        event_id="evt_ot_auth_outside",
+        user="eng1",
+        host="plc-sim",
+        src_ip="10.10.3.40",
+        dst_ip="10.10.3.20",
+        category="ot_command",
+        action="modbus_write",
+        ot=OTFields(unit_id=1, function_code=6, register=0, value=55, is_write=True),
+    ).model_copy(update={"ts": t_outside, "ingested_at": t_outside})
+
+    sigs_outside = engine.evaluate_event(auth_outside_ev)
+    ot_sigs_outside = [s for s in sigs_outside if s.rule_id == "RULE-OT-001"]
+    assert len(ot_sigs_outside) == 1, (
+        "RULE-OT-001 must fire when authorized actor writes OUTSIDE the maintenance window"
+    )
+
+
 # ==============================================================================
 # Task 3: Baseline Behavioral Profile Detector Tests
 # ==============================================================================

@@ -154,6 +154,8 @@ hosts:
     process_critical: true
     criticality: process_critical
     ssh_users: []
+    allowed_ot_writers:
+      - eng-ws
 
   - name: decoy-plc
     role: plc_decoy

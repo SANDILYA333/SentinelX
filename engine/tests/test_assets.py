@@ -82,3 +82,35 @@ def test_is_ssh_source_authorized():
 
     # Unknown IP on IT subnet (unauthorized rogue host)
     assert assets.is_ssh_source_authorized("10.10.1.99", dst_host="jump-host") is False
+
+
+def test_is_ot_write_authorized():
+    from datetime import UTC, datetime
+
+    get_assets.cache_clear()
+    assets = get_assets()
+
+    # Maintenance window check (02:00-04:00)
+    t_in_maint = datetime(2026, 11, 8, 3, 0, 0, tzinfo=UTC)
+    t_out_maint = datetime(2026, 11, 8, 14, 0, 0, tzinfo=UTC)
+
+    assert assets.is_in_maintenance_window(t_in_maint) is True
+    assert assets.is_in_maintenance_window(t_out_maint) is False
+
+    # Authorized: eng-ws (10.10.3.40) to plc-sim during maintenance window
+    assert (
+        assets.is_ot_write_authorized(event_ts=t_in_maint, src_ip="10.10.3.40", dst_host="plc-sim")
+        is True
+    )
+
+    # Unauthorized: eng-ws to plc-sim OUTSIDE maintenance window
+    assert (
+        assets.is_ot_write_authorized(event_ts=t_out_maint, src_ip="10.10.3.40", dst_host="plc-sim")
+        is False
+    )
+
+    # Unauthorized actor: attacker (10.10.1.5) even DURING maintenance window
+    assert (
+        assets.is_ot_write_authorized(event_ts=t_in_maint, src_ip="10.10.1.5", dst_host="plc-sim")
+        is False
+    )

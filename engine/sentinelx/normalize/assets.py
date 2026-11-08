@@ -3,7 +3,7 @@
 import ipaddress
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, Field
@@ -21,6 +21,22 @@ class HostAsset(BaseModel):
     ssh_users: list[str] = Field(default_factory=list)
     allowed_ssh_src_zones: list[str] = Field(default_factory=list)
     allowed_ssh_src_hosts: list[str] = Field(default_factory=list)
+    allowed_ot_writers: list[str] = Field(default_factory=list)
+
+
+def load_maintenance_window() -> tuple[int, int]:
+    """Load maintenance window start and end hours (default: 2 to 4 from lab/benign/config.yaml)."""
+    repo_root = Path(__file__).resolve().parent.parent.parent.parent
+    config_path = repo_root / "lab" / "benign" / "config.yaml"
+    if config_path.is_file():
+        try:
+            with open(config_path, encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
+                mw = data.get("maintenance_window", {})
+                return int(mw.get("start_hour", 2)), int(mw.get("end_hour", 4))
+        except Exception:
+            pass
+    return (2, 4)
 
 
 class HoneyCredential(BaseModel):
@@ -32,6 +48,12 @@ class AssetInventory(BaseModel):
     hosts: list[HostAsset] = Field(default_factory=list)
     honey_credentials: list[HoneyCredential] = Field(default_factory=list)
     honey_files: list[str] = Field(default_factory=list)
+    maintenance_window: tuple[int, int] = Field(default_factory=load_maintenance_window)
+
+    def is_in_maintenance_window(self, dt_or_hour: Any) -> bool:
+        start_hour, end_hour = self.maintenance_window
+        hour = dt_or_hour.hour if hasattr(dt_or_hour, "hour") else int(dt_or_hour)
+        return start_hour <= hour < end_hour
 
     def get_host_by_name(self, name: str) -> HostAsset | None:
         name_lower = name.strip().lower()
@@ -133,6 +155,49 @@ class AssetInventory(BaseModel):
             if not src_zone or src_zone != dst_asset.zone:
                 return False
 
+        return True
+
+    def is_ot_write_authorized(
+        self,
+        event_ts: Any,
+        src_ip: str | None = None,
+        src_host: str | None = None,
+        dst_host: str | None = None,
+        dst_ip: str | None = None,
+        user: str | None = None,
+    ) -> bool:
+        """Check whether a Modbus/OT write is authorized based on actor and maintenance window."""
+        # 1. Maintenance window check: writes outside the maintenance window are unauthorized
+        if not self.is_in_maintenance_window(event_ts):
+            return False
+
+        # 2. Target device resolution
+        target_asset = None
+        if dst_host:
+            target_asset = self.get_host_by_name(dst_host)
+        if not target_asset and dst_ip:
+            target_asset = self.get_host_by_ip(dst_ip)
+
+        if not target_asset or not target_asset.allowed_ot_writers:
+            # If target has no allowed writers or is unknown/decoy, write is unauthorized
+            return False
+
+        # 3. Source actor resolution
+        source_name = src_host
+        if not source_name and src_ip:
+            h = self.get_host_by_ip(src_ip)
+            if h:
+                source_name = h.name
+
+        # If source host is known, verify authorization
+        if source_name:
+            return source_name in target_asset.allowed_ot_writers
+
+        # If user is specified
+        if user and user in target_asset.allowed_ot_writers:
+            return True
+
+        # If source is internal/unspecified (e.g. PLC audit log during maintenance window)
         return True
 
 

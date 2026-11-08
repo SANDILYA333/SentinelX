@@ -12,7 +12,6 @@ context:
   track_session_history: true
   authorized_sources:
     - "eng-ws"
-    - "10.10.3.40"
 condition:
   all_of:
     - field: "tags"

@@ -12,15 +12,14 @@ condition:
     - field: "ot.is_write"
       operator: "eq"
       value: true
-    - any_of:
-        - field: "ot.register"
-          operator: "eq"
-          value: 1  # Discharge valve manipulation (never written during benign maintenance)
-        - field: "ot.value"
-          operator: "eq"
-          value: 0  # Forced closure
+    - field: "tags"
+      operator: "contains"
+      value: "unauthorized_ot_write"
+    - field: "ot.register"
+      operator: "neq"
+      value: null
 explanation_template: "Unauthorized Modbus physical write to register {ot.register} (value: {ot.value}) on PLC {host}"
 metadata:
   category: "OT Process Impairment"
-  description: "Detects unauthorized physical manipulation of critical discharge valve registers."
+  description: "Detects unauthorized physical manipulation of critical PLC registers outside maintenance window or by unapproved actors."
 
