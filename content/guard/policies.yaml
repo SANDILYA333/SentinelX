@@ -1,0 +1,90 @@
+# SentinelX Response Safety Guard Policies
+# Evaluated by GuardEvaluator against asset inventory criticality and live/recorded PLC physics state
+
+policies:
+  - id: "GUARD-OT-001"
+    name: "Protect Process-Critical Controllers Mid-Manipulation"
+    description: "Deny disruptive network isolation or Modbus filtering against process_critical assets while PLC is mid-manipulation or unsafe."
+    conditions:
+      actions: ["isolate_host", "block_modbus_write"]
+      target_criticality: ["process_critical"]
+      plc_state_not: "normal"
+    outcome: "deny"
+    reasons:
+      - "Target asset is process_critical and actively undergoing process manipulation (PLC flag != normal)."
+      - "Direct controller isolation or Modbus stream disruption mid-cycle risks blind runaway or abrupt plant emergency trip."
+      - "Safer alternative: Block attacker IP (10.10.1.5) at the IT perimeter firewall or isolate the upstream IT pivot host (jump-host / eng-ws) instead of severing the controller."
+
+  - id: "GUARD-OT-002"
+    name: "Require Operator Confirmation for Critical OT Isolation"
+    description: "Require human authorization before isolating any process-critical asset even during normal operational baseline."
+    conditions:
+      actions: ["isolate_host"]
+      target_criticality: ["process_critical"]
+      plc_state: "normal"
+    outcome: "needs_human"
+    reasons:
+      - "Target asset is process_critical. Automated unilateral isolation poses operational continuity risk."
+      - "Manual plant operator and OT engineering confirmation required before severing controller connectivity."
+
+  - id: "GUARD-OT-003"
+    name: "Require Operator Confirmation for OT Protocol Filtering"
+    description: "Require human authorization before blocking Modbus write operations on critical assets during normal state."
+    conditions:
+      actions: ["block_modbus_write"]
+      target_criticality: ["process_critical"]
+      plc_state: "normal"
+    outcome: "needs_human"
+    reasons:
+      - "Target is a process-critical OT device. Blocking Modbus writes may disrupt legitimate supervisory setpoint updates."
+      - "Manual OT engineer approval required."
+
+  - id: "GUARD-IT-001"
+    name: "Permit Containment on Non-Critical IT Assets"
+    description: "Allow automated IP blocking and host isolation on low and medium criticality IT assets."
+    conditions:
+      actions: ["block_ip", "isolate_host"]
+      target_criticality: ["low", "medium"]
+    outcome: "allow"
+    reasons:
+      - "Target asset criticality is low or medium with zero physical process dependencies."
+      - "Containment action is safe to execute automatically without risking OT physical process disruption."
+
+  - id: "GUARD-IT-002"
+    name: "Permit Boundary Firewall IP Blocking"
+    description: "Allow automated IP blocking for external or untrusted source IPs regardless of asset criticality."
+    conditions:
+      actions: ["block_ip"]
+      target_criticality: ["low", "medium", "high"]
+    outcome: "allow"
+    reasons:
+      - "Firewall IP block rule targets IT/DMZ perimeter or jump-host boundary."
+      - "Action isolates the malicious communication path without terminating endpoint infrastructure."
+
+  - id: "GUARD-AUTH-001"
+    name: "Permit Disabling Compromised Accounts"
+    description: "Allow revoking compromised user credentials across enterprise directories."
+    conditions:
+      actions: ["disable_account"]
+    outcome: "allow"
+    reasons:
+      - "Account revocation stops credential abuse without causing physical machine failure."
+
+  - id: "GUARD-PROC-001"
+    name: "Permit Process Termination on IT Hosts"
+    description: "Allow killing malicious process on non-critical IT endpoints."
+    conditions:
+      actions: ["kill_process"]
+      target_criticality: ["low", "medium", "high"]
+    outcome: "allow"
+    reasons:
+      - "Target process is running on an IT host with no direct PLC hardware actuator loops."
+
+  - id: "GUARD-DEFAULT"
+    name: "Default Conservative Safety Guard"
+    description: "Require human escalation for any unrecognized action or high-criticality intervention."
+    conditions: {}
+    outcome: "needs_human"
+    reasons:
+      - "Proposed response action does not match a pre-authorized automated execution profile."
+      - "Escalated to human SOC analyst for safety review."

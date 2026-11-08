@@ -314,7 +314,7 @@ export interface Incident {
   techniques: Techniques;
   decoy_touched: DecoyTouched;
   ot_touched: OtTouched;
-  explanation: Explanation;
+  explanation: string[];
   summary?: Summary;
   summary_citations?: SummaryCitations;
   graph?: IncidentGraph | null;

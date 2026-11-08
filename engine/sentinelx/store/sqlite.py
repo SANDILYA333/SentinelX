@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Any
 
 from sentinelx.schemas.event import Event
+from sentinelx.schemas.guard import GuardDecision
+from sentinelx.schemas.incident import Incident
 from sentinelx.schemas.signal import Signal
 
 
@@ -82,6 +84,7 @@ def init_db(path: str | Path) -> sqlite3.Connection:
                 json TEXT NOT NULL
             );
         """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_incidents_ts ON incidents(ts DESC);")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS guard_decisions (
                 decision_id TEXT PRIMARY KEY,
@@ -89,6 +92,9 @@ def init_db(path: str | Path) -> sqlite3.Connection:
                 json TEXT NOT NULL
             );
         """)
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_guard_decisions_ts ON guard_decisions(ts DESC);"
+        )
 
     return conn
 
@@ -347,3 +353,106 @@ def list_signals(
     cursor.execute(query, tuple(params))
     rows = cursor.fetchall()
     return [Signal.model_validate_json(row[0]) for row in rows]
+
+
+def upsert_incident(db: sqlite3.Connection, incident: Incident) -> bool:
+    """Insert or update an Incident record in the incidents table.
+
+    Returns True on success.
+    """
+    with db:
+        db.execute(
+            """
+            INSERT INTO incidents (incident_id, ts, json)
+            VALUES (?, ?, ?)
+            ON CONFLICT(incident_id) DO UPDATE SET
+                ts = excluded.ts,
+                json = excluded.json
+            """,
+            (
+                incident.incident_id,
+                incident.updated_at.isoformat(),
+                incident.model_dump_json(),
+            ),
+        )
+        return True
+
+
+def get_incident_by_id(db: sqlite3.Connection, incident_id: str) -> Incident | None:
+    """Retrieve full Incident by incident_id."""
+    row = db.execute("SELECT json FROM incidents WHERE incident_id = ?", (incident_id,)).fetchone()
+    if row:
+        return Incident.model_validate_json(row[0])
+    return None
+
+
+def list_incidents(
+    db: sqlite3.Connection,
+    limit: int = 50,
+    status: str | None = None,
+    min_score: float | None = None,
+    since: str | None = None,
+) -> list[Incident]:
+    """Retrieve incidents matching filters, sorted newest-first."""
+    query = "SELECT json FROM incidents WHERE 1=1"
+    params: list[Any] = []
+
+    if status:
+        query += " AND json_extract(json, '$.status') = ?"
+        params.append(status)
+    if min_score is not None:
+        query += " AND json_extract(json, '$.score') >= ?"
+        params.append(min_score)
+    if since:
+        query += " AND ts >= ?"
+        params.append(since)
+
+    query += " ORDER BY ts DESC LIMIT ?"
+    params.append(limit)
+
+    cursor = db.cursor()
+    cursor.execute(query, tuple(params))
+    rows = cursor.fetchall()
+    return [Incident.model_validate_json(row[0]) for row in rows]
+
+
+def insert_guard_decision(db: sqlite3.Connection, decision: GuardDecision) -> bool:
+    """Insert a guard decision record into guard_decisions table.
+
+    Returns True if row was inserted, False if duplicate.
+    """
+    with db:
+        cur = db.execute(
+            """
+            INSERT OR IGNORE INTO guard_decisions (decision_id, ts, json)
+            VALUES (?, ?, ?)
+            """,
+            (
+                decision.decision_id,
+                decision.ts.isoformat(),
+                decision.model_dump_json(),
+            ),
+        )
+        return cur.rowcount > 0
+
+
+def list_guard_decisions(
+    db: sqlite3.Connection,
+    limit: int = 50,
+    incident_id: str | None = None,
+) -> list[GuardDecision]:
+    """Retrieve recent guard decisions."""
+    query = "SELECT json FROM guard_decisions WHERE 1=1"
+    params: list[Any] = []
+
+    if incident_id:
+        query += " AND json_extract(json, '$.incident_id') = ?"
+        params.append(incident_id)
+
+    query += " ORDER BY ts DESC LIMIT ?"
+    params.append(limit)
+
+    cursor = db.cursor()
+    cursor.execute(query, tuple(params))
+    rows = cursor.fetchall()
+    return [GuardDecision.model_validate_json(row[0]) for row in rows]

@@ -9,6 +9,8 @@ from datetime import UTC, datetime
 from fastapi import WebSocket
 from sentinelx.schemas.common import WSMessage
 from sentinelx.schemas.event import Event
+from sentinelx.schemas.guard import GuardDecision
+from sentinelx.schemas.incident import Incident
 from sentinelx.schemas.signal import Signal
 
 logger = logging.getLogger(__name__)
@@ -79,6 +81,24 @@ class ConnectionManager:
             type="signal",
             ts=signal.ts,
             payload=json.loads(signal.model_dump_json()),
+        )
+        await self.broadcast(msg)
+
+    async def broadcast_incident(self, incident: Incident) -> None:
+        """Broadcast a correlated Incident envelope to connected UI clients."""
+        msg = WSMessage(
+            type="incident",
+            ts=incident.updated_at,
+            payload=json.loads(incident.model_dump_json()),
+        )
+        await self.broadcast(msg)
+
+    async def broadcast_guard(self, decision: GuardDecision) -> None:
+        """Broadcast a Response Safety GuardDecision envelope to connected UI clients."""
+        msg = WSMessage(
+            type="guard",
+            ts=decision.ts,
+            payload=json.loads(decision.model_dump_json()),
         )
         await self.broadcast(msg)
 

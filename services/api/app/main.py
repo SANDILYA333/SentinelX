@@ -7,7 +7,9 @@ from datetime import UTC, datetime
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from sentinelx.correlate.pipeline import CorrelationPipeline
 from sentinelx.detect.runtime import DetectorPipeline
+from sentinelx.guard.evaluator import GuardEvaluator
 from sentinelx.ingest.runtime import Ingestor
 from sentinelx.schemas.common import SCHEMA_VERSION, WSMessage
 from sentinelx.schemas.event import Event
@@ -15,8 +17,12 @@ from sentinelx.schemas.event import Event
 from app.config import settings
 from app.db import close_db, get_db
 from app.ingest import set_ingestor
+from app.pipeline_state import set_correlation_pipeline, set_guard_evaluator
+from app.routes.budget import router as budget_router
 from app.routes.events import router as events_router
+from app.routes.guard import router as guard_router
 from app.routes.health import router as health_router
+from app.routes.incidents import router as incidents_router
 from app.routes.signals import router as signals_router
 from app.routes.sources import router as sources_router
 from app.ws import manager
@@ -26,16 +32,25 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan manager to setup DB, Ingestor, and background tasks."""
+    """Application lifespan manager to setup DB, Ingestor, Detectors, and Correlator."""
     db = get_db()
-    pipeline = DetectorPipeline(db=db)
+    detector_pipeline = DetectorPipeline(db=db)
+    correlation_pipeline = CorrelationPipeline(
+        db=db,
+        on_incident=manager.broadcast_incident,
+    )
+    guard_evaluator = GuardEvaluator(db=db)
+
+    set_correlation_pipeline(correlation_pipeline)
+    set_guard_evaluator(guard_evaluator)
 
     # Callback when Ingestor flushes events
     async def on_event(ev: Event) -> None:
         await manager.broadcast_event(ev)
-        signals = pipeline.process_event(ev)
+        signals = detector_pipeline.process_event(ev)
         for sig in signals:
             await manager.broadcast_signal(sig)
+            await correlation_pipeline.process_signal(sig)
 
     ingestor = Ingestor(
         log_root=settings.SENTINELX_LOG_ROOT,
@@ -63,6 +78,8 @@ async def lifespan(app: FastAPI):
     if ingestor.running:
         await ingestor.stop()
     set_ingestor(None)
+    set_correlation_pipeline(None)
+    set_guard_evaluator(None)
     close_db()
 
 
@@ -86,6 +103,9 @@ app.add_middleware(
 app.include_router(health_router)
 app.include_router(events_router)
 app.include_router(signals_router)
+app.include_router(incidents_router)
+app.include_router(guard_router)
+app.include_router(budget_router)
 app.include_router(sources_router)
 
 # Dev-only endpoints

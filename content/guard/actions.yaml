@@ -1,0 +1,42 @@
+# SentinelX Response Safety Action Catalog
+# Schema: GuardAction
+actions:
+  isolate_host:
+    name: "Isolate Host"
+    category: "containment"
+    description: "Sever network connectivity for the target host via switch port shutdown or host firewall isolation."
+    supported_targets: ["host", "ip"]
+    reversibility: "high"
+    safety_risk: "high_on_critical"
+
+  block_ip:
+    name: "Block IP Address"
+    category: "firewall"
+    description: "Install an ingress/egress firewall drop rule on perimeter and internal boundary firewalls for the target IP."
+    supported_targets: ["ip"]
+    reversibility: "high"
+    safety_risk: "low"
+
+  disable_account:
+    name: "Disable Account"
+    category: "identity"
+    description: "Revoke active authentication sessions and disable account credentials across directories and local endpoints."
+    supported_targets: ["user"]
+    reversibility: "high"
+    safety_risk: "medium"
+
+  block_modbus_write:
+    name: "Block Modbus Write"
+    category: "ot_control"
+    description: "Filter or drop Function Code 05/06/15/16 Modbus write requests directed at the OT programmable controller."
+    supported_targets: ["device", "host", "ip"]
+    reversibility: "high"
+    safety_risk: "critical_on_process"
+
+  kill_process:
+    name: "Terminate Process"
+    category: "endpoint"
+    description: "Send SIGKILL to the offending process tree on the target host."
+    supported_targets: ["process", "pid"]
+    reversibility: "low"
+    safety_risk: "medium"

@@ -1,20 +1,35 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { Event, Signal, WSMessage } from "@contracts/index";
-import { fetchEvents, fetchSignals } from "@/lib/api";
+import type { Event, GuardDecision, Incident, Signal, WSMessage } from "@contracts/index";
+import { fetchEvents, fetchGuardDecisions, fetchIncidents, fetchSignals } from "@/lib/api";
 import { useEventStore } from "@/lib/store";
 import { getWebSocketUrl } from "@/lib/ws";
 
 export function useEventStream() {
-  const { events, signals, status, setStatus, addEvent, setEvents, addSignal, setSignals } =
-    useEventStore();
+  const {
+    events,
+    signals,
+    incidents,
+    guardDecisions,
+    status,
+    setStatus,
+    addEvent,
+    setEvents,
+    addSignal,
+    setSignals,
+    addIncident,
+    setIncidents,
+    addGuardDecision,
+    setGuardDecisions,
+  } = useEventStore();
+
   const reconnectDelayRef = useRef<number>(500);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const isHydratedRef = useRef<boolean>(false);
 
-  // Initial event and signal hydration from REST API
+  // Initial event, signal, and incident hydration from REST API
   useEffect(() => {
     if (isHydratedRef.current) return;
     isHydratedRef.current = true;
@@ -34,7 +49,23 @@ export function useEventStream() {
       .catch((err) => {
         console.error("Failed to hydrate signals from REST API:", err);
       });
-  }, [setEvents, setSignals]);
+
+    fetchIncidents()
+      .then((initialIncidents) => {
+        setIncidents(initialIncidents);
+      })
+      .catch((err) => {
+        console.error("Failed to hydrate incidents from REST API:", err);
+      });
+
+    fetchGuardDecisions(20)
+      .then((initialDecisions) => {
+        setGuardDecisions(initialDecisions);
+      })
+      .catch((err) => {
+        console.error("Failed to hydrate guard decisions from REST API:", err);
+      });
+  }, [setEvents, setSignals, setIncidents, setGuardDecisions]);
 
   // WebSocket lifecycle with exponential backoff reconnect
   useEffect(() => {
@@ -54,7 +85,7 @@ export function useEventStream() {
           return;
         }
         setStatus("open");
-        reconnectDelayRef.current = 500; // Reset backoff on successful connect
+        reconnectDelayRef.current = 500;
       };
 
       ws.onmessage = (messageEvent) => {
@@ -66,6 +97,12 @@ export function useEventStream() {
           }
           if (msg.type === "signal" && msg.payload) {
             addSignal(msg.payload as unknown as Signal);
+          }
+          if (msg.type === "incident" && msg.payload) {
+            addIncident(msg.payload as unknown as Incident);
+          }
+          if (msg.type === "guard" && msg.payload) {
+            addGuardDecision(msg.payload as unknown as GuardDecision);
           }
         } catch (err) {
           console.error("Error parsing WebSocket message:", err);
@@ -80,7 +117,6 @@ export function useEventStream() {
         if (unmounted) return;
         setStatus("closed");
 
-        // Exponential backoff capped at 5000ms
         const delay = reconnectDelayRef.current;
         reconnectDelayRef.current = Math.min(delay * 2, 5000);
 
@@ -101,7 +137,7 @@ export function useEventStream() {
         wsRef.current.close();
       }
     };
-  }, [setStatus, addEvent, addSignal]);
+  }, [setStatus, addEvent, addSignal, addIncident, addGuardDecision]);
 
-  return { events, signals, status };
+  return { events, signals, incidents, guardDecisions, status };
 }

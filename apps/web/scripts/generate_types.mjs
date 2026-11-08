@@ -51,6 +51,11 @@ async function main() {
     }
   }
 
+  outputTs = outputTs.replace(
+    /(export interface Incident\s*\{[\s\S]*?explanation:\s*)Explanation;/m,
+    "$1string[];"
+  );
+
   fs.mkdirSync(path.dirname(tsOutFile), { recursive: true });
   fs.writeFileSync(tsOutFile, outputTs.trim() + "\n", "utf-8");
   console.log(`Generated TypeScript contracts: ${tsOutFile}`);

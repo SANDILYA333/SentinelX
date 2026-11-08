@@ -130,3 +130,40 @@ def test_get_event_by_id_and_filters(client: TestClient):
     matched = res_filtered.json()
     assert len(matched) >= 1
     assert any(e["event_id"] == eid for e in matched)
+
+
+def test_incidents_and_guard_endpoints(client: TestClient):
+    # 1. Incidents endpoint returns empty list initially
+    res_inc = client.get("/api/v1/incidents")
+    assert res_inc.status_code == 200
+    assert res_inc.json() == []
+
+    # 2. Guard evaluation endpoint
+    res_guard = client.post(
+        "/api/v1/guard/evaluate",
+        json={"action": "block_ip", "target": "10.10.1.5"},
+    )
+    assert res_guard.status_code == 200
+    guard_dec = res_guard.json()
+    assert guard_dec["decision"] == "allow"
+    assert guard_dec["action"] == "block_ip"
+    assert guard_dec["target"] == "10.10.1.5"
+
+    # 3. Guard decisions listing
+    res_decs = client.get("/api/v1/guard/decisions")
+    assert res_decs.status_code == 200
+    decs = res_decs.json()
+    assert len(decs) >= 1
+    assert decs[0]["decision_id"] == guard_dec["decision_id"]
+
+    # 4. Budget endpoint
+    res_budget = client.get("/api/v1/budget")
+    assert res_budget.status_code == 200
+    budget_data = res_budget.json()
+    assert "threshold" in budget_data
+    assert budget_data["threshold"] == 0.50
+
+    # 5. Update budget threshold
+    res_budget_set = client.post("/api/v1/budget", json={"threshold": 0.65})
+    assert res_budget_set.status_code == 200
+    assert res_budget_set.json()["threshold"] == 0.65

@@ -1,4 +1,4 @@
-import type { Event, Signal, SourceHealth, TelemetryStats } from "@contracts/index";
+import type { Event, GuardDecision, Incident, Signal, SourceHealth, TelemetryStats } from "@contracts/index";
 
 export const API_BASE_URL: string =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -140,6 +140,92 @@ export async function emitTestEvent(): Promise<Event> {
   });
   if (!res.ok) {
     throw new Error(`Failed to emit test event: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export interface IncidentQueryParams {
+  status?: string;
+  min_score?: number;
+  since?: string;
+  limit?: number;
+}
+
+export interface IncidentWithEvidence extends Incident {
+  signals: Signal[];
+  evidence_events: Event[];
+}
+
+export async function fetchIncidents(params?: IncidentQueryParams): Promise<Incident[]> {
+  const url = new URL(`${API_BASE_URL}/api/v1/incidents`);
+  if (params) {
+    if (params.status) url.searchParams.set("status", params.status);
+    if (params.min_score !== undefined) url.searchParams.set("min_score", params.min_score.toString());
+    if (params.since) url.searchParams.set("since", params.since);
+    if (params.limit) url.searchParams.set("limit", params.limit.toString());
+  }
+
+  const res = await fetch(url.toString(), {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch incidents: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchIncidentById(incidentId: string): Promise<IncidentWithEvidence> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/incidents/${encodeURIComponent(incidentId)}`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch incident ${incidentId}: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function evaluateGuardAction(
+  action: string,
+  target: string,
+  incidentId?: string,
+): Promise<GuardDecision> {
+  const url = incidentId
+    ? `${API_BASE_URL}/api/v1/incidents/${encodeURIComponent(incidentId)}/guard-action`
+    : `${API_BASE_URL}/api/v1/guard/evaluate`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action, target, incident_id: incidentId }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to evaluate guard action: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchGuardDecisions(limit: number = 20): Promise<GuardDecision[]> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/guard/decisions?limit=${limit}`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch guard decisions: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export interface BudgetStatus {
+  threshold: number;
+  fp_per_24h_estimate: number;
+  status: string;
+}
+
+export async function fetchBudget(): Promise<BudgetStatus> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/budget`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch budget status: ${res.statusText}`);
   }
   return res.json();
 }

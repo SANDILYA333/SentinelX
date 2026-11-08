@@ -5,7 +5,8 @@ SHELL := /bin/bash
         lab-smoke lab-samples plc-reset lab-disk lab-prune \
         ingest-live ingest-replay ingest-file db-reset \
         benign-run attack-run capture-benign capture-attack captures-all captures-validate \
-        train-baselines detect-replay detector-eval
+        train-baselines detect-replay detector-eval \
+        guard-eval budget-calibrate incident-eval detect-correlate-replay
 
 help: ## Show available Makefile commands
 	@echo "Available commands:"
@@ -183,3 +184,19 @@ detect-replay: ## Replay capture telemetry through detector pipeline (DIR=... SP
 
 detector-eval: ## Run evaluation suite across all 8 captures and print detector performance matrices
 	uv run python scripts/detector_eval.py
+
+# ==============================================================================
+# Correlation, Safety Guard, and Budget Targets (Phase 5)
+# ==============================================================================
+guard-eval: ## Run comprehensive Response Safety Guard policy decision evaluation
+	uv run python scripts/guard_eval.py
+
+budget-calibrate: ## Run Alert Budget Controller threshold calibration across benign and attack captures
+	uv run python scripts/budget_calibrate.py
+
+incident-eval: ## Run full Incident evaluation across all 8 captures and golden step coverage
+	uv run python scripts/incident_eval.py
+
+detect-correlate-replay: ## Run ingestion, detection, and correlation together against capture (DIR=... SPEED=...)
+	@if [ -z "$(DIR)" ]; then echo "Error: DIR is required (e.g. make detect-correlate-replay DIR=eval/captures/attack/demo_baseline)"; exit 1; fi
+	uv run python scripts/detect_correlate_replay.py --dir "$(DIR)" --speed "$${SPEED:-max}" --check-idempotency
