@@ -5,6 +5,7 @@ import type {
   Event,
   GuardDecision,
   Incident,
+  IncidentSummaryResponse,
   Signal,
   SourceHealth,
   SystemStatusResponse,
@@ -294,6 +295,33 @@ export async function fetchEvalSummary(): Promise<EvalSummaryResponse> {
   });
   if (!res.ok) {
     throw new Error(`Failed to fetch evaluation summary: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchIncidentSummary(incidentId: string): Promise<IncidentSummaryResponse> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/incidents/${incidentId}/summary`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch incident summary: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function generateIncidentSummary(
+  incidentId: string,
+  refresh: boolean = false
+): Promise<IncidentSummaryResponse> {
+  const res = await fetch(
+    `${getApiBaseUrl()}/api/v1/incidents/${incidentId}/summary?refresh=${refresh}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    }
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to generate incident summary: ${res.statusText}`);
   }
   return res.json();
 }
