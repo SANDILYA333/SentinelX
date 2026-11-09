@@ -121,3 +121,4 @@ SentinelX falls back immediately and with **zero downtime** to the deterministic
 - **Outbound Transmission**: When `GEMINI_API_KEY` is configured, bounded evidence packets are sent over TLS to Google's Gemini API endpoints (`generativelanguage.googleapis.com`).
 - **Air-Gapped Environments**: Organizations with strict air-gap compliance requirements can operate SentinelX completely offline without an API key, relying 100% on the deterministic template engine.
 - **Key Safety**: The API key is stored only in untracked `services/api/.env.local` (mode `0600`), is never tracked in git, never printed in application logs, and never exposed to the frontend web application.
+
