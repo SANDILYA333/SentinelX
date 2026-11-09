@@ -49,6 +49,8 @@ eval/captures/*/*/*
 !eval/captures/**/manifest.json
 .env
 .env.local
+services/api/.env
+services/api/.env.local
 lab/.env
 lab/.env.local
 lab/wazuh/authd.pass
