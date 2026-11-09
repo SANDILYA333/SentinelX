@@ -4,10 +4,17 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import type { Signal, Technique } from "@contracts/index";
-import { fetchIncidentById, fetchMitreTechniques, type IncidentWithEvidence } from "@/lib/api";
+import type { IncidentSummaryResponse, Signal, Technique } from "@contracts/index";
+import {
+  fetchIncidentById,
+  fetchIncidentSummary,
+  fetchMitreTechniques,
+  generateIncidentSummary,
+  type IncidentWithEvidence,
+} from "@/lib/api";
 import { useEventStream } from "@/hooks/useEventStream";
 import { useEventStore } from "@/lib/store";
+import { useEvidenceDrawer } from "@/components/evidence-drawer";
 import {
   getDetectorStyle,
   getSeverityStyle,
@@ -16,6 +23,7 @@ import {
 } from "@/lib/theme";
 import { EvidenceLink } from "@/components/evidence-link";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertTriangle,
@@ -23,6 +31,7 @@ import {
   CheckCircle2,
   Clock,
   GitGraph,
+  RefreshCw,
   Search,
   Server,
   Shield,
@@ -37,10 +46,16 @@ function IncidentsContent() {
   const initialId = searchParams.get("id");
 
   const { incidents, status } = useEventStore();
+  const { openEvidence } = useEvidenceDrawer();
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(initialId);
   const [incidentDetail, setIncidentDetail] = useState<IncidentWithEvidence | null>(null);
   const [loadingDetail, setLoadingDetail] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
+
+  // LLM / Template Analyst Summary state
+  const [summary, setSummary] = useState<IncidentSummaryResponse | null>(null);
+  const [summaryStatus, setSummaryStatus] = useState<"none" | "generating" | "llm" | "template" | "error">("none");
+  const [summaryError, setSummaryError] = useState<string | null>(null);
 
   // MITRE Techniques catalog
   const { data: mitreTechniques } = useQuery({
@@ -95,6 +110,55 @@ function IncidentsContent() {
       active = false;
     };
   }, [selectedIncidentId]);
+
+  // Fetch summary whenever selected incident changes
+  useEffect(() => {
+    if (!selectedIncidentId) {
+      setSummary(null);
+      setSummaryStatus("none");
+      setSummaryError(null);
+      return;
+    }
+
+    let active = true;
+    setSummary(null);
+    setSummaryStatus("none");
+    setSummaryError(null);
+
+    fetchIncidentSummary(selectedIncidentId)
+      .then((data) => {
+        if (active) {
+          setSummary(data);
+          setSummaryStatus(data.mode === "llm" ? "llm" : "template");
+        }
+      })
+      .catch(() => {
+        // 404 is normal before summary generation
+        if (active) {
+          setSummary(null);
+          setSummaryStatus("none");
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedIncidentId]);
+
+  const handleGenerateSummary = async (refresh: boolean = false) => {
+    if (!selectedIncidentId) return;
+    setSummaryStatus("generating");
+    setSummaryError(null);
+    try {
+      const data = await generateIncidentSummary(selectedIncidentId, refresh);
+      setSummary(data);
+      setSummaryStatus(data.mode === "llm" ? "llm" : "template");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to generate summary";
+      setSummaryError(msg);
+      setSummaryStatus("error");
+    }
+  };
 
   // Filtered incidents
   const filteredIncidents = useMemo(() => {
@@ -402,6 +466,169 @@ function IncidentsContent() {
                             </div>
                           );
                         })}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Analyst Summary Card */}
+              <Card className="border-slate-800 bg-slate-900/60 shadow-lg">
+                <CardHeader className="pb-3 border-b border-slate-800/80">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-purple-400" />
+                        <CardTitle className="text-sm font-semibold tracking-tight text-slate-100">
+                          Analyst Summary
+                        </CardTitle>
+                        {summaryStatus === "llm" && summary && (
+                          <Badge variant="outline" className="bg-purple-950/60 text-purple-300 border-purple-600/40 text-[10px] font-mono">
+                            LLM ({summary.verified_count}/{summary.total_count} verified{summary.dropped_count > 0 ? `, ${summary.dropped_count} dropped` : ""})
+                          </Badge>
+                        )}
+                        {summaryStatus === "template" && (
+                          <Badge variant="outline" className="bg-slate-800 text-slate-300 border-slate-700 text-[10px] font-mono">
+                            Deterministic Fallback (LLM unavailable)
+                          </Badge>
+                        )}
+                        {summaryStatus === "error" && (
+                          <Badge variant="outline" className="bg-rose-950/60 text-rose-300 border-rose-600/40 text-[10px] font-mono">
+                            Error
+                          </Badge>
+                        )}
+                      </div>
+                      <CardDescription className="text-xs text-slate-400">
+                        {summary
+                          ? `Model: ${summary.model} • Generated: ${new Date(summary.generated_at).toLocaleTimeString()}`
+                          : "Grounded incident synthesis with strict citation verification"}
+                      </CardDescription>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {summaryStatus === "none" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleGenerateSummary(false)}
+                          className="h-8 text-xs font-mono bg-purple-950/40 text-purple-300 border-purple-700/60 hover:bg-purple-900/60 hover:text-purple-200"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                          Generate Summary
+                        </Button>
+                      )}
+                      {(summaryStatus === "llm" || summaryStatus === "template" || summaryStatus === "error") && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleGenerateSummary(true)}
+                          className="h-8 text-xs font-mono bg-slate-900 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                          Regenerate
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="pt-4 space-y-4">
+                  {summaryStatus === "generating" && (
+                    <div className="py-8 text-center space-y-3">
+                      <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                      <p className="text-xs text-slate-400 font-mono">
+                        Extracting bounded evidence packet and verifying citations...
+                      </p>
+                    </div>
+                  )}
+
+                  {summaryStatus === "none" && (
+                    <div className="py-6 text-center space-y-2">
+                      <p className="text-xs text-slate-400 font-mono">
+                        No summary generated for this incident yet.
+                      </p>
+                      <p className="text-[11px] text-slate-500 max-w-md mx-auto">
+                        Generates a structured incident briefing. Citations are strictly verified against normalized telemetry.
+                      </p>
+                    </div>
+                  )}
+
+                  {summaryStatus === "error" && (
+                    <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-800/60 text-xs text-rose-300 font-mono flex items-center justify-between">
+                      <span>{summaryError || "Failed to generate summary."}</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleGenerateSummary(false)}
+                        className="h-7 text-xs font-mono bg-rose-900/60 border-rose-700 text-rose-200 hover:bg-rose-800"
+                      >
+                        Retry
+                      </Button>
+                    </div>
+                  )}
+
+                  {(summaryStatus === "llm" || summaryStatus === "template") && summary && (
+                    <div className="space-y-3">
+                      {/* Plain text headline */}
+                      <div className="p-3 rounded-lg bg-slate-950/80 border border-slate-800/80">
+                        <p className="text-xs font-bold font-mono text-slate-100">
+                          {summary.headline}
+                        </p>
+                      </div>
+
+                      {/* Verified Claims */}
+                      <div className="space-y-2">
+                        {(summary.claims ?? []).map((claim, idx) => (
+                          <div
+                            key={idx}
+                            className="p-3 rounded-lg bg-slate-950/50 border border-slate-800/60 space-y-2"
+                          >
+                            {/* Plain text claim text - no dangerouslySetInnerHTML */}
+                            <p className="text-xs text-slate-300 font-mono leading-relaxed">
+                              {claim.text}
+                            </p>
+
+                            {/* Evidence Chips */}
+                            <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-800/40 text-[10px] font-mono">
+                              <span className="text-slate-500">Citations:</span>
+                              {(claim.event_ids ?? []).map((eid) => (
+                                <button
+                                  key={eid}
+                                  type="button"
+                                  onClick={() => openEvidence(eid)}
+                                  className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 hover:border-blue-500 hover:text-blue-300 text-slate-300 transition cursor-pointer"
+                                  title={`Inspect event ${eid}`}
+                                >
+                                  {eid.length > 12 ? `${eid.slice(0, 4)}...${eid.slice(-4)}` : eid}
+                                </button>
+                              ))}
+
+                              {(claim.technique_ids ?? []).map((tid) => (
+                                <span
+                                  key={tid}
+                                  className="px-1.5 py-0.5 rounded bg-blue-950/60 border border-blue-800/50 text-blue-300"
+                                >
+                                  {tid}
+                                </span>
+                              ))}
+
+                              {(claim.entities ?? []).map((ent) => (
+                                <span
+                                  key={ent}
+                                  className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400"
+                                >
+                                  {ent}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Verifier Notice Footer */}
+                      <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 pt-2 border-t border-slate-800/60">
+                        <span>grounding verified by code, not semantics</span>
+                        <span>strictly advisory &bull; no automated containment</span>
                       </div>
                     </div>
                   )}
