@@ -113,4 +113,17 @@ Alternatively, run `make dev` to display execution instructions.
 make test
 make lint
 ```
-# SentinelX
+
+### 4. LLM Analyst Summaries & Performance Benchmarks (Phase 8)
+SentinelX features an LLM analyst briefing subsystem with strict safety invariants: the model is treated as an **untrusted narrator** over attacker-influenced telemetry. Output is strictly advisory (never feeds scores, thresholds, or containment actions), is verified by a pure Python citation verifier, and falls back to a deterministic template with zero downtime if the external API is unreachable.
+
+```bash
+# Pre-warm verified summaries for demo incidents
+make demo-warm-summaries
+
+# Run live prompt injection resistance test against Gemini
+make summary-injection-live
+
+# Benchmark ingestion throughput and processing latency
+make measure-latency
+```
