@@ -1,6 +1,6 @@
 # SentinelX Evaluation Scorecard & Performance Audit (Phase 7.3)
-**Generated**: 2026-11-09 01:24:42 UTC  
-**Code Commit SHA**: `9d914581878c3963aa7e637e631b54dc493d4887` *(clean)*  
+**Generated**: 2026-11-09 01:27:30 UTC  
+**Code Commit SHA**: `ad59dc97ba2189409e36b042d8aee6c119b9f766` *(clean)*  
 **Evaluation Scope**: Full End-to-End Pipeline (Ingestion -> Normalization -> 5 Detectors -> Kill-Chain Correlator -> Budget Gating at 0.50).  
 **Test Corpus**: 8 Enterprise IT / OT (ICS/SCADA) Hybrid Captures (5 Benign Days, 3 Multi-Stage Attack Scenarios) + 1 Organizer Windows Enterprise Log Suite (Attack + Benign).
 
@@ -172,7 +172,7 @@ Detecting Windows execution required rule-content extension in content/rules/enc
    Per-capture event analysis confirms:
    - In `demo_baseline`: (a) First attacker event is `evt_d6e9398c04ebc64c` at `04:22:44.000Z` (`cmd.jsonl: id; uptime; echo SMOKE_STEP_1_SUCCESS`); (b) First signal points to `evt_d6e9398c04ebc64c` (`GRAPH-EDGE-001`); (c) First `RULE-AUTH-001` signal points to `evt_f2d32298edbd5d41` at `04:22:45.544Z` (`auth.log: Accepted password for svc_backup`).
    - (a) == (b) is **True**, (b) == (c) is **False**, (a) == (c) is **False**.
-   Both calculations produce identical durations (mean 1.69s: baseline 1.54s, reordered 0.94s, slow_burn 2.58s) because the adversary's first action immediately emits the incident's first graph signal at $T_0$, making $T_{\text{first\_signal}} = T_{\text{attack\_start}}$. However, TTFMA strictly evaluates initial ingress detection; it does not measure detection latency for subsequent lateral hops or OT manipulation phases occurring minutes later.
+   Both calculations produce identical durations (mean 1.69s: baseline 1.54s, reordered 0.94s, slow_burn 2.58s) because the adversary's first action immediately emits the incident's first graph signal at $T_0$, making $T_{\\text{first\\_signal}} = T_{\\text{attack\\_start}}$. However, TTFMA strictly evaluates initial ingress detection; it does not measure detection latency for subsequent lateral hops or OT manipulation phases occurring minutes later.
 
 3. **Benign Corpus Diversity & Volume**:
    The benign validation corpus consists of N=5 simulated diurnal days (`day_101` through `day_105`) synthesized from a single traffic generator (`lab/benign/benign_loop.py`), totaling 25.0h simulated (computed 25.0016h across 1.042 days). While it models diurnal human-like Poisson activity and batch maintenance tasks, it lacks the chaotic diversity, network reconfigurations, software updates, and organizational drift encountered in real multi-tenant production networks.
@@ -186,5 +186,5 @@ Detecting Windows execution required rule-content extension in content/rules/enc
 6. **Novelty Corroboration Requirement Trade-Off**:
    Under the corroboration requirement, an incident supported solely by novelty signals (`baseline`, `graph`, `anomaly`) without corroboration from a deterministic rule or deception trap is capped at `score = min(score, novelty_cap)` (default `0.4000`) and flagged `novelty_only=true`.
    - **Protection**: Prevents false alarms on un-baselined hosts in unfamiliar enterprise environments (e.g., unfamiliar Windows telemetry is capped at 0.4000, suppressing a false alarm).
-   - **Trade-off**: A pure 'living-off-the-land' or novel zero-day attack that eludes all deterministic rules and deception lures will be intentionally capped below the alert threshold ($	heta = 0.50$) by design.
-   - **Configuration & Sensitivity**: The cap is only restrictive below threshold when $	heta > \text{novelty\_cap}$. If an analyst lowers the operating threshold $	heta$ to $0.35$ (below $\text{novelty\_cap} = 0.40$), novelty-only incidents will alert regardless of the corroboration requirement. The cap value is configured in `engine/sentinelx/config.py` via `IncidentConfig.novelty_cap: float = 0.40`.
+   - **Trade-off**: A pure 'living-off-the-land' or novel zero-day attack that eludes all deterministic rules and deception lures will be intentionally capped below the alert threshold ($\theta = 0.50$) by design.
+   - **Configuration & Sensitivity**: The cap is only restrictive below threshold when $\theta > \\text{novelty\\_cap}$. If an analyst lowers the operating threshold $\theta$ to $0.35$ (below $\\text{novelty\\_cap} = 0.40$), novelty-only incidents will alert regardless of the corroboration requirement. The cap value is configured in `engine/sentinelx/config.py` via `IncidentConfig.novelty_cap: float = 0.40`.
