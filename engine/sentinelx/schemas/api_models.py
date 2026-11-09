@@ -113,6 +113,8 @@ class EvalSummaryResponse(BaseModel):
     threshold_curve: list[dict[str, Any]] | None = None
     detector_ranking: list[dict[str, Any]] | None = None
     organizer_test: dict[str, Any] | None = None
+    score_margin: float | None = None
+    loo_benign_summary: list[dict[str, Any]] | None = None
 
 
 class SummaryClaim(BaseModel):
@@ -122,7 +124,8 @@ class SummaryClaim(BaseModel):
     event_ids: list[str] = Field(default_factory=list, title="ClaimEventIds")
     entities: list[str] = Field(default_factory=list, title="ClaimEntities")
     technique_ids: list[str] = Field(default_factory=list, title="ClaimTechniqueIds")
-    verified: bool = True
+    verified: bool = False
+    deterministic: bool = False
 
 
 class IncidentSummaryResponse(BaseModel):
@@ -139,6 +142,3 @@ class IncidentSummaryResponse(BaseModel):
     model: str
     generated_at: str
     grounding_note: str = "grounding verified by code, not semantics"
-
-    detector_ranking: list[dict[str, Any]] | None = None
-    organizer_test: dict[str, Any] | None = None

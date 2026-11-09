@@ -16,6 +16,20 @@ from sentinelx.schemas.incident import Incident
 RE_IPV4 = re.compile(r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b")
 RE_NUMBERS = re.compile(r"\b\d+\b")
 
+DEFAULT_VERDICT_KEYWORDS: tuple[str, ...] = (
+    "false positive",
+    "benign",
+    "authorized",
+    "legitimate",
+    "harmless",
+    "safe to ignore",
+    "no action needed",
+    "no action required",
+    "not malicious",
+    "allowlisted",
+    "whitelisted",
+)
+
 
 class VerificationResult:
     """Detailed result of verifying claims against incident evidence."""
@@ -54,11 +68,22 @@ def verify_claim(
     incident: Incident,
     events_by_id: dict[str, Event],
     known_hosts: set[str],
+    verdict_keywords: tuple[str, ...] | list[str] | None = None,
 ) -> tuple[bool, str | None]:
-    """Verify a single claim against the 4 structural grounding rules (V1-V4).
+    """Verify a single claim against structural grounding rules (V1-V4) and non-verdict policy (V5).
 
     Returns (is_valid, failure_reason).
     """
+    # (V5) Summary claims describe evidence; they must never judge or render verdicts
+    keywords = verdict_keywords if verdict_keywords is not None else DEFAULT_VERDICT_KEYWORDS
+    text_lower = claim.text.lower()
+    for kw in keywords:
+        if kw in text_lower:
+            return (
+                False,
+                f"V5_FAILED: Claim text contains forbidden verdict/authorization phrase '{kw}' (summaries describe evidence; they must never judge)",
+            )
+
     # (V1) Must cite at least one event_id, and all cited IDs must be in this incident
     if not claim.event_ids:
         return False, "V1_FAILED: Claim does not cite any event_ids"
@@ -172,6 +197,7 @@ def verify_summary(
     payload: LLMSummaryPayload,
     incident: Incident,
     events: list[Event],
+    verdict_keywords: tuple[str, ...] | list[str] | None = None,
 ) -> VerificationResult:
     """Verify all claims in an LLM summary payload against incident evidence.
 
@@ -186,7 +212,9 @@ def verify_summary(
     dropped_claims: list[dict[str, Any]] = []
 
     for idx, claim in enumerate(payload.claims):
-        passed, reason = verify_claim(claim, incident, events_by_id, known_hosts)
+        passed, reason = verify_claim(
+            claim, incident, events_by_id, known_hosts, verdict_keywords=verdict_keywords
+        )
         if passed:
             verified_claims.append(claim)
         else:

@@ -85,7 +85,7 @@ export default function EvalPage() {
     trust_classification?: string;
   }>;
 
-  const looBenignSummary = ((evalSummary as unknown as Record<string, unknown>)?.loo_benign_summary ?? []) as Array<{
+  const looBenignSummary = (evalSummary?.loo_benign_summary ?? []) as Array<{
     name: string;
     held_out_day: string;
     training_days: string[];
@@ -197,7 +197,7 @@ export default function EvalPage() {
               ) : headline ? (
                 `${(headline.precision * 100).toFixed(1)}%`
               ) : (
-                "100.0%"
+                "—"
               )}
             </CardTitle>
           </CardHeader>
@@ -218,7 +218,7 @@ export default function EvalPage() {
               ) : evalSummary ? (
                 `${(evalSummary.attack_recall * 100).toFixed(0)}% (3/3)`
               ) : (
-                "--"
+                "—"
               )}
             </CardTitle>
           </CardHeader>
@@ -239,14 +239,14 @@ export default function EvalPage() {
               ) : evalSummary ? (
                 `${evalSummary.benign_fp_per_24h.toFixed(3)} /24h`
               ) : (
-                "0.000 /24h"
+                "—"
               )}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0 text-[11px] text-slate-500 font-mono">
             {evalSummary?.benign_hours_total != null
-              ? `0 FP across ${evalSummary.benign_hours_total.toFixed(1)}h (${(evalSummary.benign_simulated_days ?? 1.042).toFixed(3)}d); 95% UB: ${(evalSummary.benign_fp_upper_bound_95 ?? 2.876).toFixed(3)}/24h`
-              : "0 FP across 25.0h (1.042d); 95% UB: 2.876/24h"}
+              ? `0 FP across ${evalSummary.benign_hours_total.toFixed(1)}h (${evalSummary.benign_simulated_days != null ? evalSummary.benign_simulated_days.toFixed(3) : "—"}d); 95% UB: ${evalSummary.benign_fp_upper_bound_95 != null ? evalSummary.benign_fp_upper_bound_95.toFixed(3) : "—"}/24h`
+              : "—"}
           </CardContent>
         </Card>
 
@@ -259,10 +259,10 @@ export default function EvalPage() {
             <CardTitle className="text-2xl font-bold font-mono text-cyan-400">
               {isLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin text-slate-500 my-1" />
-              ) : (evalSummary as unknown as Record<string, unknown>)?.score_margin != null ? (
-                `+${Number((evalSummary as unknown as Record<string, unknown>).score_margin).toFixed(4)}`
+              ) : evalSummary?.score_margin != null ? (
+                `+${Number(evalSummary.score_margin).toFixed(4)}`
               ) : (
-                "+0.8500"
+                "—"
               )}
             </CardTitle>
           </CardHeader>
@@ -283,7 +283,7 @@ export default function EvalPage() {
               ) : evalSummary?.mean_ttfma_seconds != null ? (
                 `${evalSummary.mean_ttfma_seconds.toFixed(2)}s`
               ) : (
-                "1.69s"
+                "—"
               )}
             </CardTitle>
           </CardHeader>
@@ -529,7 +529,7 @@ export default function EvalPage() {
                       </td>
                       <td className="p-3 text-slate-300">{row.critical_step_enabler ?? "--"}</td>
                       <td className="p-3 text-right text-slate-400 font-mono">
-                        {row.score_delta != null ? row.score_delta.toFixed(4) : "0.0000"}
+                        {row.score_delta != null ? row.score_delta.toFixed(4) : "—"}
                       </td>
                       <td className="p-3 text-right text-sky-400">{row.tp_signals} sigs</td>
                       <td className="p-3 text-slate-400 text-[11px]">{row.loo_noise_delta ?? "0 FPs"}</td>

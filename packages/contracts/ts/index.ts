@@ -656,6 +656,14 @@ export type OrganizerTest = {
   [k: string]: unknown;
 } | null;
 
+export type ScoreMargin = number | null;
+
+export type LooBenignSummary =
+  | {
+      [k: string]: unknown;
+    }[]
+  | null;
+
 /**
  * Aggregate benchmark matrix across all 8 verified captures.
  */
@@ -678,6 +686,8 @@ export interface EvalSummaryResponse {
   threshold_curve?: ThresholdCurve;
   detector_ranking?: DetectorRanking;
   organizer_test?: OrganizerTest;
+  score_margin?: ScoreMargin;
+  loo_benign_summary?: LooBenignSummary;
 }
 /**
  * Evaluation summary metrics for a single capture dataset.
@@ -721,6 +731,8 @@ export type ClaimTechniqueIds = string[];
 
 export type Verified = boolean;
 
+export type Deterministic = boolean;
+
 export type Claims = SummaryClaim[];
 
 export type VerifiedCount = number;
@@ -735,6 +747,10 @@ export type GeneratedAt = string;
 
 export type GroundingNote = string;
 
+/**
+ * Advisory LLM / deterministic template summary response for an incident.
+ */
+
 export interface IncidentSummaryResponse {
   incident_id: IncidentId;
   evidence_hash: EvidenceHash;
@@ -747,8 +763,6 @@ export interface IncidentSummaryResponse {
   model: Model;
   generated_at: GeneratedAt;
   grounding_note?: GroundingNote;
-  detector_ranking?: DetectorRanking;
-  organizer_test?: OrganizerTest;
 }
 /**
  * Individual grounded forensic claim in an analyst summary.
@@ -763,6 +777,7 @@ export interface SummaryClaim {
   entities?: ClaimEntities;
   technique_ids?: ClaimTechniqueIds;
   verified?: Verified;
+  deterministic?: Deterministic;
 }
 
 export type SourceStatus = "live" | "idle" | "stale" | "error";

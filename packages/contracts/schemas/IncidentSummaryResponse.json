@@ -29,8 +29,13 @@
           "type": "array"
         },
         "verified": {
-          "default": true,
+          "default": false,
           "title": "Verified",
+          "type": "boolean"
+        },
+        "deterministic": {
+          "default": false,
+          "title": "Deterministic",
           "type": "boolean"
         }
       },
@@ -90,35 +95,6 @@
       "default": "grounding verified by code, not semantics",
       "title": "Grounding Note",
       "type": "string"
-    },
-    "detector_ranking": {
-      "anyOf": [
-        {
-          "items": {
-            "additionalProperties": true,
-            "type": "object"
-          },
-          "type": "array"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Detector Ranking"
-    },
-    "organizer_test": {
-      "anyOf": [
-        {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Organizer Test"
     }
   },
   "required": [

@@ -1,6 +1,6 @@
 # SentinelX Evaluation Scorecard & Performance Audit (Phase 7.3)
-**Generated**: 2026-11-09 03:05:26 UTC  
-**Code Commit SHA**: `63960176b0d5f297c96019c97ff830bec651ec07` *(dirty: uncommitted working tree changes)*  
+**Generated**: 2026-11-09 03:58:32 UTC  
+**Code Commit SHA**: `26c77e3328b7d79cc67c69843d851d0b7b8644ff` *(dirty: uncommitted working tree changes)*  
 **Evaluation Scope**: Full End-to-End Pipeline (Ingestion -> Normalization -> 5 Detectors -> Kill-Chain Correlator -> Budget Gating at 0.50).  
 **Test Corpus**: 8 Enterprise IT / OT (ICS/SCADA) Hybrid Captures (5 Benign Days, 3 Multi-Stage Attack Scenarios) + 1 Organizer Windows Enterprise Log Suite (Attack + Benign).
 

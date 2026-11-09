@@ -86,7 +86,7 @@ The system instruction explicitly warns the model:
 
 ## 4. Grounding Verifier: Pure Python Citation Enforcement
 
-The verifier (`engine/sentinelx/llm/verifier.py`) runs in pure Python with **zero LLM involvement**. It validates four strict rules:
+The verifier (`engine/sentinelx/llm/verifier.py`) runs in pure Python with **zero LLM involvement**. It validates five strict rules:
 
 | Rule | Check | Failure Action |
 | :--- | :--- | :--- |
@@ -94,12 +94,17 @@ The verifier (`engine/sentinelx/llm/verifier.py`) runs in pure Python with **zer
 | **V2** | **Entity Grounding** | Every entity in `claim.entities` must appear in cited event normalized fields (`host`, `user`, `src_ip`, `dst_ip`). | Drop claim |
 | **V3** | **Technique Grounding** | Every technique ID in `claim.technique_ids` must be a subset of the incident's correlated techniques. | Drop claim |
 | **V4** | **Literal Entity / IP Grounding** | Every IPv4 address, known inventory hostname (`assets.yaml`), and number in `claim.text` must appear in cited events or incident fields. | Drop claim |
+| **V5** | **Non-Verdict Policy (Keyword Guard)** | The summary describes; it never judges. Claims containing verdict/authorization language (`false positive`, `benign`, `authorized`, `legitimate`, `harmless`, `safe to ignore`, `no action needed`, etc.) are dropped. | Drop claim |
 
-- **50% Verification Threshold**: If $< 50\%$ of the model's claims pass verification, the entire output is rejected as ungrounded and discarded.
+- **50% Verification Threshold**: If $< 50\%$ of the model's claims pass verification, the entire output is rejected as ungrounded and discarded, falling back to deterministic template synthesis.
+- **UI Grounding Surface**: The Analyst Summary UI displays the actual cited event text (command line snippet or normalized action) directly underneath each claim chip. Human analysts see the raw telemetry evidence alongside the AI narrative.
 
 ### What the Verifier Does NOT Guarantee
 > [!WARNING]
-> **Semantic Entailment Disclaimer**: The verifier verifies **structural grounding** (IDs, IPs, hostnames, numbers, and entities). It **DOES NOT** prove natural language semantic truth or semantic entailment. A model could craft grammatically plausible but misleading sentences while correctly citing valid event IDs. The human analyst must review claims in context with the cited raw events.
+> **Semantic Entailment Disclaimer**:
+> 1. The verifier proves **structural grounding** (event IDs, IPs, hostnames, numbers, entity tokens), not natural language semantic truth or logical entailment.
+> 2. Rule V5 is a **keyword guard, not a semantic classifier**. It blocks common adversary injection phrases ("false positive", "authorized maintenance", "no action needed"), but cannot evaluate subtle deceptive prose.
+> 3. Therefore, the summary remains strictly advisory text. It never controls or influences alert budgets, incident progression scores, or Response Safety Guard containment interlocks.
 
 ---
 
@@ -107,18 +112,38 @@ The verifier (`engine/sentinelx/llm/verifier.py`) runs in pure Python with **zer
 
 If any of the following occur:
 - `GEMINI_API_KEY` is not set or network is unreachable
-- Request times out
+- Request times out (8.0s client limit)
 - Google Cloud returns 503 Unavailable (high demand) or 504 Gateway Timeout
 - Output JSON fails schema validation
 - Verifier rejects the payload ($< 50\%$ verified)
 
-SentinelX falls back immediately and with **zero downtime** to the deterministic template generator. The template derives grounded claims directly from `incident.explanation`, kill-chain stages, techniques, decoy flags, and OT interlocks, labeled clearly as `"mode": "template"`.
+SentinelX falls back immediately and with **zero downtime** to the deterministic template generator. The template derives grounded claims directly from `incident.explanation`, kill-chain stages, techniques, decoy flags, and OT interlocks. In template mode, claims are explicitly labeled `"deterministic": true` and `"verified": false` (indicating no LLM was checked).
 
 ---
 
 ## 6. Data-Leaves-Host Disclosure & Privacy
 
 - **Outbound Transmission**: When `GEMINI_API_KEY` is configured, bounded evidence packets are sent over TLS to Google's Gemini API endpoints (`generativelanguage.googleapis.com`).
+- **Exact Fields Sent to Google**:
+  - `event_id`: Normalized event identifier.
+  - `ts`: ISO 8601 UTC timestamp.
+  - `host`: Hostname string.
+  - `user`: Account username.
+  - `src_ip`, `dst_ip`: IPv4 communication endpoints.
+  - `action`: Normalized high-level event action.
+  - `cmdline`: Process command line (truncated to $\le 200$ chars).
+  - `ot`: ICS/SCADA protocol fields (e.g. Modbus function code, target register) when present.
+- **Strictly Redacted Before Transmission**:
+  - `sshpass -p <secret>` $\rightarrow$ `sshpass -p [REDACTED]`
+  - `--password=<secret>` or `-p <secret>` $\rightarrow$ `[REDACTED]`
+  - Control characters (`\x00-\x1f\x7f`) are stripped.
 - **Air-Gapped Environments**: Organizations with strict air-gap compliance requirements can operate SentinelX completely offline without an API key, relying 100% on the deterministic template engine.
 - **Key Safety**: The API key is stored only in untracked `services/api/.env.local` (mode `0600`), is never tracked in git, never printed in application logs, and never exposed to the frontend web application.
+
+---
+
+## 7. Performance & Latency Disclosure
+
+- **Offline Replay Metrics**: Replay throughput numbers (e.g. $\sim 145$ events/s, $\sim 0.60$s to incident threshold) represent **offline replay compute at max speed, in-process, no live pipeline latency**. They measure CPU throughput of parsing and correlation in memory, not network packet traversal.
+- **Live Rehearsal Latency**: End-to-end wall-clock latency from the adversary's first network packet to API incident threshold crossing is measured live in testbed rehearsals using `scripts/measure_latency.py --live` with active containers (`make lab-up`).
 

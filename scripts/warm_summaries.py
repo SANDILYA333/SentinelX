@@ -28,6 +28,7 @@ for env_candidate in [
 from sentinelx.correlate.pipeline import CorrelationPipeline  # noqa: E402
 from sentinelx.detect.runtime import DetectorPipeline  # noqa: E402
 from sentinelx.ingest.runtime import Ingestor  # noqa: E402
+from sentinelx.llm.client import GeminiClient  # noqa: E402
 from sentinelx.llm.summarizer import summarize_incident  # noqa: E402
 from sentinelx.schemas.event import Event  # noqa: E402
 from sentinelx.store.sqlite import (  # noqa: E402
@@ -74,6 +75,8 @@ async def warm_capture_summaries(capture_name: str, capture_path: Path, db_conn)
     print(f"[+] Replay complete. Active incidents: {len(active_incidents)}")
 
     results = []
+    first_printed_raw = False
+
     for inc in active_incidents:
         # Collect cited evidence events from store
         events: list[Event] = []
@@ -85,10 +88,15 @@ async def warm_capture_summaries(capture_name: str, capture_path: Path, db_conn)
         print(
             f"[*] Generating summary for incident {inc.incident_id} (Score: {inc.score:.2f}, {len(events)} events)..."
         )
+
+        client = GeminiClient(thinking_budget=0)
+
+        # Execute standard summarize_incident pipeline (single call to preserve 5 RPM API quota)
         summary_resp = summarize_incident(
             incident=inc,
             events=events,
             db=db_conn,
+            client=client,
             refresh=True,
             timeout=25.0,
         )
@@ -96,11 +104,65 @@ async def warm_capture_summaries(capture_name: str, capture_path: Path, db_conn)
         cached_row = get_latest_incident_summary(db_conn, inc.incident_id)
         assert cached_row is not None, f"Failed to cache summary for {inc.incident_id}"
 
+        print(f"\n--- Incident Summary Row ({inc.incident_id}) ---")
+        print(f"  Mode:            {cached_row['mode']}")
+        print(f"  Model:           {cached_row['model']}")
         print(
-            f"    -> Mode: {summary_resp.mode} | Model: {summary_resp.model} | "
-            f"Verified: {summary_resp.verified_count}/{summary_resp.total_count} (Dropped: {summary_resp.dropped_count})"
+            f"  Claims:          {cached_row['verified']}/{cached_row['total']} verified (dropped: {cached_row['dropped']})"
         )
-        print(f"    -> Headline: {summary_resp.headline}")
+        print(f"  Generated At:    {cached_row['generated_at']}")
+        print(f"  Call Duration:   {client.last_duration_seconds:.2f}s")
+        print(f"  Hit Timeout:     {client.hit_timeout}")
+        print(f"  Thinking Config: thinking_budget={client.thinking_budget}")
+        if client.last_usage_metadata:
+            print(
+                f"  Token Usage:     Prompt={client.last_usage_metadata.get('prompt_token_count', 0)}, "
+                f"Candidates={client.last_usage_metadata.get('candidates_token_count', 0)}, "
+                f"Total={client.last_usage_metadata.get('total_token_count', 0)}"
+            )
+
+        print(f"\n  Headline: {summary_resp.headline}")
+        print("  Claims:")
+        for idx, c in enumerate(summary_resp.claims, 1):
+            tag = (
+                "[VERIFIED]"
+                if c.verified
+                else ("[DETERMINISTIC]" if c.deterministic else "[UNVERIFIED]")
+            )
+            print(f"    {idx}. {tag} {c.text}")
+            print(f"       Citations: {c.event_ids} | Entities: {c.entities}")
+
+        if not first_printed_raw and client.last_raw_response is not None:
+            first_printed_raw = True
+            print(f"\n--- RAW MODEL JSON BEFORE VERIFICATION ({inc.incident_id}) ---")
+            print(client.last_raw_response)
+            print("--- VERIFIER VERDICTS ---")
+            verif = getattr(client, "last_verification", None)
+            if verif:
+                print(
+                    f"  Overall Valid (>=50%): {verif.is_valid} ({verif.verified_count}/{verif.total_count} verified, {verif.dropped_count} dropped)"
+                )
+                print("  Claims verdicts:")
+                for vc in verif.verified_claims:
+                    print(f"    [PASS] {vc.text}")
+                for dc in verif.dropped_claims:
+                    print(f"    [DROPPED] {dc['text']}")
+                    print(f"      Reason: {dc['reason']}")
+            print("---------------------------------------------------------------")
+
+        if summary_resp.mode == "template":
+            print("  Fallback Cause:")
+            verif = getattr(client, "last_verification", None)
+            if client.hit_timeout:
+                print("    -> Cause: Client timeout exceeded")
+            elif client.last_error:
+                print(f"    -> Cause: Parse or API error ({client.last_error})")
+            elif verif and not verif.is_valid:
+                print(
+                    f"    -> Cause: Less than 50% claims verified ({verif.verified_count}/{verif.total_count} passed, {verif.dropped_count} dropped)"
+                )
+            else:
+                print("    -> Cause: Deterministic template configuration")
 
         results.append(
             {
@@ -128,6 +190,7 @@ async def main_async(db_path: Path):
             continue
         res = await warm_capture_summaries(name, path, db_conn)
         all_results.extend(res)
+        await asyncio.sleep(2.0)
 
     print(f"\n{'=' * 95}")
     print("DEMO WARM SUMMARIES CACHE MATRIX")

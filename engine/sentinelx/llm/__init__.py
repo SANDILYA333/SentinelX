@@ -25,4 +25,3 @@ __all__ = [
     "summarize_incident",
     "compute_evidence_hash",
 ]
-

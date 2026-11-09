@@ -101,10 +101,14 @@ def summarize_incident(
                 timeout=timeout,
             )
 
-            parsed_payload = LLMSummaryPayload.model_validate_json(response_json)
+            raw_obj = json.loads(response_json)
+            if isinstance(raw_obj, list) and len(raw_obj) > 0 and isinstance(raw_obj[0], dict):
+                raw_obj = raw_obj[0]
+            parsed_payload = LLMSummaryPayload.model_validate(raw_obj)
 
-            # Run deterministic verification (V1-V4)
+            # Run deterministic verification (V1-V5)
             verification = verify_summary(parsed_payload, incident, events)
+            setattr(active_client, "last_verification", verification)
 
             if verification.is_valid:
                 mode = "llm"
@@ -145,7 +149,9 @@ def summarize_incident(
         selected_model = "deterministic-template"
         payload = generate_template_summary(incident)
         total_count = len(payload.claims)
-        verified_count = total_count
+        verified_count = (
+            0  # deterministic template claims are not marked verified as if an LLM were checked
+        )
         dropped_count = 0
 
     # 5. Build response claims and summary text
@@ -155,7 +161,8 @@ def summarize_incident(
             event_ids=c.event_ids,
             entities=c.entities,
             technique_ids=c.technique_ids,
-            verified=True,
+            verified=(mode == "llm"),
+            deterministic=(mode == "template"),
         )
         for c in payload.claims
     ]

@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-11-09T03:05:26.463443+00:00",
-  "evaluated_at": "2026-11-09T03:05:26.463456+00:00",
-  "git_sha": "63960176b0d5f297c96019c97ff830bec651ec07",
+  "generated_at": "2026-11-09T03:58:32.863171+00:00",
+  "evaluated_at": "2026-11-09T03:58:32.863178+00:00",
+  "git_sha": "26c77e3328b7d79cc67c69843d851d0b7b8644ff",
   "threshold": 0.5,
   "benign_fp_per_24h": 0.0,
   "benign_hours_total": 25.0016,

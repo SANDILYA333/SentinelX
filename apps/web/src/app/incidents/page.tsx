@@ -45,7 +45,7 @@ function IncidentsContent() {
   const searchParams = useSearchParams();
   const initialId = searchParams.get("id");
 
-  const { incidents, status } = useEventStore();
+  const { incidents, status, presenterMode } = useEventStore();
   const { openEvidence } = useEvidenceDrawer();
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(initialId);
   const [incidentDetail, setIncidentDetail] = useState<IncidentWithEvidence | null>(null);
@@ -500,7 +500,7 @@ function IncidentsContent() {
                       </div>
                       <CardDescription className="text-xs text-slate-400">
                         {summary
-                          ? `Model: ${summary.model} • Generated: ${new Date(summary.generated_at).toLocaleTimeString()}`
+                          ? `Model: ${summary.model} • cached, generated ${new Date(summary.generated_at).toLocaleTimeString()}`
                           : "Grounded incident synthesis with strict citation verification"}
                       </CardDescription>
                     </div>
@@ -517,7 +517,7 @@ function IncidentsContent() {
                           Generate Summary
                         </Button>
                       )}
-                      {(summaryStatus === "llm" || summaryStatus === "template" || summaryStatus === "error") && (
+                      {(summaryStatus === "llm" || summaryStatus === "template" || summaryStatus === "error") && !presenterMode && (
                         <Button
                           size="sm"
                           variant="outline"
@@ -576,17 +576,28 @@ function IncidentsContent() {
                         </p>
                       </div>
 
-                      {/* Verified Claims */}
+                      {/* Verified / Deterministic Claims */}
                       <div className="space-y-2">
                         {(summary.claims ?? []).map((claim, idx) => (
                           <div
                             key={idx}
                             className="p-3 rounded-lg bg-slate-950/50 border border-slate-800/60 space-y-2"
                           >
-                            {/* Plain text claim text - no dangerouslySetInnerHTML */}
-                            <p className="text-xs text-slate-300 font-mono leading-relaxed">
-                              {claim.text}
-                            </p>
+                            <div className="flex items-start justify-between gap-2">
+                              {/* Plain text claim text - no dangerouslySetInnerHTML */}
+                              <p className="text-xs text-slate-300 font-mono leading-relaxed">
+                                {claim.text}
+                              </p>
+                              {claim.deterministic ? (
+                                <Badge variant="outline" className="shrink-0 bg-slate-800 text-slate-400 border-slate-700 text-[9px] font-mono">
+                                  deterministic
+                                </Badge>
+                              ) : claim.verified ? (
+                                <Badge variant="outline" className="shrink-0 bg-emerald-950/60 text-emerald-300 border-emerald-800/40 text-[9px] font-mono">
+                                  grounding verified
+                                </Badge>
+                              ) : null}
+                            </div>
 
                             {/* Evidence Chips */}
                             <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-800/40 text-[10px] font-mono">
@@ -621,6 +632,23 @@ function IncidentsContent() {
                                 </span>
                               ))}
                             </div>
+
+                            {/* Cited Telemetry Context */}
+                            {claim.event_ids && claim.event_ids.length > 0 && incidentDetail?.evidence_events && (
+                              <div className="space-y-1 pt-1.5 border-t border-slate-800/30 text-[11px] font-mono">
+                                {claim.event_ids.map((eid) => {
+                                  const ev = incidentDetail.evidence_events.find((e) => e.event_id === eid);
+                                  if (!ev) return null;
+                                  const snippet = ev.cmdline || ev.action || "telemetry event";
+                                  return (
+                                    <div key={eid} className="text-slate-400 flex items-start gap-1.5 pl-1.5 border-l border-slate-700">
+                                      <span className="text-slate-500 font-semibold">{ev.host || ev.source_tool}:</span>
+                                      <span className="truncate text-slate-300" title={snippet}>{snippet}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>

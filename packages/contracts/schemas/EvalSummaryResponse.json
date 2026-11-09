@@ -288,6 +288,34 @@
       ],
       "default": null,
       "title": "Organizer Test"
+    },
+    "score_margin": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Score Margin"
+    },
+    "loo_benign_summary": {
+      "anyOf": [
+        {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Loo Benign Summary"
     }
   },
   "required": [
