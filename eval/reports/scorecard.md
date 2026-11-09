@@ -1,6 +1,6 @@
 # SentinelX Evaluation Scorecard & Performance Audit (Phase 7.3)
-**Generated**: 2026-11-09 01:27:30 UTC  
-**Code Commit SHA**: `ad59dc97ba2189409e36b042d8aee6c119b9f766` *(clean)*  
+**Generated**: 2026-11-09 01:43:58 UTC  
+**Code Commit SHA**: `8622ffec13f65069d7da33367963854240eb20ca` *(clean)*  
 **Evaluation Scope**: Full End-to-End Pipeline (Ingestion -> Normalization -> 5 Detectors -> Kill-Chain Correlator -> Budget Gating at 0.50).  
 **Test Corpus**: 8 Enterprise IT / OT (ICS/SCADA) Hybrid Captures (5 Benign Days, 3 Multi-Stage Attack Scenarios) + 1 Organizer Windows Enterprise Log Suite (Attack + Benign).
 
@@ -16,8 +16,8 @@
 | **Benign False Positive Rate** | **0.000 FP / 24h** (0 FP across 25.0h simulated = 1.042 days; exact 95% UB: 2.876 FP/24h) | 0.000 strict target | LOO Cross-Validation | **PASS** |
 | **Score Separation Margin** | **0.8500** (Min Attack: 1.0000 - Max LOO Benign: 0.1500) | > 0.400 | LOO Empirical Margin | **PASS** |
 | **Golden Scenario Step Recall**| **7/7 (100.0%)** across all 3 attack variants | 7/7 steps | In-Sample Replay | **PASS** |
-| **Mean TTFMA (From First Signal)** | **1.69s** (baseline: 1.54s, reordered: 0.94s, slow_burn: 2.58s) | < 5.0s | In-Sample Replay | **PASS** |
-| **Mean TTFMA (From Attack Start)**  | **1.69s** (baseline: 1.54s, reordered: 0.94s, slow_burn: 2.58s) | < 5.0s | In-Sample Replay | **PASS** |
+| **Mean Event-Time TTFMA (From First Signal)** | **1.69s** (baseline: 1.54s, reordered: 0.94s, slow_burn: 2.58s) | < 5.0s | In-Sample Replay | **PASS** |
+| **Mean Event-Time TTFMA (From Attack Start)**  | **1.69s** (baseline: 1.54s, reordered: 0.94s, slow_burn: 2.58s) | < 5.0s | In-Sample Replay | **PASS** |
 | **Classification Accuracy** | **100.0%** (8/8 captures correctly gated) | 100.0% | In-Sample Replay | **PASS** |
 
 > **Headline FP/24h Code Path**: Derived strictly from Leave-One-Out (LOO) cross-validation folds in `eval/metrics.py:compute_metrics_report` (`fp = sum(1 for scores in loo_benign_scores.values() if any(s >= 0.50 for s in scores))`), normalized by total benign simulated hours: `fp / (25.0h / 24) = 0.000 FP / 24h` with an exact one-sided 95% Poisson upper confidence limit of `chi2.ppf(0.95, 2*(k+1))/2 / (25.0h / 24) = 2.876 FP / 24h`. It does NOT rely on in-sample training memorization.
@@ -108,8 +108,8 @@ Evaluated under **Leave-One-Out (LOO) Cross-Validation** across the 5 benign dai
 | **Step 7: Decoy PLC Reconnaissance** | baseline, deception, graph (17 sigs) | baseline, deception, graph (17 sigs) | baseline, deception, graph (15 sigs) |
 | **Total Steps Represented** | **7 / 7 (100.0%)** | **7 / 7 (100.0%)** | **7 / 7 (100.0%)** |
 | **Incident Score** | **1.00 (CRITICAL)** | **1.00 (CRITICAL)** | **1.00 (CRITICAL)** |
-| **Time to First Meaningful Alert (TTFMA - from first signal)** | **1.54s** (RULE-AUTH-001) | **0.94s** (RULE-AUTH-001) | **2.58s** (RULE-AUTH-001) |
-| **Time to First Meaningful Alert (TTFMA - from attack start)**  | **1.54s** (src: 10.10.1.5) | **0.94s** (src: 10.10.1.5) | **2.58s** (src: 10.10.1.5) |
+| **Event-Time TTFMA (from first signal)** | **1.54s** (RULE-AUTH-001) | **0.94s** (RULE-AUTH-001) | **2.58s** (RULE-AUTH-001) |
+| **Event-Time TTFMA (from attack start)**  | **1.54s** (src: 10.10.1.5) | **0.94s** (src: 10.10.1.5) | **2.58s** (src: 10.10.1.5) |
 
 ---
 
@@ -165,14 +165,14 @@ Detecting Windows execution required rule-content extension in content/rules/enc
 1. **In-Distribution Evaluation**:
    The evaluation corpus consists of 3 attack scenario variants (`demo_baseline`, `reordered`, `slow_burn`) that share 7 underlying action primitives (SSH access, discovery scan, credential dumping, decoy pivots, lateral hop, Modbus manipulation, PLC recon). The detection rules and graph models were authored alongside these scenarios within the same virtualized lab environment. Performance against novel, unobserved adversarial tactics outside this sequence will depend on generic living-off-the-land heuristics and baseline deviations rather than deterministic rule landmarks.
 
-2. **TTFMA Reference Baseline Scope & Independence Proof**:
-   Time to First Meaningful Alert (TTFMA) is evaluated under two explicit reference baselines:
-   - **TTFMA from First Signal**: Measures the elapsed duration from the earliest detection signal clustered into the incident to the first high-confidence alert exceeding budget threshold (`RULE-AUTH-001`).
-   - **TTFMA from Attack Start**: Measures the elapsed duration from the adversary's first operational event (`src_ip: 10.10.1.5` in raw telemetry) to that alert.
-   Per-capture event analysis confirms:
-   - In `demo_baseline`: (a) First attacker event is `evt_d6e9398c04ebc64c` at `04:22:44.000Z` (`cmd.jsonl: id; uptime; echo SMOKE_STEP_1_SUCCESS`); (b) First signal points to `evt_d6e9398c04ebc64c` (`GRAPH-EDGE-001`); (c) First `RULE-AUTH-001` signal points to `evt_f2d32298edbd5d41` at `04:22:45.544Z` (`auth.log: Accepted password for svc_backup`).
-   - (a) == (b) is **True**, (b) == (c) is **False**, (a) == (c) is **False**.
-   Both calculations produce identical durations (mean 1.69s: baseline 1.54s, reordered 0.94s, slow_burn 2.58s) because the adversary's first action immediately emits the incident's first graph signal at $T_0$, making $T_{\\text{first\\_signal}} = T_{\\text{attack\\_start}}$. However, TTFMA strictly evaluates initial ingress detection; it does not measure detection latency for subsequent lateral hops or OT manipulation phases occurring minutes later.
+2. **Event-Time TTFMA Scope, Timestamp Provenance & Replay Limitations**:
+   Time to First Meaningful Alert (TTFMA) reported here is strictly an **event-time TTFMA** ($t_{\text{threshold\_cross}} - t_{\text{first\_adversary\_event}}$), measuring elapsed event timestamps between normalized events in the capture, **NOT** software pipeline processing latency. Processing latency not measured in replay; measured live in the demo rehearsal (Phase 8).
+
+   Detailed timestamp provenance analysis of event (a) (first `src: 10.10.1.5` event) vs event (c) (first `RULE-AUTH-001` evidence) explains the measured 0.94s / 1.54s / 2.58s metrics:
+   - **Event (a)** (`action: exec` from `cmd.jsonl` forwarded to Wazuh): `event.ts` is set from `inner.get("ts")` at `engine/sentinelx/ingest/adapters/wazuh.py:256`, which has 1-second resolution without sub-second precision (`demo_baseline`: `2026-11-08T04:22:44Z`). In contrast, its raw Wazuh archive entry (`archives.json` offset 1182075) was written at `04:22:45.550`.
+   - **Event (c)** (`action: ssh_login` from `sshd` auth log forwarded to Wazuh): `event.ts` is set from `record.get("timestamp")` at `engine/sentinelx/ingest/adapters/wazuh.py:139`, which has millisecond precision (`demo_baseline`: `2026-11-08T04:22:45.544000+00:00`).
+   - **Provenance Finding**: In raw Wazuh archive chronology, the SSH authentication event (c) occurred at `45.544`, and the resulting bash command execution (a) was archived at `45.550` (6 milliseconds later). The 0.94s / 1.54s / 2.58s delta is therefore a **timestamp-source difference** between the integer-second process auditing log and the millisecond-stamped sshd auth log, rather than sequential detection latency.
+   Both event-time baselines ("from first signal" and "from attack start") produce identical durations because the adversary's first action immediately emits the incident's first graph signal at $T_0$, making $T_{\text{first\_signal}} = T_{\text{attack\_start}}$. However, TTFMA strictly evaluates initial ingress detection; it does not measure detection latency for subsequent lateral hops or OT manipulation phases occurring minutes later.
 
 3. **Benign Corpus Diversity & Volume**:
    The benign validation corpus consists of N=5 simulated diurnal days (`day_101` through `day_105`) synthesized from a single traffic generator (`lab/benign/benign_loop.py`), totaling 25.0h simulated (computed 25.0016h across 1.042 days). While it models diurnal human-like Poisson activity and batch maintenance tasks, it lacks the chaotic diversity, network reconfigurations, software updates, and organizational drift encountered in real multi-tenant production networks.
