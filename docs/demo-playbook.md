@@ -75,9 +75,9 @@ make demo-attack
 | **00:20 - 00:35** | **Step 1: Initial Access**<br>Attacker compromises `jump-host` via stolen SSH credentials (`svc_backup`) from external IP `10.10.1.5`. | **Overview & Signals (`/signals`)**<br>- Ingest ticker spikes<br>- `RULE-AUTH-001` fires (SSH from unexpected zone)<br>- Score begins accumulating | *"In Terminal 3, we trigger `make demo-attack`. Notice our rule detector immediately flags an anomalous SSH login from an unexpected source zone. Rather than blasting the analyst with an unverified alert, SentinelX tracks this as the first signal."* |
 | **00:35 - 00:55** | **Steps 2-4: Recon & Decoys**<br>Attacker scans IT subnet and touches Cowrie SSH decoy (`10.10.2.20`) and OpenCanary (`10.10.2.30`). | **Deception Tab (`/deception`)**<br>- Decoy touch counter increments<br>- `RULE-DECOY-001` & `GRAPH-EDGE-001` fire<br>- Honeypot session payload captured | *"The attacker attempts lateral reconnaissance and trips our Cowrie and OpenCanary traps. Decoy touches carry high deception fidelity. Graph topology detects an unprecedented network interaction edge, advancing kill-chain correlation."* |
 | **00:55 - 01:15** | **Step 5: Lateral Pivot**<br>Attacker moves to Engineering Workstation (`eng-ws`). | **Incidents Tab (`/incidents`)**<br>- Incident score rises (>0.70)<br>- Narrative timeline links initial access to pivot<br>- ATT&CK tags update (T1021.004) | *"As the adversary pivots into the OT staging subnet via `eng-ws`, our correlator unifies these disparate logs across Wazuh, Zeek, and Cowrie into a single incident entity. The progression score passes the budget threshold."* |
-| **01:15 - 01:35** | **Step 6: OT Tampering**<br>Attacker issues unauthorized Modbus write to close valve (reg 1, val 0) on `plc-sim`. | **Attack Graph (`/graph`) & Incidents**<br>- `RULE-OT-001` fires<br>- Incident score saturates at 1.00 (Critical)<br>- TTFMA recorded (~15-20s)<br>- Attack Graph lights up `plc-sim` in red | *"Here is the physical impact: the attacker manipulates Modbus register 1 on the water treatment PLC. Our OT rule fires immediately. The incident score saturates at 100%, TTFMA is recorded, and the Attack Graph reveals the exact traversal path to the physical asset."* |
+| **01:15 - 01:35** | **Step 6: OT Tampering & Analyst Summary**<br>Attacker issues unauthorized Modbus write to close valve (reg 1, val 0) on `plc-sim`. | **Attack Graph (`/graph`) & Incidents**<br>- `RULE-OT-001` fires<br>- Incident score saturates at 1.00 (Critical)<br>- Event-time TTFMA recorded (~15-20s)<br>- **Analyst Summary Card**: Synthesizes verified claims with clickable evidence chips | *"Here is the physical impact: the attacker manipulates Modbus register 1 on the water treatment PLC. Our OT rule fires immediately, and the Incident score reaches 100%. Notice our Analyst Summary card: it generates a structured brief where every claim is strictly verified by code against observed event IDs. If Gemini is online, it generates LLM analysis; if offline or experiencing high demand, it falls back instantly to our deterministic template without interrupting the analyst."* |
 | **01:35 - 02:00** | **Response Evaluation** | **Deception & Guard Tab (`/deception`)**<br>- Guard Action Tester<br>- Test `isolate_host(jump-host)`<br>- Test `block_ip(10.10.3.20)`<br>- Test `modify_ot_register(valve)` | *"Now we evaluate automated containment. Let's test three response actions against our Response Safety Guard:*<br>• *`isolate_host(jump-host)` -> **ALLOWED** (non-critical asset).*<br>• *`block_ip(10.10.3.20)` -> **DENIED** (PLC is process-critical; autonomous isolation would blind operators).*<br>• *`modify_ot_register` -> **NEEDS_HUMAN** (physical state changes mandate human verification)."* |
-| **02:00 - 02:30** | **Ground Truth & Benchmarks** | **Evaluation Tab (`/eval`)**<br>- 8-capture benchmark matrix<br>- 5 benign days (0 FP)<br>- 3 attack scenarios (100% recall) | *"Finally, on the Eval tab, we see the empirical evidence: 5 continuous benign days evaluated with zero false positives under the calibrated budget, and 100% kill-chain recall across baseline, reordered, and slow-burn attacks."* |
+| **02:00 - 02:30** | **Ground Truth & Benchmarks** | **Evaluation Tab (`/eval`)**<br>- 8-capture benchmark matrix<br>- 5 benign days (0 FP across 25.0h)<br>- 3 attack scenarios (100% recall)<br>- Measured processing throughput: 156.5 events/s | *"Finally, on the Eval tab, we see the empirical evidence: 5 continuous benign days evaluated with zero false positives under the calibrated budget, 100% kill-chain recall across baseline, reordered, and slow-burn attacks, and an ingestion throughput of 156.5 events/s with sub-second processing latency."* |
 
 ---
 
@@ -94,36 +94,32 @@ During live stage presentations or boardroom projections:
 
 ## 6. Fallback Ladder (Emergency Contingencies)
 
-If unexpected lab or environmental issues occur during a live presentation, use this graded fallback ladder:
+If unexpected lab, network, or environmental issues occur during a live presentation, use this graded 4-level fallback ladder:
 
-### Level 1: Telemetry Tailer Stalls or Docker Logs Pause
-*Symptom*: Events are not streaming on `/signals` after triggering the attack.
-*Remedy*:
-```bash
-# Restart API with live ingestion
-make ingest-live
-```
+### Level 1: Live Attack Execution (`make demo-attack`)
+- Standard live execution: attacker container executes actions against the lab, logs stream live via tailers into API, detectors fire, and incident reaches threshold.
 
-### Level 2: Live Attack Execution Fails or Containers De-sync
-*Symptom*: Attack runner throws a connection error or container status shows degraded.
-*Remedy*:
-```bash
-# Fallback to deterministic replay of the validated golden capture at 5x speed
-make ingest-replay DIR=eval/captures/attack/demo_baseline SPEED=5
-```
-*The UI will stream the exact verified capture with identical detector firings, incident scoring, and graph topology.*
+### Level 2: Recorded Golden Replay (`make ingest-replay`)
+- *Trigger*: Docker network drops, container fails, or tailer stalls.
+- *Remedy*:
+  ```bash
+  make ingest-replay DIR=eval/captures/attack/demo_baseline SPEED=5
+  ```
+- *Result*: The API streams the verified golden capture at 5x speed with identical detector firings, incident scoring, and graph topology.
 
-### Level 3: Full Lab Reset Needed
-*Symptom*: Docker container port conflict or corrupt volume.
-*Remedy*:
-```bash
-make lab-reset
-make demo-preflight
-```
+### Level 3: Pre-Warmed Summaries & Offline Template Path (`make demo-warm-summaries`)
+- *Trigger*: External API key missing, cloud AI rate limited (429/503), or conference Wi-Fi unavailable.
+- *Remedy*: Pre-warm summaries before the presentation:
+  ```bash
+  make demo-warm-summaries
+  ```
+- *Presenter Script*:
+  > *"Notice our summary badge shows 'Deterministic Fallback'. SentinelX architectural design enforces zero operational coupling to external LLMs: if cloud AI services experience latency spikes, API quota limits, or are completely offline, our deterministic template engine synthesizes grounded claims from the correlation engine with zero downtime, without modifying progression scores or response guard decisions."*
 
 ### Level 4: Fully Offline Standalone Mode
-*Symptom*: Complete lack of Docker runtime on presentation laptop.
-*Remedy*:
-- Navigate to `http://localhost:3000/eval` to inspect the frozen capture benchmark matrix and detection results.
-- Demonstrate the **Guard Action Tester** on `/deception`, which operates standalone against safety policy rules.
+- *Trigger*: Presentation laptop without Docker or network access.
+- *Remedy*:
+  - Navigate to `http://localhost:3000/eval` to inspect the frozen capture benchmark matrix and detection results.
+  - Demonstrate the **Guard Action Tester** on `/deception`, which operates standalone against safety policy rules.
+  - Review pre-rendered incident drilldowns and attack graphs.
 
