@@ -96,6 +96,26 @@ def init_db(path: str | Path) -> sqlite3.Connection:
             "CREATE INDEX IF NOT EXISTS idx_guard_decisions_ts ON guard_decisions(ts DESC);"
         )
 
+        # Sidecar table for LLM / template analyst summaries (Phase 8)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS incident_summaries (
+                incident_id TEXT NOT NULL,
+                evidence_hash TEXT NOT NULL,
+                mode TEXT NOT NULL,
+                text TEXT NOT NULL,
+                claims_json TEXT NOT NULL,
+                verified INTEGER NOT NULL,
+                total INTEGER NOT NULL,
+                dropped INTEGER NOT NULL,
+                model TEXT NOT NULL,
+                generated_at TEXT NOT NULL,
+                PRIMARY KEY (incident_id, evidence_hash)
+            );
+        """)
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_incident_summaries_lookup ON incident_summaries(incident_id, generated_at DESC);"
+        )
+
     return conn
 
 
@@ -456,3 +476,105 @@ def list_guard_decisions(
     cursor.execute(query, tuple(params))
     rows = cursor.fetchall()
     return [GuardDecision.model_validate_json(row[0]) for row in rows]
+
+
+def upsert_incident_summary(
+    db: sqlite3.Connection,
+    incident_id: str,
+    evidence_hash: str,
+    mode: str,
+    text: str,
+    claims_json: str,
+    verified: int,
+    total: int,
+    dropped: int,
+    model: str,
+    generated_at: str,
+) -> bool:
+    """Insert or replace an advisory analyst summary in the incident_summaries sidecar table."""
+    with db:
+        cur = db.execute(
+            """
+            INSERT OR REPLACE INTO incident_summaries (
+                incident_id, evidence_hash, mode, text, claims_json, verified, total, dropped, model, generated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                incident_id,
+                evidence_hash,
+                mode,
+                text,
+                claims_json,
+                verified,
+                total,
+                dropped,
+                model,
+                generated_at,
+            ),
+        )
+        return cur.rowcount > 0
+
+
+def get_incident_summary(
+    db: sqlite3.Connection,
+    incident_id: str,
+    evidence_hash: str,
+) -> dict[str, Any] | None:
+    """Retrieve an analyst summary matching incident_id and exact evidence_hash."""
+    cursor = db.cursor()
+    cursor.execute(
+        """
+        SELECT incident_id, evidence_hash, mode, text, claims_json, verified, total, dropped, model, generated_at
+        FROM incident_summaries
+        WHERE incident_id = ? AND evidence_hash = ?
+        """,
+        (incident_id, evidence_hash),
+    )
+    row = cursor.fetchone()
+    if not row:
+        return None
+    return {
+        "incident_id": row[0],
+        "evidence_hash": row[1],
+        "mode": row[2],
+        "text": row[3],
+        "claims_json": row[4],
+        "verified": row[5],
+        "total": row[6],
+        "dropped": row[7],
+        "model": row[8],
+        "generated_at": row[9],
+    }
+
+
+def get_latest_incident_summary(
+    db: sqlite3.Connection,
+    incident_id: str,
+) -> dict[str, Any] | None:
+    """Retrieve the most recently generated analyst summary for an incident."""
+    cursor = db.cursor()
+    cursor.execute(
+        """
+        SELECT incident_id, evidence_hash, mode, text, claims_json, verified, total, dropped, model, generated_at
+        FROM incident_summaries
+        WHERE incident_id = ?
+        ORDER BY generated_at DESC
+        LIMIT 1
+        """,
+        (incident_id,),
+    )
+    row = cursor.fetchone()
+    if not row:
+        return None
+    return {
+        "incident_id": row[0],
+        "evidence_hash": row[1],
+        "mode": row[2],
+        "text": row[3],
+        "claims_json": row[4],
+        "verified": row[5],
+        "total": row[6],
+        "dropped": row[7],
+        "model": row[8],
+        "generated_at": row[9],
+    }

@@ -705,4 +705,64 @@ export interface CaptureEvalRow {
   kill_chain_stages?: KillChainStages;
 }
 
+export type EvidenceHash = string;
+
+export type Mode = string;
+
+export type IncidentHeadline = string;
+
+export type Text = string;
+
+export type ClaimEventIds = string[];
+
+export type ClaimEntities = string[];
+
+export type ClaimTechniqueIds = string[];
+
+export type Verified = boolean;
+
+export type Claims = SummaryClaim[];
+
+export type VerifiedCount = number;
+
+export type TotalCount = number;
+
+export type DroppedCount = number;
+
+export type Model = string;
+
+export type GeneratedAt = string;
+
+export type GroundingNote = string;
+
+export interface IncidentSummaryResponse {
+  incident_id: IncidentId;
+  evidence_hash: EvidenceHash;
+  mode: Mode;
+  headline: IncidentHeadline;
+  claims?: Claims;
+  verified_count: VerifiedCount;
+  total_count: TotalCount;
+  dropped_count: DroppedCount;
+  model: Model;
+  generated_at: GeneratedAt;
+  grounding_note?: GroundingNote;
+  detector_ranking?: DetectorRanking;
+  organizer_test?: OrganizerTest;
+}
+/**
+ * Individual grounded forensic claim in an analyst summary.
+ *
+ * This interface was referenced by `IncidentSummaryResponse`'s JSON-Schema
+ * via the `definition` "SummaryClaim".
+ */
+
+export interface SummaryClaim {
+  text: Text;
+  event_ids?: ClaimEventIds;
+  entities?: ClaimEntities;
+  technique_ids?: ClaimTechniqueIds;
+  verified?: Verified;
+}
+
 export type SourceStatus = "live" | "idle" | "stale" | "error";

@@ -1,10 +1,13 @@
 """REST endpoints for security incidents, attack graph inspection, and guard action testing."""
 
+import json
 import sqlite3
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
+from sentinelx.llm.summarizer import summarize_incident
+from sentinelx.schemas.api_models import IncidentSummaryResponse, SummaryClaim
 from sentinelx.schemas.event import Event
 from sentinelx.schemas.guard import GuardAction, GuardDecision
 from sentinelx.schemas.incident import Incident
@@ -12,6 +15,7 @@ from sentinelx.schemas.signal import Signal
 from sentinelx.store.sqlite import (
     get_event_by_id,
     get_incident_by_id,
+    get_latest_incident_summary,
     get_signal_by_id,
     list_incidents,
 )
@@ -110,3 +114,59 @@ async def evaluate_incident_guard_action(
     await manager.broadcast_guard(decision)
 
     return decision
+
+
+@router.get("/incidents/{incident_id}/summary", response_model=IncidentSummaryResponse)
+async def get_incident_summary_endpoint(
+    incident_id: str,
+    db: Annotated[sqlite3.Connection, Depends(get_db)],
+) -> IncidentSummaryResponse:
+    """Retrieve the cached analyst summary for an incident."""
+    incident = get_incident_by_id(db, incident_id)
+    if not incident:
+        raise HTTPException(status_code=404, detail=f"Incident {incident_id} not found")
+
+    cached_row = get_latest_incident_summary(db, incident_id)
+    if not cached_row:
+        raise HTTPException(status_code=404, detail=f"No summary found for incident {incident_id}")
+
+    claims_data = json.loads(cached_row["claims_json"])
+    claims = [SummaryClaim(**c) for c in claims_data]
+    return IncidentSummaryResponse(
+        incident_id=cached_row["incident_id"],
+        evidence_hash=cached_row["evidence_hash"],
+        mode=cached_row["mode"],
+        headline=cached_row["text"],
+        claims=claims,
+        verified_count=cached_row["verified"],
+        total_count=cached_row["total"],
+        dropped_count=cached_row["dropped"],
+        model=cached_row["model"],
+        generated_at=cached_row["generated_at"],
+    )
+
+
+@router.post("/incidents/{incident_id}/summary", response_model=IncidentSummaryResponse)
+async def generate_incident_summary_endpoint(
+    incident_id: str,
+    db: Annotated[sqlite3.Connection, Depends(get_db)],
+    refresh: Annotated[bool, Query()] = False,
+) -> IncidentSummaryResponse:
+    """Generate or retrieve a verified analyst summary for an incident."""
+    incident = get_incident_by_id(db, incident_id)
+    if not incident:
+        raise HTTPException(status_code=404, detail=f"Incident {incident_id} not found")
+
+    events: list[Event] = []
+    for eid in incident.event_ids:
+        ev = get_event_by_id(db, eid)
+        if ev:
+            events.append(ev)
+
+    summary_resp = summarize_incident(
+        incident=incident,
+        events=events,
+        db=db,
+        refresh=refresh,
+    )
+    return summary_resp

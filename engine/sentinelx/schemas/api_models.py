@@ -113,3 +113,32 @@ class EvalSummaryResponse(BaseModel):
     threshold_curve: list[dict[str, Any]] | None = None
     detector_ranking: list[dict[str, Any]] | None = None
     organizer_test: dict[str, Any] | None = None
+
+
+class SummaryClaim(BaseModel):
+    """Individual grounded forensic claim in an analyst summary."""
+
+    text: str
+    event_ids: list[str] = Field(default_factory=list, title="ClaimEventIds")
+    entities: list[str] = Field(default_factory=list, title="ClaimEntities")
+    technique_ids: list[str] = Field(default_factory=list, title="ClaimTechniqueIds")
+    verified: bool = True
+
+
+class IncidentSummaryResponse(BaseModel):
+    """Advisory LLM / deterministic template summary response for an incident."""
+
+    incident_id: str
+    evidence_hash: str
+    mode: str  # 'llm' or 'template'
+    headline: str = Field(title="IncidentHeadline")
+    claims: list[SummaryClaim] = Field(default_factory=list)
+    verified_count: int
+    total_count: int
+    dropped_count: int
+    model: str
+    generated_at: str
+    grounding_note: str = "grounding verified by code, not semantics"
+
+    detector_ranking: list[dict[str, Any]] | None = None
+    organizer_test: dict[str, Any] | None = None

@@ -19,6 +19,7 @@ from sentinelx.schemas.api_models import (
     AssetResponse,
     BudgetStatusResponse,
     EvalSummaryResponse,
+    IncidentSummaryResponse,
     SystemStatusResponse,
 )
 
@@ -36,6 +37,7 @@ MODELS = {
     "BudgetStatusResponse": BudgetStatusResponse,
     "SystemStatusResponse": SystemStatusResponse,
     "EvalSummaryResponse": EvalSummaryResponse,
+    "IncidentSummaryResponse": IncidentSummaryResponse,
 }
 
 

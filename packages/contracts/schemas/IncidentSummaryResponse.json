@@ -1,0 +1,137 @@
+{
+  "$defs": {
+    "SummaryClaim": {
+      "description": "Individual grounded forensic claim in an analyst summary.",
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "event_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "ClaimEventIds",
+          "type": "array"
+        },
+        "entities": {
+          "items": {
+            "type": "string"
+          },
+          "title": "ClaimEntities",
+          "type": "array"
+        },
+        "technique_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "ClaimTechniqueIds",
+          "type": "array"
+        },
+        "verified": {
+          "default": true,
+          "title": "Verified",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "SummaryClaim",
+      "type": "object"
+    }
+  },
+  "description": "Advisory LLM / deterministic template summary response for an incident.",
+  "properties": {
+    "incident_id": {
+      "title": "Incident Id",
+      "type": "string"
+    },
+    "evidence_hash": {
+      "title": "Evidence Hash",
+      "type": "string"
+    },
+    "mode": {
+      "title": "Mode",
+      "type": "string"
+    },
+    "headline": {
+      "title": "IncidentHeadline",
+      "type": "string"
+    },
+    "claims": {
+      "items": {
+        "$ref": "#/$defs/SummaryClaim"
+      },
+      "title": "Claims",
+      "type": "array"
+    },
+    "verified_count": {
+      "title": "Verified Count",
+      "type": "integer"
+    },
+    "total_count": {
+      "title": "Total Count",
+      "type": "integer"
+    },
+    "dropped_count": {
+      "title": "Dropped Count",
+      "type": "integer"
+    },
+    "model": {
+      "title": "Model",
+      "type": "string"
+    },
+    "generated_at": {
+      "title": "Generated At",
+      "type": "string"
+    },
+    "grounding_note": {
+      "default": "grounding verified by code, not semantics",
+      "title": "Grounding Note",
+      "type": "string"
+    },
+    "detector_ranking": {
+      "anyOf": [
+        {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Detector Ranking"
+    },
+    "organizer_test": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Organizer Test"
+    }
+  },
+  "required": [
+    "incident_id",
+    "evidence_hash",
+    "mode",
+    "headline",
+    "verified_count",
+    "total_count",
+    "dropped_count",
+    "model",
+    "generated_at"
+  ],
+  "title": "IncidentSummaryResponse",
+  "type": "object"
+}

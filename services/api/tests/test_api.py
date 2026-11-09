@@ -14,11 +14,12 @@ from sentinelx.schemas.common import SCHEMA_VERSION
 
 @pytest.fixture(autouse=True)
 def test_db_env(monkeypatch):
-    """Use a temporary SQLite database for each test."""
+    """Use a temporary SQLite database for each test and prevent live network calls."""
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_db = Path(tmpdir) / "test_api.db"
         monkeypatch.setattr(settings, "SENTINELX_DB_PATH", tmp_db)
         monkeypatch.setattr(settings, "SENTINELX_ENV", "dev")
+        monkeypatch.delenv("GEMINI_API_KEY", raising=False)
         close_db()
         get_db()
         yield
@@ -167,3 +168,55 @@ def test_incidents_and_guard_endpoints(client: TestClient):
     res_budget_set = client.post("/api/v1/budget", json={"threshold": 0.65})
     assert res_budget_set.status_code == 200
     assert res_budget_set.json()["threshold"] == 0.65
+
+
+def test_incident_summary_endpoints(client: TestClient):
+    from datetime import datetime, timezone
+
+    from sentinelx.schemas.incident import Incident
+    from sentinelx.store.sqlite import upsert_incident
+
+    # 404 for unknown incident
+    res = client.get("/api/v1/incidents/inc_unknown/summary")
+    assert res.status_code == 404
+
+    # Create an incident
+    now = datetime.now(timezone.utc)
+    inc = Incident(
+        incident_id="inc_summary_test",
+        status="open",
+        created_at=now,
+        updated_at=now,
+        first_signal_ts=now,
+        score=0.85,
+        severity="high",
+        entities=[],
+        signal_ids=[],
+        event_ids=[],
+        kill_chain_stages=["initial_access", "execution"],
+        techniques=[],
+        decoy_touched=False,
+        ot_touched=False,
+        explanation=["Initial access observed on jump-host.", "Privilege escalation executed."],
+    )
+    db = get_db()
+    upsert_incident(db, inc)
+
+    # Initially GET summary returns 404 (not yet generated)
+    res_get_init = client.get("/api/v1/incidents/inc_summary_test/summary")
+    assert res_get_init.status_code == 404
+
+    # POST generates fallback template summary (deterministic)
+    res_post = client.post("/api/v1/incidents/inc_summary_test/summary")
+    assert res_post.status_code == 200
+    summary = res_post.json()
+    assert summary["incident_id"] == "inc_summary_test"
+    assert summary["mode"] in ("template", "llm")
+    assert summary["headline"]
+    assert len(summary["claims"]) > 0
+
+    # Subsequent GET returns the cached summary
+    res_get = client.get("/api/v1/incidents/inc_summary_test/summary")
+    assert res_get.status_code == 200
+    assert res_get.json()["incident_id"] == "inc_summary_test"
+    assert res_get.json()["evidence_hash"] == summary["evidence_hash"]
