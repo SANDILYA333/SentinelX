@@ -358,7 +358,7 @@ Simulated third-party enterprise audit using `content/mappings/windows_security.
 {org_result.architectural_takeaway}
 """
 
-    md += """
+    md += r"""
 ---
 
 ## 7. Operational Limitations & Threat Model Boundaries (Task 6)
