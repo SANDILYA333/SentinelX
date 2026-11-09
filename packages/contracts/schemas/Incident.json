@@ -274,6 +274,11 @@
       "title": "Ot Touched",
       "type": "boolean"
     },
+    "novelty_only": {
+      "default": false,
+      "title": "Novelty Only",
+      "type": "boolean"
+    },
     "explanation": {
       "items": {
         "type": "string"

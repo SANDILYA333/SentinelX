@@ -88,8 +88,8 @@ DEFAULT_CACHE_PATH = REPO_ROOT / "eval" / "reports" / "incident_eval_summary.jso
 async def evaluate_capture_incident(
     capture_dir: Path,
     threshold: float = 0.50,
-) -> tuple[list[Incident], list[Incident], list[Signal], int]:
-    """Replay capture through isolated DB and return (all_incidents, active_incidents, all_signals, events_count)."""
+) -> tuple[list[Incident], list[Incident], list[Signal], int, datetime | None]:
+    """Replay capture through isolated DB and return (all_incidents, active_incidents, all_signals, events_count, first_attacker_event_ts)."""
     with tempfile.TemporaryDirectory(prefix="sx_inc_eval_") as tmpdir:
         temp_db = Path(tmpdir) / "eval.db"
         init_db(temp_db)
@@ -99,10 +99,13 @@ async def evaluate_capture_incident(
 
         all_signals: list[Signal] = []
         events_count = 0
+        first_attacker_event_ts: datetime | None = None
 
         async def on_event(ev: Event) -> None:
-            nonlocal events_count
+            nonlocal events_count, first_attacker_event_ts
             events_count += 1
+            if ev.src_ip == "10.10.1.5" and first_attacker_event_ts is None:
+                first_attacker_event_ts = ev.ts
             sigs = detector_pipe.process_event(ev)
             for s in sigs:
                 all_signals.append(s)
@@ -123,7 +126,13 @@ async def evaluate_capture_incident(
         all_incidents = corr_pipe.get_all_incidents()
         active_incidents = corr_pipe.get_active_incidents()
 
-        return all_incidents, active_incidents, all_signals, events_count
+        return (
+            all_incidents,
+            active_incidents,
+            all_signals,
+            events_count,
+            first_attacker_event_ts,
+        )
 
 
 def print_incident_summary_table(
@@ -145,7 +154,7 @@ def print_incident_summary_table(
     print("-" * 135)
 
     for cap in ALL_CAPTURES:
-        all_incs, active_incs, sigs, events_count = eval_results[cap]
+        all_incs, active_incs, sigs, events_count = eval_results[cap][:4]
         total_count = len(all_incs)
         active_count = len(active_incs)
 
@@ -238,7 +247,7 @@ def print_golden_incident_step_coverage(
     for step_name, matcher in step_matchers:
         row = f"{step_name:<38} | "
         for cap in ATTACK_NAMES:
-            _, active_incs, all_sigs, _ = eval_results[cap]
+            _, active_incs, all_sigs, _ = eval_results[cap][:4]
             if not active_incs:
                 row += f"{'NO INCIDENT!':<30} | "
                 all_attack_steps_ok = False
@@ -273,7 +282,7 @@ def print_attack_narratives_and_techniques(
     print("=" * 120)
 
     for cap in ATTACK_NAMES:
-        _, active_incs, _, _ = eval_results[cap]
+        _, active_incs, _, _ = eval_results[cap][:4]
         if not active_incs:
             continue
         inc = active_incs[0]
@@ -302,7 +311,7 @@ def compute_eval_summary(
     attack_ttfmas: list[float] = []
 
     for cap in ALL_CAPTURES:
-        all_incs, active_incs, sigs, events_count = eval_results[cap]
+        all_incs, active_incs, sigs, events_count = eval_results[cap][:4]
         meta = CAPTURE_METADATA.get(
             cap,
             {"scenario_type": "unknown", "display_type": cap, "hours": "--"},
@@ -384,10 +393,8 @@ def get_or_run_eval_summary(
 
     eval_results = {}
     for cap_dir in benign_dirs + attack_dirs:
-        all_incs, active_incs, sigs, events_count = asyncio.run(
-            evaluate_capture_incident(cap_dir, threshold=threshold)
-        )
-        eval_results[cap_dir.name] = (all_incs, active_incs, sigs, events_count)
+        res = asyncio.run(evaluate_capture_incident(cap_dir, threshold=threshold))
+        eval_results[cap_dir.name] = res
 
     summary = compute_eval_summary(eval_results, threshold=threshold)
 
@@ -419,10 +426,8 @@ def main():
     )
     for cap_dir in benign_dirs + attack_dirs:
         cap_name = cap_dir.name
-        all_incs, active_incs, sigs, events_count = asyncio.run(
-            evaluate_capture_incident(cap_dir, threshold=args.threshold)
-        )
-        eval_results[cap_name] = (all_incs, active_incs, sigs, events_count)
+        res = asyncio.run(evaluate_capture_incident(cap_dir, threshold=args.threshold))
+        eval_results[cap_name] = res
 
     # 1. Master incident summary table
     print_incident_summary_table(eval_results, threshold=args.threshold)
@@ -446,7 +451,7 @@ def main():
     # DoD Verifications
     # 1. Exactly 1 active incident per attack capture
     for a in ATTACK_NAMES:
-        all_incs, active_incs, _, _ = eval_results[a]
+        all_incs, active_incs, _, _ = eval_results[a][:4]
         assert len(active_incs) == 1, f"Expected 1 active incident on {a}, got {len(active_incs)}"
         assert len(all_incs) == 1, f"Expected 1 total incident on {a}, got {len(all_incs)}"
         top = active_incs[0]
@@ -460,7 +465,7 @@ def main():
 
     # 2. Zero incidents per benign capture at calibrated threshold
     for b in BENIGN_NAMES:
-        _, active_incs, _, _ = eval_results[b]
+        _, active_incs, _, _ = eval_results[b][:4]
         assert len(active_incs) == 0, f"False positive active incident on {b}: {len(active_incs)}"
 
     if not golden_ok:

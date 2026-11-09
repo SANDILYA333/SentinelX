@@ -20,6 +20,7 @@ import json
 import sys
 import tempfile
 from dataclasses import asdict, dataclass
+from datetime import datetime
 from pathlib import Path
 
 # Add engine to path
@@ -45,10 +46,90 @@ BENIGN_NAMES = ["day_101", "day_102", "day_103", "day_104", "day_105"]
 ATTACK_NAMES = ["demo_baseline", "reordered", "slow_burn"]
 
 
-BENIGN_HOURS_TOTAL: float = 25.0
-BENIGN_SIMULATED_DAYS: float = (
-    BENIGN_HOURS_TOTAL / 24.0
-)  # 1.04167 days across 5 diurnal slices (5.0h each)
+def compute_benign_hours_total(captures_dir: Path | None = None) -> float:
+    """Compute total simulated hours across all 5 benign captures.
+
+    For each capture, uses the manifest's simulated start/end if present
+    (sim_end - sim_start), else the span of event timestamps (max ts - min ts,
+    rounded to the capture's nominal window).
+    Fails loudly if any benign capture is missing or has zero duration.
+    """
+    base_dir = captures_dir or (REPO_ROOT / "eval" / "captures" / "benign")
+    total_hours = 0.0
+
+    for day in BENIGN_NAMES:
+        day_dir = base_dir / day
+        if not day_dir.exists():
+            raise FileNotFoundError(f"Required benign capture directory missing: {day_dir}")
+
+        manifest_path = day_dir / "manifest.json"
+        hours = 0.0
+        if manifest_path.exists():
+            try:
+                with open(manifest_path, "r", encoding="utf-8") as f:
+                    manifest = json.load(f)
+                if "sim_start" in manifest and "sim_end" in manifest:
+                    s_start = datetime.fromisoformat(manifest["sim_start"])
+                    s_end = datetime.fromisoformat(manifest["sim_end"])
+                    hours = (s_end - s_start).total_seconds() / 3600.0
+                elif "total_sim_hours" in manifest:
+                    hours = float(manifest["total_sim_hours"])
+            except Exception:
+                pass
+
+        if hours <= 0.0:
+            events = asyncio.run(load_capture_events(day_dir))
+            if not events:
+                raise ValueError(f"Benign capture {day} has zero events and no valid manifest")
+            tss = [e.ts for e in events]
+            span_s = (max(tss) - min(tss)).total_seconds()
+            if span_s <= 0:
+                raise ValueError(f"Benign capture {day} has zero duration")
+            hours = max(1.0, round((span_s * 300.0) / 3600.0, 1))
+
+        if hours <= 0.0:
+            raise ValueError(f"Benign capture {day} resolved to zero duration")
+
+        total_hours += hours
+
+    return round(total_hours, 4)
+
+
+BENIGN_HOURS_NOMINAL: float = 25.0
+BENIGN_HOURS_TOTAL: float = compute_benign_hours_total()
+BENIGN_SIMULATED_DAYS: float = round(BENIGN_HOURS_TOTAL / 24.0, 4)
+
+
+def compute_poisson_95_upper_bound(fp_captures: int, days: float) -> float:
+    """Compute exact one-sided 95% Poisson upper confidence limit per 24 hours.
+
+    Note: fp counts captures with an incident at or above threshold, not individual incidents.
+    Exact limit: upper_events = chi2.ppf(0.95, 2*(k+1)) / 2 (from scipy or exact lookup table).
+    """
+    if days <= 0.0:
+        return 0.0
+
+    k = int(fp_captures)
+    # Lookup table for exact chi2.ppf(0.95, 2*(k+1)) / 2:
+    lookup = {
+        0: 2.995732273553991,  # ~2.996
+        1: 4.743864528383285,  # ~4.744
+        2: 6.295793679803875,  # ~6.296
+        3: 7.753657303028308,  # ~7.754
+        4: 9.153518972584501,  # ~9.154
+        5: 10.513028268472428,  # ~10.513
+    }
+    if k in lookup:
+        upper_events = lookup[k]
+    else:
+        try:
+            from scipy.stats import chi2
+
+            upper_events = float(chi2.ppf(0.95, 2 * (k + 1)) / 2.0)
+        except Exception:
+            upper_events = float(k + 1.645 * ((k + 1) ** 0.5) + 1.0)
+
+    return round(upper_events / days, 3)
 
 
 @dataclass
@@ -239,11 +320,7 @@ def compute_metrics_report(
     )
 
     headline_fp_rate = (headline_cm.fp / BENIGN_SIMULATED_DAYS) if headline_cm.fp > 0 else 0.0
-    headline_ub_95 = (
-        3.0 / BENIGN_SIMULATED_DAYS
-        if headline_cm.fp == 0
-        else (headline_cm.fp + 3.0) / BENIGN_SIMULATED_DAYS
-    )
+    headline_ub_95 = compute_poisson_95_upper_bound(headline_cm.fp, BENIGN_SIMULATED_DAYS)
 
     return MetricsReport(
         threshold=calibrated_threshold,
@@ -284,7 +361,7 @@ def print_metrics_report(report: MetricsReport) -> None:
         f"({hl.fp} FP across {report.benign_hours_total:.1f} simulated hours = {report.benign_simulated_days:.3f} simulated days)"
     )
     print(
-        f"  * 95% Upper Bound: {report.benign_fp_upper_bound_95:.3f} FP / 24h (Rule of Three: 3 / days when FP = 0)"
+        f"  * 95% Upper Bound: {report.benign_fp_upper_bound_95:.3f} FP / 24h (Exact Poisson limit: chi2.ppf(0.95, 2*(k+1))/2 / days)"
     )
     print(
         f"  * Score Separation Margin: {report.score_margin:.4f} "

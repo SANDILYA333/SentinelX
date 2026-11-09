@@ -10,7 +10,11 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from eval.ablation import run_capture_ablation  # noqa: E402
-from eval.metrics import compute_metrics_report  # noqa: E402
+from eval.metrics import (  # noqa: E402
+    compute_benign_hours_total,
+    compute_metrics_report,
+    compute_poisson_95_upper_bound,
+)
 from eval.organizer_test import run_organizer_evaluation  # noqa: E402
 
 
@@ -47,13 +51,52 @@ async def test_organizer_windows_benign_fixture_execution():
         benign_fixture_path, threshold=0.50
     )
 
-    assert result.events_ingested == 7
+    assert result.events_ingested == 14
     assert result.signals_emitted > 0  # Baseline & Graph emit novelty signals
     # Unfamiliar baseline signals must only come from baseline and graph, NOT rules
     assert "RULE-SHELL-001" not in result.fired_rules
     assert set(result.detectors_fired).issubset({"baseline", "graph"})
     assert "T1059" not in result.detected_techniques
     assert 0.0 <= result.top_score <= 1.0
+
+
+def test_poisson_95_upper_bound():
+    """Verify exact one-sided 95% Poisson upper confidence limit per 24 hours.
+
+    Note: fp counts captures with an incident at or above threshold, not individual incidents.
+    """
+    days = 25.0 / 24.0  # nominal 1.04167 days
+    # k = 0: upper_events = chi2.ppf(0.95, 2)/2 = 2.9957 -> ~2.996 / days
+    ub0 = compute_poisson_95_upper_bound(0, days)
+    assert abs(ub0 - (2.995732 / days)) < 0.01
+    assert round(ub0, 3) == round(2.996 / days, 3)
+
+    # k = 1: upper_events = chi2.ppf(0.95, 4)/2 = 4.7439 -> ~4.744 / days
+    ub1 = compute_poisson_95_upper_bound(1, days)
+    assert abs(ub1 - (4.743865 / days)) < 0.01
+    assert round(ub1, 3) == round(4.744 / days, 3)
+
+
+def test_computed_benign_hours_total(tmp_path):
+    """Verify computed total benign hours is within 0.1h of 25.0 and fails loudly on missing or zero-duration captures."""
+    computed_hours = compute_benign_hours_total()
+    assert abs(computed_hours - 25.0) < 0.1, f"Expected within 0.1h of 25.0, got {computed_hours}"
+
+    # Fails loudly if any capture is missing
+    with pytest.raises(FileNotFoundError):
+        compute_benign_hours_total(captures_dir=tmp_path / "nonexistent")
+
+    # Fails loudly if a capture directory has zero duration
+    fake_benign = tmp_path / "fake_benign"
+    fake_benign.mkdir()
+    for day in ["day_101", "day_102", "day_103", "day_104", "day_105"]:
+        d_dir = fake_benign / day
+        d_dir.mkdir()
+        # Write manifest with 0 duration
+        (d_dir / "manifest.json").write_text('{"total_sim_hours": 0.0}')
+
+    with pytest.raises(ValueError, match=r"zero (duration|events)"):
+        compute_benign_hours_total(captures_dir=fake_benign)
 
 
 def test_metrics_computation_ranges():

@@ -59,6 +59,11 @@ export function RecentIncidentCard() {
                 <Badge variant="outline" className={getSeverityStyle(mostRecent.severity).badge}>
                   {mostRecent.severity.toUpperCase()}
                 </Badge>
+                {mostRecent.novelty_only && (
+                  <Badge variant="outline" className="bg-amber-950/60 text-amber-300 border-amber-600/40 text-[10px] font-mono">
+                    novelty-only, score capped
+                  </Badge>
+                )}
                 {mostRecent.decoy_touched && (
                   <Badge variant="outline" className="bg-purple-950/60 text-purple-300 border-purple-800/60 text-[10px]">
                     <ShieldAlert className="w-3 h-3 mr-1" /> Decoy Touched

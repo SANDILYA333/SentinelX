@@ -127,9 +127,11 @@ def score_incident(
 
     final_score = min(1.0, max(0.05, round(raw_score, 4)))
 
-    # 5. Cold-Start Novelty Corroboration Cap
+    # 5. Novelty Corroboration Requirement Cap
     # Incidents supported solely by unsupervised anomaly/baseline/graph deviations
-    # without deterministic rule or deception corroboration are capped below the budget threshold.
+    # without deterministic rule or deception corroboration are capped below the budget threshold
+    # (default novelty_cap = 0.40). Trade-off: rule-less novelty-only attacks are suppressed by design
+    # when operating threshold theta > novelty_cap.
     if is_novelty_only(sorted_signals):
         final_score = min(final_score, novelty_cap)
 

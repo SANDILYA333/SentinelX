@@ -213,6 +213,11 @@ function IncidentsContent() {
                         <span className="font-mono text-xs font-bold text-slate-200">
                           {inc.incident_id}
                         </span>
+                        {inc.novelty_only && (
+                          <Badge variant="outline" className="bg-amber-950/60 text-amber-300 border-amber-600/40 text-[10px] font-mono">
+                            novelty-only, score capped
+                          </Badge>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-2 text-xs font-mono">
@@ -314,6 +319,11 @@ function IncidentsContent() {
                         <CardTitle className="text-base font-bold font-mono text-slate-100">
                           {incidentDetail.incident_id}
                         </CardTitle>
+                        {incidentDetail.novelty_only && (
+                          <Badge variant="outline" className="bg-amber-950/60 text-amber-300 border-amber-600/40 text-xs font-mono">
+                            novelty-only, score capped
+                          </Badge>
+                        )}
                       </div>
                       <CardDescription className="text-xs text-slate-400 mt-1">
                         First signal {new Date(incidentDetail.first_signal_ts || incidentDetail.created_at).toISOString()} &bull; Updated {new Date(incidentDetail.updated_at).toISOString()}

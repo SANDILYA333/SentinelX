@@ -54,3 +54,71 @@ def test_sqlite_insert_and_list_ordering():
         assert paginated[1].event_id == e1.event_id
 
         db.close()
+
+
+def test_sqlite_incident_novelty_only_roundtrip():
+    """Verify that Incident.novelty_only field round-trips accurately through SQLite."""
+    from sentinelx.schemas.common import Severity
+    from sentinelx.schemas.incident import Incident
+    from sentinelx.store.sqlite import get_incident_by_id, upsert_incident
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        db_path = Path(tmp_dir) / "test_incident.db"
+        db = init_db(db_path)
+
+        now = datetime(2026, 11, 8, 12, 0, 0, tzinfo=UTC)
+
+        # 1. Incident with novelty_only=True
+        inc_novelty = Incident(
+            incident_id="inc_novelty_001",
+            status="open",
+            created_at=now,
+            updated_at=now,
+            first_signal_ts=now,
+            score=0.40,
+            severity=Severity.low,
+            entities=[],
+            signal_ids=["sig_001"],
+            event_ids=["evt_001"],
+            kill_chain_stages=["initial_access"],
+            techniques=[],
+            decoy_touched=False,
+            ot_touched=False,
+            novelty_only=True,
+            explanation=["Novelty only signal capped"],
+        )
+        upsert_incident(db, inc_novelty)
+
+        # 2. Incident with novelty_only=False
+        inc_standard = Incident(
+            incident_id="inc_standard_001",
+            status="open",
+            created_at=now,
+            updated_at=now,
+            first_signal_ts=now,
+            score=0.85,
+            severity=Severity.high,
+            entities=[],
+            signal_ids=["sig_002"],
+            event_ids=["evt_002"],
+            kill_chain_stages=["initial_access", "lateral_movement"],
+            techniques=[],
+            decoy_touched=False,
+            ot_touched=False,
+            novelty_only=False,
+            explanation=["Rule corroborated attack chain"],
+        )
+        upsert_incident(db, inc_standard)
+
+        # Retrieve and verify round-trip
+        retrieved_nov = get_incident_by_id(db, "inc_novelty_001")
+        assert retrieved_nov is not None
+        assert retrieved_nov.novelty_only is True
+        assert retrieved_nov.score == 0.40
+
+        retrieved_std = get_incident_by_id(db, "inc_standard_001")
+        assert retrieved_std is not None
+        assert retrieved_std.novelty_only is False
+        assert retrieved_std.score == 0.85
+
+        db.close()

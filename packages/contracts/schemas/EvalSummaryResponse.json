@@ -67,6 +67,30 @@
           "default": null,
           "title": "Ttfma Seconds"
         },
+        "ttfma_from_first_signal_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ttfma From First Signal Seconds"
+        },
+        "ttfma_from_attack_start_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ttfma From Attack Start Seconds"
+        },
         "status": {
           "title": "Status",
           "type": "string"
@@ -116,6 +140,21 @@
       "title": "Benign Fp Per 24H",
       "type": "number"
     },
+    "benign_hours_total": {
+      "default": 25.0,
+      "title": "Benign Hours Total",
+      "type": "number"
+    },
+    "benign_simulated_days": {
+      "default": 1.0416666666666667,
+      "title": "Benign Simulated Days",
+      "type": "number"
+    },
+    "benign_fp_upper_bound_95": {
+      "default": 2.88,
+      "title": "Benign Fp Upper Bound 95",
+      "type": "number"
+    },
     "attack_recall": {
       "title": "Attack Recall",
       "type": "number"
@@ -131,6 +170,30 @@
       ],
       "default": null,
       "title": "Mean Ttfma Seconds"
+    },
+    "mean_ttfma_from_first_signal_seconds": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Mean Ttfma From First Signal Seconds"
+    },
+    "mean_ttfma_from_attack_start_seconds": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Mean Ttfma From Attack Start Seconds"
     },
     "guard_ot_interlock": {
       "default": "100% Deterministic",

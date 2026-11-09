@@ -293,11 +293,11 @@ def test_novelty_only_corroboration_cap():
     inc = correlator.process_signal(sig_graph)
 
     # In isolation without cap: base_sum = 0.45, multiplier = 1.25x -> 0.5625
-    # With cold-start novelty cap: must be capped at 0.40
+    # With corroboration requirement cap: must be capped at 0.40
     assert inc.novelty_only is True
     assert inc.score == 0.40
     assert inc.severity == Severity.low
-    assert any("novelty" in exp.lower() for exp in inc.explanation)
+    assert any("corroboration" in exp.lower() for exp in inc.explanation)
 
 
 def test_novelty_with_rule_corroboration_not_capped():

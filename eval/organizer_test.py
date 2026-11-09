@@ -215,12 +215,13 @@ async def run_organizer_evaluation(
 
         takeaway = (
             "Detecting Windows execution required rule-content extension in "
-            "content/rules/encoded_or_suspicious_shell.yaml (-EncodedCommand, certutil, wmic, schtasks, "
-            "Invoke-WebRequest) and updating MITRE technique mappings to parent T1059/T1021. Unsupervised baseline "
-            "and graph detectors transferred across operating systems without rule modifications, but required a "
-            "cold-start corroboration cap (novelty_only <= 0.40) to prevent unfamiliar host false positives at "
-            "the 0.50 operating threshold. Deep context-aware authorization rules (RULE-AUTH-001, RULE-OT-001) "
-            "strictly require asset inventory registration to establish valid operational boundaries."
+            "content/rules/encoded_or_suspicious_shell.yaml (-EncodedCommand, certutil -urlcache, "
+            "wmic process call create, schtasks /create, Invoke-WebRequest) and updating MITRE technique "
+            "mappings to parent T1059/T1021. Unsupervised baseline and graph detectors transferred across "
+            "operating systems without rule modifications, but required a corroboration requirement "
+            "(novelty_only <= 0.40) to prevent unfamiliar host false positives at the 0.50 operating threshold. "
+            "Deep context-aware authorization rules (RULE-AUTH-001, RULE-OT-001) strictly require asset inventory "
+            "registration to establish valid operational boundaries."
         )
 
         # Evaluate benign Windows fixture if present
@@ -257,7 +258,7 @@ async def run_organizer_evaluation(
                     f"and graph detectors emitted {ben_sig_cnt} signals across {len(ben_detectors)} detector(s) "
                     f"({', '.join(ben_detectors)}), forming {ben_inc_cnt} incident (score {ben_top_score:.4f}). "
                     "Because WIN-CORP-DC01 was not in the benign training corpus, novelty detection flags normal admin "
-                    "activity as unobserved user/host pairings. Under the cold-start novelty corroboration cap "
+                    "activity as unobserved user/host pairings. Under the corroboration requirement "
                     "(novelty_only=true), the incident score is capped at 0.4000, preventing a false positive alert "
                     "at the 0.50 budget threshold."
                 )
@@ -333,8 +334,8 @@ async def run_organizer_evaluation(
                 "('initial_access' and 'lateral_movement'). In the attack fixture, RULE-SHELL-001 mapped to "
                 "'initial_access', which was already contributed by BASE-DEV-001, so it added no new stages. "
                 "Because SentinelX progression scoring is purely stage-based (0.45 base * 1.25x = 0.5625), "
-                "both fixtures generated an identical 0.5625 intermediate score. With the cold-start novelty cap "
-                "(Task 3), the benign incident is capped at 0.4000 (below threshold 0.50), while the attack "
+                "both fixtures generated an identical 0.5625 intermediate score. Under the corroboration requirement "
+                "(Task 3/4), the benign incident is capped at 0.4000 (below threshold 0.50), while the attack "
                 "incident retains 0.5625 due to RULE-SHELL-001 corroboration."
             ),
         }
@@ -428,7 +429,7 @@ def print_organizer_report(res: OrganizerTestResult, signals: list[Signal]) -> N
             f"    -> Session Taint Boost:   +{ben_bd.get('session_taint'):.2f} | Novelty Only: {ben_bd.get('novelty_only')}"
         )
         print(
-            f"    -> Final Benign Score:    {ben_bd.get('final_score'):.4f} (Capped by cold-start novelty guard at 0.40)"
+            f"    -> Final Benign Score:    {ben_bd.get('final_score'):.4f} (Capped by corroboration requirement at 0.40)"
         )
 
         print("\n  [WHY ATTACK TIED BENIGN AT 0.5625 BEFORE NOVELTY CAP]:")

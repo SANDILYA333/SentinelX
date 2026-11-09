@@ -210,7 +210,7 @@ class Correlator:
         )
         if novelty_only:
             explanation.append(
-                f"Cold-start novelty guard applied: score capped at {self.novelty_cap:.2f} "
+                f"Corroboration requirement applied: score capped at {self.novelty_cap:.2f} "
                 "(lacks deterministic rule or deception corroboration)"
             )
 

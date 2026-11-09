@@ -273,6 +273,8 @@ export type DecoyTouched = boolean;
 
 export type OtTouched = boolean;
 
+export type NoveltyOnly = boolean;
+
 export type Summary = string | null;
 
 export type SummaryCitations = string[];
@@ -314,6 +316,7 @@ export interface Incident {
   techniques: Techniques;
   decoy_touched: DecoyTouched;
   ot_touched: OtTouched;
+  novelty_only?: NoveltyOnly;
   explanation: string[];
   summary?: Summary;
   summary_citations?: SummaryCitations;
@@ -586,13 +589,27 @@ export type Signals = number;
 
 export type Incidents = number;
 
+export type TtfmaFromFirstSignalSeconds = number | null;
+
+export type TtfmaFromAttackStartSeconds = number | null;
+
 export type Captures = CaptureEvalRow[];
 
 export type BenignFpPer24H = number;
 
+export type BenignHoursTotal = number;
+
+export type BenignSimulatedDays = number;
+
+export type BenignFpUpperBound95 = number;
+
 export type AttackRecall = number;
 
 export type MeanTtfmaSeconds = number | null;
+
+export type MeanTtfmaFromFirstSignalSeconds = number | null;
+
+export type MeanTtfmaFromAttackStartSeconds = number | null;
 
 export type GuardOtInterlock = string;
 
@@ -631,8 +648,13 @@ export type OrganizerTest = {
 export interface EvalSummaryResponse {
   captures: Captures;
   benign_fp_per_24h: BenignFpPer24H;
+  benign_hours_total?: BenignHoursTotal;
+  benign_simulated_days?: BenignSimulatedDays;
+  benign_fp_upper_bound_95?: BenignFpUpperBound95;
   attack_recall: AttackRecall;
   mean_ttfma_seconds?: MeanTtfmaSeconds;
+  mean_ttfma_from_first_signal_seconds?: MeanTtfmaFromFirstSignalSeconds;
+  mean_ttfma_from_attack_start_seconds?: MeanTtfmaFromAttackStartSeconds;
   guard_ot_interlock?: GuardOtInterlock;
   evaluated_at: EvaluatedAt;
   threshold?: Threshold;
@@ -660,6 +682,8 @@ export interface CaptureEvalRow {
   score?: Score;
   severity?: Severity;
   ttfma_seconds?: TtfmaSeconds;
+  ttfma_from_first_signal_seconds?: TtfmaFromFirstSignalSeconds;
+  ttfma_from_attack_start_seconds?: TtfmaFromAttackStartSeconds;
   status: Status;
   decoy_touched?: DecoyTouched;
   ot_touched?: OtTouched;

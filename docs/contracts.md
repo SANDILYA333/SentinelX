@@ -6,6 +6,7 @@ Any breaking change bumps `SCHEMA_VERSION` (defined in `engine/sentinelx/schemas
 
 ### Changelog
 - **v1.0 (Phase 0):** Initial frozen data contracts covering `Event`, `Signal`, `Incident`, `GuardDecision`, and `WSMessage`.
+- **v1.0.1 (Phase 7.2 / 7.3):** Single post-Phase-0 core-schema additive extension: added `novelty_only: bool = False` to `Incident` schema (tracks whether an incident is supported exclusively by unsupervised novelty detectors `{baseline, graph, anomaly}` requiring rule or deception corroboration; capped below threshold at `novelty_cap = 0.40`). Non-breaking additive field with safe default `false`.
 
 ---
 
@@ -21,7 +22,7 @@ Any breaking change bumps `SCHEMA_VERSION` (defined in `engine/sentinelx/schemas
 
 ### 3. Incident (`engine/sentinelx/schemas/incident.py`)
 - **Purpose:** Correlated multi-stage attack chain and alert-budgeted security incident.
-- **Key Characteristics:** Tracks MITRE kill chain stages, TTFMA (Time to First Meaningful Alert), decoy and OT interaction flags, correlated entity graph (`IncidentGraph`), and explainability citations.
+- **Key Characteristics:** Tracks MITRE kill chain stages, TTFMA (Time to First Meaningful Alert), decoy and OT interaction flags, correlated entity graph (`IncidentGraph`), explainability citations, and the additive `novelty_only: bool = False` flag indicating if the incident lacks deterministic rule or deception corroboration.
 
 ### 4. GuardDecision (`engine/sentinelx/schemas/guard.py`)
 - **Purpose:** Response safety evaluation before applying automated containment actions.
@@ -172,6 +173,7 @@ Any breaking change bumps `SCHEMA_VERSION` (defined in `engine/sentinelx/schemas
   ],
   "decoy_touched": true,
   "ot_touched": true,
+  "novelty_only": false,
   "explanation": [
     "Compromised service account svc_eng accessed internal jump host.",
     "Interaction with canary file server decoy triggered tripwire.",

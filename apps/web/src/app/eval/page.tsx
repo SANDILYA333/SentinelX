@@ -129,7 +129,7 @@ export default function EvalPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-100 flex items-center gap-2.5">
             <FlaskConical className="w-6 h-6 text-emerald-400" />
-            Evaluation Suite &amp; Scorecard (Phase 7.1)
+            Evaluation Suite &amp; Scorecard (Phase 7.3)
           </h1>
           <p className="text-sm text-slate-400 mt-1">
             Offline capture replay benchmarks, LOO cross-validation, 4-tier detector ablation, and organizer robustness audit.
@@ -152,7 +152,7 @@ export default function EvalPage() {
             variant="outline"
             className="bg-emerald-950/60 text-emerald-400 border-emerald-800/60 font-mono text-xs"
           >
-            Phase 7.1 Validated
+            Phase 7.3 Validated
           </Badge>
         </div>
       </div>
@@ -244,7 +244,9 @@ export default function EvalPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0 text-[11px] text-slate-500 font-mono">
-            0 FP across 25.0h simulated (1.042 days); 95% UB: 2.88/24h
+            {evalSummary?.benign_hours_total != null
+              ? `0 FP across ${evalSummary.benign_hours_total.toFixed(1)}h (${evalSummary.benign_simulated_days.toFixed(3)}d); 95% UB: ${evalSummary.benign_fp_upper_bound_95.toFixed(3)}/24h`
+              : "0 FP across 25.0h (1.042d); 95% UB: 2.876/24h"}
           </CardContent>
         </Card>
 
