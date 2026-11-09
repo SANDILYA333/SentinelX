@@ -255,5 +255,10 @@ This section provides critical parsing and schema mapping facts for downstream t
    - Every service enforces `json-file` log rotation with `max-size: 10m` and `max-file: 3`.
    - `wazuh-manager` disables `<vulnerability-detection>` and `<indexer>` (preventing 10+ GB tar decompression loops and indexer buffering), uses a `64M` tmpfs on `/var/ossec/tmp`, and disables unused Filebeat.
    - `make lab-disk` enforces a strict 500 MB per-container writable layer limit and fails if violated.
+4. **LLM API Key Security & Isolation (Phase 8)**:
+   - The `GEMINI_API_KEY` lives exclusively in untracked `services/api/.env.local` (mode `0600`).
+   - The file is ignored by `.gitignore`; placeholder line in `.env.example`.
+   - The key is never logged, never transmitted to the frontend, and never committed to version control.
+   - All unit tests and the live demo operate completely offline with zero network connectivity using the deterministic template fallback path.
 
 
