@@ -22,7 +22,7 @@ Any breaking change bumps `SCHEMA_VERSION` (defined in `engine/sentinelx/schemas
 
 ### 3. Incident (`engine/sentinelx/schemas/incident.py`)
 - **Purpose:** Correlated multi-stage attack chain and alert-budgeted security incident.
-- **Key Characteristics:** Tracks MITRE kill chain stages, TTFMA (Time to First Meaningful Alert), decoy and OT interaction flags, correlated entity graph (`IncidentGraph`), explainability citations, and the additive `novelty_only: bool = False` flag indicating if the incident lacks deterministic rule or deception corroboration.
+- **Key Characteristics:** Tracks MITRE kill chain stages, Event-Time TTFMA (difference between event timestamps, not processing latency), decoy and OT interaction flags, correlated entity graph (`IncidentGraph`), explainability citations, and the additive `novelty_only: bool = False` flag indicating if the incident lacks deterministic rule or deception corroboration.
 
 ### 4. GuardDecision (`engine/sentinelx/schemas/guard.py`)
 - **Purpose:** Response safety evaluation before applying automated containment actions.

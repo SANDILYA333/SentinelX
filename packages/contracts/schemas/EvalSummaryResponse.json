@@ -65,6 +65,7 @@
             }
           ],
           "default": null,
+          "description": "Event-time TTFMA: difference between event timestamps (event.ts), NOT processing latency; processing latency not measured in replay; measured live in the demo rehearsal (Phase 8)",
           "title": "Ttfma Seconds"
         },
         "ttfma_from_first_signal_seconds": {
@@ -77,6 +78,7 @@
             }
           ],
           "default": null,
+          "description": "Event-time TTFMA from first signal: difference between event timestamps, NOT processing latency",
           "title": "Ttfma From First Signal Seconds"
         },
         "ttfma_from_attack_start_seconds": {
@@ -89,6 +91,7 @@
             }
           ],
           "default": null,
+          "description": "Event-time TTFMA from attack start: difference between event timestamps, NOT processing latency",
           "title": "Ttfma From Attack Start Seconds"
         },
         "status": {
@@ -169,6 +172,7 @@
         }
       ],
       "default": null,
+      "description": "Mean event-time TTFMA: difference between event timestamps (event.ts), NOT processing latency; processing latency not measured in replay; measured live in the demo rehearsal (Phase 8)",
       "title": "Mean Ttfma Seconds"
     },
     "mean_ttfma_from_first_signal_seconds": {
@@ -181,6 +185,7 @@
         }
       ],
       "default": null,
+      "description": "Mean event-time TTFMA from first signal: difference between event timestamps, NOT processing latency",
       "title": "Mean Ttfma From First Signal Seconds"
     },
     "mean_ttfma_from_attack_start_seconds": {
@@ -193,6 +198,7 @@
         }
       ],
       "default": null,
+      "description": "Mean event-time TTFMA from attack start: difference between event timestamps, NOT processing latency",
       "title": "Mean Ttfma From Attack Start Seconds"
     },
     "guard_ot_interlock": {

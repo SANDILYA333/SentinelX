@@ -274,7 +274,7 @@ export default function EvalPage() {
         <Card className="border-slate-800 bg-slate-900/50">
           <CardHeader className="p-4 pb-2">
             <CardDescription className="text-xs text-slate-400 font-mono flex items-center justify-between">
-              <span>Mean TTFMA (Attack Start &amp; Sig)</span>
+              <span>Mean Event-Time TTFMA</span>
               <Sparkles className="w-3.5 h-3.5 text-sky-400" />
             </CardDescription>
             <CardTitle className="text-2xl font-bold font-mono text-sky-400">
@@ -288,7 +288,7 @@ export default function EvalPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0 text-[11px] text-slate-500 font-mono">
-            Attack origin (10.10.1.5) &amp; first signal to RULE-AUTH-001 alert
+            Event-time delta (event.ts). Processing latency not measured in replay; measured live in Phase 8.
           </CardContent>
         </Card>
       </div>
@@ -321,7 +321,7 @@ export default function EvalPage() {
                   <th className="p-3 text-right">Events</th>
                   <th className="p-3 text-right">Incidents</th>
                   <th className="p-3 text-right">Score</th>
-                  <th className="p-3 text-right">TTFMA</th>
+                  <th className="p-3 text-right">Event-Time TTFMA</th>
                   <th className="p-3 pr-4 text-right">Status</th>
                 </tr>
               </thead>

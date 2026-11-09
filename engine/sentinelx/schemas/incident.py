@@ -51,7 +51,10 @@ class Incident(BaseModel):
     updated_at: UtcDatetime
     first_signal_ts: UtcDatetime
     first_meaningful_alert_ts: UtcDatetime | None = None
-    ttfma_seconds: float | None = None
+    ttfma_seconds: float | None = Field(
+        default=None,
+        description="Event-time TTFMA: elapsed event-time seconds from incident start to threshold crossing, NOT processing latency; processing latency not measured in replay; measured live in the demo rehearsal (Phase 8)",
+    )
     score: float
     severity: Severity
     entities: list[Entity]

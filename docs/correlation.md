@@ -90,21 +90,30 @@ To prevent routine industrial maintenance from triggering false positive critica
 
 ---
 
-## 3. Time to First Meaningful Alert (TTFMA)
+## 3. Event-Time Time to First Meaningful Alert (TTFMA)
 
-### 3.1 Mathematical Definition
-TTFMA measures the operational latency between the adversary's first network action and the moment SentinelX raises an actionable, policy-compliant incident above the budget threshold:
-$$\text{TTFMA} = t_{\text{threshold\_cross}} - t_{\text{first\_adversary\_event}}$$
-where $t_{\text{threshold\_cross}}$ is the timestamp of the event generating the signal that pushes the correlated incident score $\ge 0.50$.
+### 3.1 Mathematical Definition & Timestamp Provenance
+TTFMA measures the operational event-time span between the adversary's first network action and the moment SentinelX raises an actionable, policy-compliant incident above the budget threshold:
+$$\text{Event-Time TTFMA} = t_{\text{threshold\_cross}} - t_{\text{first\_adversary\_event}}$$
+where $t_{\text{threshold\_cross}}$ is the normalized `event.ts` of the event generating the signal that pushes the correlated incident score $\ge 0.50$, and $t_{\text{first\_adversary\_event}}$ is the normalized `event.ts` of the earliest adversary action (`src_ip: 10.10.1.5`).
 
-### 3.2 Measured TTFMA Across Attack Captures
+> [!NOTE]
+> **Event-Time Delta vs. Processing Latency**: TTFMA reported across offline replay benchmarks is strictly an **event-time TTFMA** (the delta between telemetry event timestamps). It does **NOT** measure software pipeline processing latency or engine execution time. In offline replay, pipeline throughput processes thousands of events per second; processing latency is not measured in replay; measured live in the demo rehearsal (Phase 8).
+
+### 3.2 Timestamp Source Findings & Provenance Gap
+In-depth provenance audit of the raw capture logs reveals why a 0.94s–2.58s event-time delta appears between event (a) (first 10.10.1.5 event) and event (c) (first `RULE-AUTH-001` evidence):
+1. **Event (a)** (`action: exec`): Normalized `event.ts` is populated by `engine/sentinelx/ingest/adapters/wazuh.py:256` from `inner.get("ts")` (the `cmd.jsonl` audit record generated on `jump-host`), which carries 1-second resolution without sub-second precision (e.g. `2026-11-08T04:22:44Z`). In the raw Wazuh manager archive (`archives.json` offset 1182075), this line was received and logged at `04:22:45.550+0000`.
+2. **Event (c)** (`action: ssh_login`): Normalized `event.ts` is populated by `engine/sentinelx/ingest/adapters/wazuh.py:139` from `record.get("timestamp")` (the Wazuh manager archive timestamp), which carries millisecond precision (e.g. `2026-11-08T04:22:45.544+0000`).
+3. **Chronology**: In the raw Wazuh archive file, SSH authentication (c) was logged at `45.544` and the resulting command execution (a) was logged 6 milliseconds later at `45.550`. The measured 0.94s / 1.54s / 2.58s values therefore reflect a **timestamp-source difference** between the integer-second process auditing log and the millisecond-precision Wazuh auth log, rather than sequential detection latency.
+
+### 3.3 Measured Event-Time TTFMA Across Attack Captures
 Verified against actual capture telemetry timestamps (`first_signal_ts` and `first_meaningful_alert_ts`):
 
-| Scenario Capture | First Adversary Event (`first_signal_ts`) | Threshold Crossing Signal (`first_meaningful_alert_ts`) | TTFMA Latency |
+| Scenario Capture | First Adversary Event (`first_signal_ts`) | Threshold Crossing Signal (`first_meaningful_alert_ts`) | Event-Time TTFMA |
 | :--- | :--- | :--- | :---: |
-| `demo_baseline` | `2026-11-08T04:22:44.000Z` (SSH probe) | `2026-11-08T04:22:45.544Z` (`RULE-AUTH-001`) | **1.54s** |
-| `reordered` | `2026-11-08T04:25:12.000Z` (SSH probe) | `2026-11-08T04:25:12.938Z` (`RULE-AUTH-001`) | **0.94s** |
-| `slow_burn` | `2026-11-08T04:52:34.000Z` (SSH probe) | `2026-11-08T04:52:36.579Z` (`RULE-AUTH-001`) | **2.58s** |
+| `demo_baseline` | `2026-11-08T04:22:44.000Z` (SSH exec) | `2026-11-08T04:22:45.544Z` (`RULE-AUTH-001`) | **1.54s** |
+| `reordered` | `2026-11-08T04:25:12.000Z` (SSH exec) | `2026-11-08T04:25:12.938Z` (`RULE-AUTH-001`) | **0.94s** |
+| `slow_burn` | `2026-11-08T04:52:34.000Z` (SSH exec) | `2026-11-08T04:52:36.579Z` (`RULE-AUTH-001`) | **2.58s** |
 | **Ensemble Mean** | — | — | **1.69s** |
 
-Across all scenarios, actionable alerting occurs in under 3 seconds, providing defenders with immediate containment options before lateral movement or industrial damage can transpire.
+Across all scenarios, event-time alerting occurs in under 3 seconds, providing defenders with immediate containment options before lateral movement or industrial damage can transpire.

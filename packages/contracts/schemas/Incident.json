@@ -222,6 +222,7 @@
         }
       ],
       "default": null,
+      "description": "Event-time TTFMA: elapsed event-time seconds from incident start to threshold crossing, NOT processing latency; processing latency not measured in replay; measured live in the demo rehearsal (Phase 8)",
       "title": "Ttfma Seconds"
     },
     "score": {

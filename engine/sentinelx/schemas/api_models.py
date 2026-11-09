@@ -66,9 +66,18 @@ class CaptureEvalRow(BaseModel):
     incidents: int
     score: float | None = None
     severity: str | None = None
-    ttfma_seconds: float | None = None
-    ttfma_from_first_signal_seconds: float | None = None
-    ttfma_from_attack_start_seconds: float | None = None
+    ttfma_seconds: float | None = Field(
+        default=None,
+        description="Event-time TTFMA: difference between event timestamps (event.ts), NOT processing latency; processing latency not measured in replay; measured live in the demo rehearsal (Phase 8)",
+    )
+    ttfma_from_first_signal_seconds: float | None = Field(
+        default=None,
+        description="Event-time TTFMA from first signal: difference between event timestamps, NOT processing latency",
+    )
+    ttfma_from_attack_start_seconds: float | None = Field(
+        default=None,
+        description="Event-time TTFMA from attack start: difference between event timestamps, NOT processing latency",
+    )
     status: str
     decoy_touched: bool = False
     ot_touched: bool = False
@@ -84,9 +93,18 @@ class EvalSummaryResponse(BaseModel):
     benign_simulated_days: float = 25.0 / 24.0
     benign_fp_upper_bound_95: float = 2.88
     attack_recall: float
-    mean_ttfma_seconds: float | None = None
-    mean_ttfma_from_first_signal_seconds: float | None = None
-    mean_ttfma_from_attack_start_seconds: float | None = None
+    mean_ttfma_seconds: float | None = Field(
+        default=None,
+        description="Mean event-time TTFMA: difference between event timestamps (event.ts), NOT processing latency; processing latency not measured in replay; measured live in the demo rehearsal (Phase 8)",
+    )
+    mean_ttfma_from_first_signal_seconds: float | None = Field(
+        default=None,
+        description="Mean event-time TTFMA from first signal: difference between event timestamps, NOT processing latency",
+    )
+    mean_ttfma_from_attack_start_seconds: float | None = Field(
+        default=None,
+        description="Mean event-time TTFMA from attack start: difference between event timestamps, NOT processing latency",
+    )
     guard_ot_interlock: str = "100% Deterministic"
     evaluated_at: str
     threshold: float = 0.50

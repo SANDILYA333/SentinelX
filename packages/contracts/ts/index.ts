@@ -252,6 +252,9 @@ export type UpdatedAt = string;
 export type FirstSignalTs = string;
 
 export type FirstMeaningfulAlertTs = string | null;
+/**
+ * Event-time TTFMA: elapsed event-time seconds from incident start to threshold crossing, NOT processing latency; processing latency not measured in replay; measured live in the demo rehearsal (Phase 8)
+ */
 
 export type TtfmaSeconds = number | null;
 
@@ -590,6 +593,9 @@ export type Signals = number;
 export type Incidents = number;
 
 export type TtfmaFromFirstSignalSeconds = number | null;
+/**
+ * Event-time TTFMA from attack start: difference between event timestamps, NOT processing latency
+ */
 
 export type TtfmaFromAttackStartSeconds = number | null;
 
@@ -604,10 +610,19 @@ export type BenignSimulatedDays = number;
 export type BenignFpUpperBound95 = number;
 
 export type AttackRecall = number;
+/**
+ * Mean event-time TTFMA: difference between event timestamps (event.ts), NOT processing latency; processing latency not measured in replay; measured live in the demo rehearsal (Phase 8)
+ */
 
 export type MeanTtfmaSeconds = number | null;
+/**
+ * Mean event-time TTFMA from first signal: difference between event timestamps, NOT processing latency
+ */
 
 export type MeanTtfmaFromFirstSignalSeconds = number | null;
+/**
+ * Mean event-time TTFMA from attack start: difference between event timestamps, NOT processing latency
+ */
 
 export type MeanTtfmaFromAttackStartSeconds = number | null;
 

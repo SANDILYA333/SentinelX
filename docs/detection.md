@@ -116,4 +116,4 @@ All detectors output immutable, validated `Signal` objects conforming to `packag
 Across 5 full benign daily captures (day_101 through day_105) and 3 multi-stage attack scenarios:
 - **Benign False Positives**: **0.000 FP/24h** across rules, baseline, graph, and deception detectors.
 - **Attack Step Recall**: **100.0% (7/7 steps)** detected across `demo_baseline`, `reordered`, and `slow_burn` variants.
-- **Mean Time to First Meaningful Alert (TTFMA)**: **1.69 seconds** from initial network intrusion.
+- **Mean Event-Time TTFMA**: **1.69 seconds** (difference between event timestamps; processing latency not measured in replay, measured live in the demo rehearsal in Phase 8).

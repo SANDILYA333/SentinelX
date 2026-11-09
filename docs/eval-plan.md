@@ -79,3 +79,14 @@ To verify generalization beyond the lab's simulated Linux and Modbus schemas:
 - **Audit Objective**: Verify that command-line and process execution detectors (`RULE-SHELL-001`, `BASE-DEV-001`, `GRAPH-EDGE-001`) detect adversarial behavior after rule-content extension to support Windows-native execution keywords (`-EncodedCommand`, `certutil`, `wmic`, `schtasks`, `Invoke-WebRequest`) and generic technique mappings (`T1059`, `T1021`), while documenting why asset-dependent rules (`RULE-AUTH-001`, `RULE-OT-001`) intentionally do not fire on uncatalogued foreign hosts.
 - **Novelty Corroboration Requirement**: Unsupervised baseline, graph, and anomaly signals without corroboration from deterministic rules or deception assets are capped below the budget threshold ($\text{score} \le 0.40$, flagged `novelty_only=true`). Configured via `IncidentConfig.novelty_cap: float = 0.40` in `engine/sentinelx/config.py`.
   - *Trade-off*: Prevents false alarms on un-baselined hosts in unfamiliar enterprise environments. By design, a pure living-off-the-land or novel zero-day attack that eludes all deterministic rules and canary lures is capped below the alert threshold ($\theta = 0.50$). Note that the cap is only restrictive below threshold when $\theta > \text{novelty\_cap}$; operating at $\theta \le 0.40$ allows novelty-only incidents to escalate.
+
+---
+
+## 6. Event-Time TTFMA & Operational Latency Boundaries
+
+- **Definition**: TTFMA reported in offline capture replay is strictly an **event-time TTFMA** ($t_{\text{threshold\_cross}} - t_{\text{first\_adversary\_event}}$), measuring elapsed timestamp span between normalized capture events, **NOT** software pipeline processing latency. Processing latency not measured in replay; measured live in the demo rehearsal (Phase 8).
+- **Timestamp Provenance Finding**:
+  - The first adversary action (`event (a)`, `action: exec` on `jump-host`) has its normalized timestamp set from `inner.get("ts")` at `engine/sentinelx/ingest/adapters/wazuh.py:256` (the process logging wrapper), which carries 1-second resolution without sub-second precision (`04:22:44Z`).
+  - The first threshold-crossing signal (`event (c)`, `action: ssh_login`) has its normalized timestamp set from `record.get("timestamp")` at `engine/sentinelx/ingest/adapters/wazuh.py:139` (Wazuh manager archive), which carries millisecond precision (`04:22:45.544Z`).
+  - In raw Wazuh archive chronology, SSH authentication was logged at `45.544` and command execution at `45.550` (6ms later). The reported 0.94s / 1.54s / 2.58s delta reflects this **timestamp-source difference** between integer-second process logs and millisecond auth logs, rather than sequential detection latency.
+- **Ensemble Mean Event-Time TTFMA**: **1.69 seconds** across all three attack variants (`demo_baseline`: 1.54s, `reordered`: 0.94s, `slow_burn`: 2.58s).

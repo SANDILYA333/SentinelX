@@ -147,7 +147,7 @@ def print_incident_summary_table(
     print("=" * 135)
     header = (
         f"{'Capture':<16} | {'Total Incs':<10} | {'Active (>=th)':<13} | "
-        f"{'Score':<6} | {'Severity':<9} | {'TTFMA':<7} | {'Signals':<7} | {'Events':<7} | "
+        f"{'Score':<6} | {'Severity':<9} | {'Event-TTFMA':<11} | {'Signals':<7} | {'Events':<7} | "
         f"{'Decoy':<5} | {'OT':<5} | {'Stages Represented'}"
     )
     print(header)
@@ -161,7 +161,7 @@ def print_incident_summary_table(
         if not active_incs:
             if total_count == 0:
                 print(
-                    f"{cap:<16} | {0:<10} | {0:<13} | {'--':<6} | {'--':<9} | {'--':<7} | "
+                    f"{cap:<16} | {0:<10} | {0:<13} | {'--':<6} | {'--':<9} | {'--':<11} | "
                     f"{len(sigs):<7} | {events_count:<7} | {'No':<5} | {'No':<5} | []"
                 )
             else:
@@ -169,7 +169,7 @@ def print_incident_summary_table(
                 stages_str = str(top.kill_chain_stages)
                 print(
                     f"{cap:<16} | {total_count:<10} | {0:<13} | {top.score:<6.2f} | {top.severity.value:<9} | "
-                    f"{top.ttfma_seconds or 0.0:<7.1f} | {len(top.signal_ids):<7} | {len(top.event_ids):<7} | "
+                    f"{top.ttfma_seconds or 0.0:<11.1f} | {len(top.signal_ids):<7} | {len(top.event_ids):<7} | "
                     f"{'Yes' if top.decoy_touched else 'No':<5} | {'Yes' if top.ot_touched else 'No':<5} | {stages_str} (filtered by budget)"
                 )
         else:
@@ -178,11 +178,17 @@ def print_incident_summary_table(
             ttfma_str = f"{top.ttfma_seconds:.1f}s" if top.ttfma_seconds is not None else "--"
             print(
                 f"{cap:<16} | {total_count:<10} | {active_count:<13} | {top.score:<6.2f} | {top.severity.value:<9} | "
-                f"{ttfma_str:<7} | {len(top.signal_ids):<7} | {len(top.event_ids):<7} | "
+                f"{ttfma_str:<11} | {len(top.signal_ids):<7} | {len(top.event_ids):<7} | "
                 f"{'Yes' if top.decoy_touched else 'No':<5} | {'Yes' if top.ot_touched else 'No':<5} | {stages_str}"
             )
 
     print("=" * 135)
+    print(
+        "Note: Event-Time TTFMA = difference between event timestamps (event.ts), NOT processing latency."
+    )
+    print(
+        "      Processing latency is not measured in replay; measured live in the demo rehearsal (Phase 8)."
+    )
 
 
 def print_golden_incident_step_coverage(
