@@ -6,7 +6,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sentinelx.llm.summarizer import summarize_incident
+from sentinelx.llm.summarizer import compute_evidence_hash, summarize_incident
 from sentinelx.schemas.api_models import IncidentSummaryResponse, SummaryClaim
 from sentinelx.schemas.event import Event
 from sentinelx.schemas.guard import GuardAction, GuardDecision
@@ -130,8 +130,16 @@ async def get_incident_summary_endpoint(
     if not cached_row:
         raise HTTPException(status_code=404, detail=f"No summary found for incident {incident_id}")
 
+    current_hash = compute_evidence_hash(incident)
+    is_stale = cached_row["evidence_hash"] != current_hash
+
     claims_data = json.loads(cached_row["claims_json"])
     claims = [SummaryClaim(**c) for c in claims_data]
+    covered_eids = set()
+    for c in claims:
+        if c.event_ids:
+            covered_eids.update(c.event_ids)
+
     return IncidentSummaryResponse(
         incident_id=cached_row["incident_id"],
         evidence_hash=cached_row["evidence_hash"],
@@ -143,6 +151,10 @@ async def get_incident_summary_endpoint(
         dropped_count=cached_row["dropped"],
         model=cached_row["model"],
         generated_at=cached_row["generated_at"],
+        headline_source=cached_row.get("headline_source", "llm"),
+        is_stale=is_stale,
+        events_covered=len(covered_eids),
+        total_events=len(incident.event_ids),
     )
 
 

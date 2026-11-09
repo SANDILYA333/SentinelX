@@ -95,6 +95,40 @@
       "default": "grounding verified by code, not semantics",
       "title": "Grounding Note",
       "type": "string"
+    },
+    "headline_source": {
+      "default": "llm",
+      "title": "Headline Source",
+      "type": "string"
+    },
+    "is_stale": {
+      "default": false,
+      "title": "Is Stale",
+      "type": "boolean"
+    },
+    "events_covered": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Events Covered"
+    },
+    "total_events": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Total Events"
     }
   },
   "required": [

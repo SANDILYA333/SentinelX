@@ -142,3 +142,7 @@ class IncidentSummaryResponse(BaseModel):
     model: str
     generated_at: str
     grounding_note: str = "grounding verified by code, not semantics"
+    headline_source: str = "llm"  # 'llm' or 'template'
+    is_stale: bool = False
+    events_covered: int | None = None
+    total_events: int | None = None

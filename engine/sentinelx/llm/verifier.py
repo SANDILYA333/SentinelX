@@ -16,19 +16,23 @@ from sentinelx.schemas.incident import Incident
 RE_IPV4 = re.compile(r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b")
 RE_NUMBERS = re.compile(r"\b\d+\b")
 
-DEFAULT_VERDICT_KEYWORDS: tuple[str, ...] = (
-    "false positive",
-    "benign",
-    "authorized",
-    "legitimate",
-    "harmless",
-    "safe to ignore",
-    "no action needed",
-    "no action required",
-    "not malicious",
-    "allowlisted",
-    "whitelisted",
+# Word-boundary regex patterns over non-verdict and authorization phrase list (Phase 8.2)
+DEFAULT_VERDICT_PATTERNS: tuple[str, ...] = (
+    r"\bauthorized\s+maintenance\b",
+    r"\b(?:is|was|are|were)\s+authorized\b",
+    r"\bauthorized\s+(?:access|activity|action|user|operation|use)\b",
+    r"\bfalse\s+positive[s]?\b",
+    r"\bbenign\s+(?:activity|traffic|access|behavior|event[s]?|action[s]?|logon[s]?)\b",
+    r"\bharmless\b",
+    r"\bsafe\s+to\s+ignore\b",
+    r"\bno\s+action\s+(?:needed|required)\b",
+    r"\blegitimate\s+(?:access|activity|traffic|behavior|user[s]?|action[s]?|operation[s]?)\b",
+    r"\bnot\s+malicious\b",
+    r"\ballowlisted\b",
+    r"\bwhitelisted\b",
 )
+
+DEFAULT_VERDICT_KEYWORDS: tuple[str, ...] = DEFAULT_VERDICT_PATTERNS
 
 
 class VerificationResult:
@@ -43,6 +47,8 @@ class VerificationResult:
         verified_count: int,
         dropped_count: int,
         passed_ratio_check: bool,
+        headline_valid: bool = True,
+        headline_fail_reason: str | None = None,
     ):
         self.headline = headline
         self.verified_claims = verified_claims
@@ -51,6 +57,8 @@ class VerificationResult:
         self.verified_count = verified_count
         self.dropped_count = dropped_count
         self.passed_ratio_check = passed_ratio_check
+        self.headline_valid = headline_valid
+        self.headline_fail_reason = headline_fail_reason
 
     @property
     def is_valid(self) -> bool:
@@ -63,6 +71,113 @@ def _extract_all_numbers(text_or_obj: Any) -> set[str]:
     return set(RE_NUMBERS.findall(str(text_or_obj)))
 
 
+def mask_entities_for_scanning(text: str, mask_tokens: set[str]) -> str:
+    """Mask known asset hostnames, user names, and incident entities before scanning for verdict phrases."""
+    masked = text
+    sorted_tokens = sorted((t for t in mask_tokens if t and len(t) >= 2), key=len, reverse=True)
+    for tok in sorted_tokens:
+        pattern = r"\b" + re.escape(tok) + r"\b"
+        masked = re.sub(pattern, "__MASKED__", masked, flags=re.IGNORECASE)
+    return masked
+
+
+def scan_for_verdict(
+    text: str,
+    mask_tokens: set[str],
+    patterns: tuple[str, ...] | list[str] | None = None,
+) -> str | None:
+    """Scan text for verdict/authorization language after masking entities.
+
+    Returns the matched phrase if forbidden language is detected, else None.
+    """
+    if not text:
+        return None
+    pats = patterns if patterns is not None else DEFAULT_VERDICT_PATTERNS
+    masked_text = mask_entities_for_scanning(text, mask_tokens)
+    for pat in pats:
+        regex_str = pat if pat.startswith(r"\b") else rf"\b{re.escape(pat)}\b"
+        match = re.search(regex_str, masked_text, re.IGNORECASE)
+        if match:
+            return match.group(0)
+    return None
+
+
+def verify_headline(
+    headline: str,
+    incident: Incident,
+    events: list[Event],
+    known_hosts: set[str],
+    verdict_keywords: tuple[str, ...] | list[str] | None = None,
+) -> tuple[bool, str | None]:
+    """Verify an incident summary headline against V5 (non-verdict) and V4 (grounded IPs, hosts, numbers).
+
+    Returns (is_valid, failure_reason).
+    """
+    if not headline or not headline.strip():
+        return False, "Headline is empty"
+
+    # 1. (V5) Non-verdict check on headline with entity masking
+    mask_tokens = set(known_hosts)
+    mask_tokens.update(e.value for e in incident.entities if e.value)
+    for ev in events:
+        if ev.user:
+            mask_tokens.add(ev.user)
+        if ev.host:
+            mask_tokens.add(ev.host)
+
+    verdict_match = scan_for_verdict(headline, mask_tokens, patterns=verdict_keywords)
+    if verdict_match:
+        return (
+            False,
+            f"V5_FAILED: Headline contains forbidden verdict/authorization phrase '{verdict_match}'",
+        )
+
+    # 2. (V4-a) IPv4 addresses in headline must appear in incident or cited events
+    headline_ips = set(RE_IPV4.findall(headline))
+    allowed_ips: set[str] = {e.value for e in incident.entities if e.type == "ip"}
+    for ev in events:
+        if ev.src_ip:
+            allowed_ips.add(ev.src_ip)
+        if ev.dst_ip:
+            allowed_ips.add(ev.dst_ip)
+        if isinstance(ev.raw, dict):
+            allowed_ips.update(RE_IPV4.findall(str(ev.raw)))
+
+    for ip in headline_ips:
+        if ip not in allowed_ips:
+            return False, f"V4_FAILED: IPv4 address '{ip}' in headline not present in evidence"
+
+    # 3. (V4-b) Known asset hostnames in headline must appear in incident or cited events
+    allowed_hosts: set[str] = {e.value.lower() for e in incident.entities if e.type == "host"}
+    for ev in events:
+        if ev.host:
+            allowed_hosts.add(ev.host.lower())
+        if isinstance(ev.raw, dict):
+            for h in known_hosts:
+                if h in str(ev.raw).lower():
+                    allowed_hosts.add(h)
+
+    for host in known_hosts:
+        if re.search(r"\b" + re.escape(host) + r"\b", headline, re.IGNORECASE):
+            if host not in allowed_hosts:
+                return False, f"V4_FAILED: Known host '{host}' in headline not present in evidence"
+
+    # 4. (V4-c) Numbers in headline must appear in incident metadata or cited events
+    allowed_numbers: set[str] = set()
+    for ev in events:
+        allowed_numbers.update(_extract_all_numbers(ev.model_dump()))
+        if isinstance(ev.raw, dict):
+            allowed_numbers.update(_extract_all_numbers(ev.raw))
+    allowed_numbers.update(_extract_all_numbers(incident.model_dump()))
+
+    headline_numbers = set(RE_NUMBERS.findall(headline))
+    for num in headline_numbers:
+        if num not in allowed_numbers:
+            return False, f"V4_FAILED: Number '{num}' in headline not found in evidence"
+
+    return True, None
+
+
 def verify_claim(
     claim: LLMClaim,
     incident: Incident,
@@ -70,19 +185,25 @@ def verify_claim(
     known_hosts: set[str],
     verdict_keywords: tuple[str, ...] | list[str] | None = None,
 ) -> tuple[bool, str | None]:
-    """Verify a single claim against structural grounding rules (V1-V4) and non-verdict policy (V5).
+    """Verify a single claim against structural grounding rules (V1-V4, V6) and non-verdict policy (V5).
 
     Returns (is_valid, failure_reason).
     """
     # (V5) Summary claims describe evidence; they must never judge or render verdicts
-    keywords = verdict_keywords if verdict_keywords is not None else DEFAULT_VERDICT_KEYWORDS
-    text_lower = claim.text.lower()
-    for kw in keywords:
-        if kw in text_lower:
-            return (
-                False,
-                f"V5_FAILED: Claim text contains forbidden verdict/authorization phrase '{kw}' (summaries describe evidence; they must never judge)",
-            )
+    mask_tokens = set(known_hosts)
+    mask_tokens.update(e.value for e in incident.entities if e.value)
+    for ev in events_by_id.values():
+        if ev.user:
+            mask_tokens.add(ev.user)
+        if ev.host:
+            mask_tokens.add(ev.host)
+
+    verdict_match = scan_for_verdict(claim.text, mask_tokens, patterns=verdict_keywords)
+    if verdict_match:
+        return (
+            False,
+            f"V5_FAILED: Claim text contains forbidden verdict/authorization phrase '{verdict_match}' (summaries describe evidence; they must never judge)",
+        )
 
     # (V1) Must cite at least one event_id, and all cited IDs must be in this incident
     if not claim.event_ids:
@@ -156,7 +277,6 @@ def verify_claim(
 
     # (V4-b) Known asset hostnames in text must appear in cited events
     for host in known_hosts:
-        # Check whole-word presence
         if re.search(r"\b" + re.escape(host) + r"\b", text, re.IGNORECASE):
             host_in_events = False
             for ev in cited_events:
@@ -179,7 +299,6 @@ def verify_claim(
         if isinstance(ev.raw, dict):
             allowed_numbers.update(_extract_all_numbers(ev.raw))
 
-    # Also allow numbers from incident metadata (e.g. stage indices, scores, technique IDs)
     allowed_numbers.update(_extract_all_numbers(incident.model_dump()))
 
     text_numbers = set(RE_NUMBERS.findall(text))
@@ -190,6 +309,25 @@ def verify_claim(
                 f"V4_FAILED: Number '{num}' in claim text not found in cited events or incident fields",
             )
 
+    # (V6) Claim must mention at least one incident-level entity (incident.entities)
+    incident_entity_values = {e.value.lower() for e in incident.entities if len(e.value) >= 3}
+    claim_entities_lower = {e.strip().lower() for e in claim.entities}
+    claim_text_lower = claim.text.lower()
+
+    found_incident_entity = False
+    for ent_val in incident_entity_values:
+        if ent_val in claim_entities_lower or re.search(
+            r"\b" + re.escape(ent_val) + r"\b", claim_text_lower
+        ):
+            found_incident_entity = True
+            break
+
+    if not found_incident_entity:
+        return (
+            False,
+            "V6_FAILED: Claim does not mention any incident-level entity from incident.entities",
+        )
+
     return True, None
 
 
@@ -199,7 +337,7 @@ def verify_summary(
     events: list[Event],
     verdict_keywords: tuple[str, ...] | list[str] | None = None,
 ) -> VerificationResult:
-    """Verify all claims in an LLM summary payload against incident evidence.
+    """Verify all claims and headline in an LLM summary payload against incident evidence.
 
     Unverified claims are dropped. If <50% of claims verify, result is marked invalid.
     """
@@ -207,6 +345,11 @@ def verify_summary(
 
     assets = get_assets()
     known_hosts = {h.name.lower() for h in assets.hosts}
+
+    # Verify headline
+    headline_valid, headline_fail_reason = verify_headline(
+        payload.headline, incident, events, known_hosts, verdict_keywords=verdict_keywords
+    )
 
     verified_claims: list[LLMClaim] = []
     dropped_claims: list[dict[str, Any]] = []
@@ -241,4 +384,6 @@ def verify_summary(
         verified_count=verified_count,
         dropped_count=dropped_count,
         passed_ratio_check=passed_ratio_check,
+        headline_valid=headline_valid,
+        headline_fail_reason=headline_fail_reason,
     )

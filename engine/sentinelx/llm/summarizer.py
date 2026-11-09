@@ -57,6 +57,10 @@ def summarize_incident(
         if cached_row:
             claims_data = json.loads(cached_row["claims_json"])
             claims = [SummaryClaim(**c) for c in claims_data]
+            covered_eids = set()
+            for c in claims:
+                if c.event_ids:
+                    covered_eids.update(c.event_ids)
             return IncidentSummaryResponse(
                 incident_id=cached_row["incident_id"],
                 evidence_hash=cached_row["evidence_hash"],
@@ -68,6 +72,10 @@ def summarize_incident(
                 dropped_count=cached_row["dropped"],
                 model=cached_row["model"],
                 generated_at=cached_row["generated_at"],
+                headline_source=cached_row.get("headline_source", "llm"),
+                is_stale=False,
+                events_covered=len(covered_eids),
+                total_events=len(incident.event_ids),
             )
 
     # 2. Determine mode and model
@@ -76,6 +84,7 @@ def summarize_incident(
 
     payload: LLMSummaryPayload | None = None
     mode = "template"
+    headline_source = "template"
     dropped_count = 0
     total_count = 0
     verified_count = 0
@@ -106,25 +115,40 @@ def summarize_incident(
                 raw_obj = raw_obj[0]
             parsed_payload = LLMSummaryPayload.model_validate(raw_obj)
 
-            # Run deterministic verification (V1-V5)
+            # Run deterministic verification (V1-V6, including headline V4/V5)
             verification = verify_summary(parsed_payload, incident, events)
             setattr(active_client, "last_verification", verification)
 
             if verification.is_valid:
                 mode = "llm"
+                # Check headline validity
+                if verification.headline_valid:
+                    final_headline = verification.headline
+                    headline_source = "llm"
+                else:
+                    template_fallback = generate_template_summary(incident)
+                    final_headline = template_fallback.headline
+                    headline_source = "template"
+                    logger.info(
+                        "LLM headline for incident %s rejected by verifier (%s); using deterministic template headline.",
+                        incident.incident_id,
+                        verification.headline_fail_reason,
+                    )
+
                 payload = LLMSummaryPayload(
-                    headline=verification.headline,
+                    headline=final_headline,
                     claims=verification.verified_claims,
                 )
                 verified_count = verification.verified_count
                 total_count = verification.total_count
                 dropped_count = verification.dropped_count
                 logger.info(
-                    "LLM summary for incident %s verified successfully (%d/%d claims verified, %d dropped)",
+                    "LLM summary for incident %s verified successfully (%d/%d claims verified, %d dropped, headline_source=%s)",
                     incident.incident_id,
                     verified_count,
                     total_count,
                     dropped_count,
+                    headline_source,
                 )
             else:
                 logger.warning(
@@ -147,11 +171,10 @@ def summarize_incident(
     if payload is None:
         mode = "template"
         selected_model = "deterministic-template"
+        headline_source = "template"
         payload = generate_template_summary(incident)
         total_count = len(payload.claims)
-        verified_count = (
-            0  # deterministic template claims are not marked verified as if an LLM were checked
-        )
+        verified_count = 0  # deterministic template claims are not marked verified
         dropped_count = 0
 
     # 5. Build response claims and summary text
@@ -197,6 +220,7 @@ def summarize_incident(
             dropped=dropped_count,
             model=selected_model,
             generated_at=generated_at,
+            headline_source=headline_source,
         )
         upsert_incident(db, incident)
 
@@ -211,4 +235,8 @@ def summarize_incident(
         dropped_count=dropped_count,
         model=selected_model,
         generated_at=generated_at,
+        headline_source=headline_source,
+        is_stale=False,
+        events_covered=len(sorted_citations),
+        total_events=len(incident.event_ids),
     )

@@ -31,6 +31,7 @@ import {
   CheckCircle2,
   Clock,
   GitGraph,
+  Loader2,
   RefreshCw,
   Search,
   Server,
@@ -492,6 +493,11 @@ function IncidentsContent() {
                             Deterministic Fallback (LLM unavailable)
                           </Badge>
                         )}
+                        {summary?.is_stale && (
+                          <Badge variant="outline" className="bg-amber-950/60 text-amber-300 border-amber-600/50 text-[10px] font-mono">
+                            stale - regenerate
+                          </Badge>
+                        )}
                         {summaryStatus === "error" && (
                           <Badge variant="outline" className="bg-rose-950/60 text-rose-300 border-rose-600/40 text-[10px] font-mono">
                             Error
@@ -500,21 +506,31 @@ function IncidentsContent() {
                       </div>
                       <CardDescription className="text-xs text-slate-400">
                         {summary
-                          ? `Model: ${summary.model} • cached, generated ${new Date(summary.generated_at).toLocaleTimeString()}`
+                          ? `Model: ${summary.model} • covers ${summary.events_covered ?? (summary.claims ?? []).reduce((acc, c) => acc + (c.event_ids?.length || 0), 0)} of ${summary.total_events ?? incidentDetail?.event_ids?.length ?? "—"} current events • cached, generated ${new Date(summary.generated_at).toLocaleTimeString()}`
                           : "Grounded incident synthesis with strict citation verification"}
                       </CardDescription>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {summaryStatus === "none" && (
+                      {(summaryStatus === "none" || summaryStatus === "generating") && (
                         <Button
                           size="sm"
                           variant="outline"
+                          disabled={summaryStatus === "generating"}
                           onClick={() => handleGenerateSummary(false)}
                           className="h-8 text-xs font-mono bg-purple-950/40 text-purple-300 border-purple-700/60 hover:bg-purple-900/60 hover:text-purple-200"
                         >
-                          <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                          Generate Summary
+                          {summaryStatus === "generating" ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                              Generating summary...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                              Generate summary (~5-10s)
+                            </>
+                          )}
                         </Button>
                       )}
                       {(summaryStatus === "llm" || summaryStatus === "template" || summaryStatus === "error") && !presenterMode && (

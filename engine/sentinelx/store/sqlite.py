@@ -109,9 +109,16 @@ def init_db(path: str | Path) -> sqlite3.Connection:
                 dropped INTEGER NOT NULL,
                 model TEXT NOT NULL,
                 generated_at TEXT NOT NULL,
+                headline_source TEXT DEFAULT 'llm',
                 PRIMARY KEY (incident_id, evidence_hash)
             );
         """)
+        try:
+            conn.execute(
+                "ALTER TABLE incident_summaries ADD COLUMN headline_source TEXT DEFAULT 'llm';"
+            )
+        except sqlite3.OperationalError:
+            pass
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_incident_summaries_lookup ON incident_summaries(incident_id, generated_at DESC);"
         )
@@ -490,14 +497,15 @@ def upsert_incident_summary(
     dropped: int,
     model: str,
     generated_at: str,
+    headline_source: str = "llm",
 ) -> bool:
     """Insert or replace an advisory analyst summary in the incident_summaries sidecar table."""
     with db:
         cur = db.execute(
             """
             INSERT OR REPLACE INTO incident_summaries (
-                incident_id, evidence_hash, mode, text, claims_json, verified, total, dropped, model, generated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                incident_id, evidence_hash, mode, text, claims_json, verified, total, dropped, model, generated_at, headline_source
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 incident_id,
@@ -510,6 +518,7 @@ def upsert_incident_summary(
                 dropped,
                 model,
                 generated_at,
+                headline_source,
             ),
         )
         return cur.rowcount > 0
@@ -524,7 +533,7 @@ def get_incident_summary(
     cursor = db.cursor()
     cursor.execute(
         """
-        SELECT incident_id, evidence_hash, mode, text, claims_json, verified, total, dropped, model, generated_at
+        SELECT incident_id, evidence_hash, mode, text, claims_json, verified, total, dropped, model, generated_at, headline_source
         FROM incident_summaries
         WHERE incident_id = ? AND evidence_hash = ?
         """,
@@ -544,6 +553,7 @@ def get_incident_summary(
         "dropped": row[7],
         "model": row[8],
         "generated_at": row[9],
+        "headline_source": row[10] if len(row) > 10 and row[10] is not None else "llm",
     }
 
 
@@ -555,7 +565,7 @@ def get_latest_incident_summary(
     cursor = db.cursor()
     cursor.execute(
         """
-        SELECT incident_id, evidence_hash, mode, text, claims_json, verified, total, dropped, model, generated_at
+        SELECT incident_id, evidence_hash, mode, text, claims_json, verified, total, dropped, model, generated_at, headline_source
         FROM incident_summaries
         WHERE incident_id = ?
         ORDER BY generated_at DESC
@@ -577,4 +587,5 @@ def get_latest_incident_summary(
         "dropped": row[7],
         "model": row[8],
         "generated_at": row[9],
+        "headline_source": row[10] if len(row) > 10 and row[10] is not None else "llm",
     }

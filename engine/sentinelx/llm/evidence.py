@@ -53,30 +53,96 @@ def sanitize_cmdline(cmdline: str | None, max_len: int = 200) -> str:
     return redacted
 
 
+def score_event_relevance(ev: Event, incident_entity_values: set[str]) -> int:
+    """Calculate relevance of an event relative to incident entities and adversary indicators."""
+    score = 0
+    if ev.user and ev.user.lower() in incident_entity_values:
+        score += 10
+    if ev.host and ev.host.lower() in incident_entity_values:
+        score += 5
+    if ev.src_ip and ev.src_ip in incident_entity_values:
+        score += 10
+    if ev.dst_ip and ev.dst_ip in incident_entity_values:
+        score += 5
+
+    # Prioritize critical operational and deception telemetry
+    if ev.domain == "ot":
+        score += 15
+    if ev.domain == "decoy":
+        score += 15
+
+    # Check for OT specifics
+    if isinstance(ev.raw, dict) and any(
+        k in ev.raw for k in ("unit_id", "func_code", "reg_addr", "register")
+    ):
+        score += 15
+
+    # Check command-line and action strings for security-relevant keywords
+    combined = f"{ev.action or ''} {ev.process or ''}".lower()
+    if isinstance(ev.raw, dict):
+        for k in ("cmd", "cmdline", "full_log"):
+            if k in ev.raw and isinstance(ev.raw[k], str):
+                combined += " " + ev.raw[k].lower()
+
+    if any(
+        kw in combined
+        for kw in (
+            "modbus",
+            "sshpass",
+            "plc",
+            "db_creds",
+            "encoded",
+            "powershell",
+            "certutil",
+            "schtasks",
+            "wmic",
+        )
+    ):
+        score += 15
+
+    # Routine background commands from non-attack user 'alice' without OT/decoy activity have lower relevance
+    if ev.user == "alice" and score < 20:
+        score -= 10
+
+    return score
+
+
 def build_evidence_packet(
     incident: Incident,
     events: list[Event],
     max_cmdline_len: int = 200,
+    max_events: int = 75,
 ) -> str:
     """Build a bounded, sanitized, and labeled UNTRUSTED DATA evidence packet from cited events.
 
     Only events present in incident.event_ids are included.
+    Events are sorted and prioritized by relevance to incident.entities.
     """
     cited_ids = set(incident.event_ids)
     cited_events = [e for e in events if e.event_id in cited_ids]
 
-    # Sort events by timestamp
-    cited_events.sort(key=lambda ev: ev.ts)
+    incident_entity_values = {e.value.lower() for e in incident.entities}
+
+    # Sort/limit events by relevance to incident.entities
+    if len(cited_events) > max_events:
+        scored = [(score_event_relevance(ev, incident_entity_values), ev) for ev in cited_events]
+        scored.sort(key=lambda item: (-item[0], item[1].ts))
+        selected_events = [item[1] for item in scored[:max_events]]
+    else:
+        selected_events = cited_events
+
+    # Present selected events in chronological order for narrative coherence
+    selected_events.sort(key=lambda ev: ev.ts)
 
     lines = [
         "=== BEGIN UNTRUSTED DATA ===",
         f"# Incident ID: {incident.incident_id} (Score: {incident.score:.4f}, Severity: {incident.severity.value})",
         f"# Kill-Chain Stages: {', '.join(incident.kill_chain_stages)}",
-        f"# Total Cited Events: {len(cited_events)}",
+        f"# Total Cited Events: {len(cited_events)} (Packet Sample: {len(selected_events)})",
         "",
     ]
 
-    for ev in cited_events:
+    for ev in selected_events:
         # Extract process command line or raw details
         cmd = None
         if ev.process:

@@ -747,9 +747,11 @@ export type GeneratedAt = string;
 
 export type GroundingNote = string;
 
-/**
- * Advisory LLM / deterministic template summary response for an incident.
- */
+export type HeadlineSource = string;
+
+export type IsStale = boolean;
+
+export type EventsCovered = number | null;
 
 export interface IncidentSummaryResponse {
   incident_id: IncidentId;
@@ -763,6 +765,10 @@ export interface IncidentSummaryResponse {
   model: Model;
   generated_at: GeneratedAt;
   grounding_note?: GroundingNote;
+  headline_source?: HeadlineSource;
+  is_stale?: IsStale;
+  events_covered?: EventsCovered;
+  total_events?: TotalEvents;
 }
 /**
  * Individual grounded forensic claim in an analyst summary.

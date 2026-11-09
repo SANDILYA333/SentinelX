@@ -86,7 +86,7 @@ The system instruction explicitly warns the model:
 
 ## 4. Grounding Verifier: Pure Python Citation Enforcement
 
-The verifier (`engine/sentinelx/llm/verifier.py`) runs in pure Python with **zero LLM involvement**. It validates five strict rules:
+The verifier (`engine/sentinelx/llm/verifier.py`) runs in pure Python with **zero LLM involvement**. It validates six strict rules over claims and headlines:
 
 | Rule | Check | Failure Action |
 | :--- | :--- | :--- |
@@ -94,8 +94,11 @@ The verifier (`engine/sentinelx/llm/verifier.py`) runs in pure Python with **zer
 | **V2** | **Entity Grounding** | Every entity in `claim.entities` must appear in cited event normalized fields (`host`, `user`, `src_ip`, `dst_ip`). | Drop claim |
 | **V3** | **Technique Grounding** | Every technique ID in `claim.technique_ids` must be a subset of the incident's correlated techniques. | Drop claim |
 | **V4** | **Literal Entity / IP Grounding** | Every IPv4 address, known inventory hostname (`assets.yaml`), and number in `claim.text` must appear in cited events or incident fields. | Drop claim |
-| **V5** | **Non-Verdict Policy (Keyword Guard)** | The summary describes; it never judges. Claims containing verdict/authorization language (`false positive`, `benign`, `authorized`, `legitimate`, `harmless`, `safe to ignore`, `no action needed`, etc.) are dropped. | Drop claim |
+| **V5** | **Non-Verdict Policy (Word-Boundary Regex Guard)** | The summary describes; it never judges. Scans masked claim text for forbidden authorization/verdict phrases (`authorized maintenance`, `is/was authorized`, `false positive`, `benign activity`, `harmless`, `safe to ignore`, `no action needed`, `legitimate access/activity`, etc.). Known hostnames (e.g. host `benign`) and entity tokens are masked prior to scanning to eliminate false drops. | Drop claim |
+| **V6** | **Incident-Level Entity Anchor** | Each claim must explicitly mention at least one incident-level entity (`incident.entities`), preventing disconnected narrative hallucination. | Drop claim |
 
+- **Headline Verification**: Headlines are verified against V5 (non-verdict phrases) and V4 (grounded IPs, known hostnames, and numbers). If the headline fails verification, the summarizer falls back to the deterministic headline from `template.py` and records `headline_source: "template"`.
+- **Evidence Contamination & Relevance Ranking**: In multi-stage campaigns with co-occurring benign activity (e.g. `slow_burn`, where background user `alice` generated 71 benign admin commands merged into the incident graph by anomaly detectors), the evidence packet builder sorts and prioritizes events by relevance to primary incident entities, OT indicators, and deception alerts. This ensures critical adversary evidence is prioritized within the prompt packet while routine background noise is suppressed.
 - **50% Verification Threshold**: If $< 50\%$ of the model's claims pass verification, the entire output is rejected as ungrounded and discarded, falling back to deterministic template synthesis.
 - **UI Grounding Surface**: The Analyst Summary UI displays the actual cited event text (command line snippet or normalized action) directly underneath each claim chip. Human analysts see the raw telemetry evidence alongside the AI narrative.
 
@@ -103,8 +106,9 @@ The verifier (`engine/sentinelx/llm/verifier.py`) runs in pure Python with **zer
 > [!WARNING]
 > **Semantic Entailment Disclaimer**:
 > 1. The verifier proves **structural grounding** (event IDs, IPs, hostnames, numbers, entity tokens), not natural language semantic truth or logical entailment.
-> 2. Rule V5 is a **keyword guard, not a semantic classifier**. It blocks common adversary injection phrases ("false positive", "authorized maintenance", "no action needed"), but cannot evaluate subtle deceptive prose.
-> 3. Therefore, the summary remains strictly advisory text. It never controls or influences alert budgets, incident progression scores, or Response Safety Guard containment interlocks.
+> 2. Rule V5 is a **phrase/word-boundary guard, not a semantic classifier**. It blocks known adversary injection phrases ("false positive", "authorized maintenance", "no action needed"), but cannot evaluate subtle or obfuscated deceptive prose.
+> 3. Rule V6 ensures claims reference incident entities, but cannot guarantee the causal correctness of the relationship asserted between those entities.
+> 4. Therefore, the summary remains strictly advisory text. It never controls or influences alert budgets, incident progression scores, or Response Safety Guard containment interlocks.
 
 ---
 
@@ -144,6 +148,6 @@ SentinelX falls back immediately and with **zero downtime** to the deterministic
 
 ## 7. Performance & Latency Disclosure
 
-- **Offline Replay Metrics**: Replay throughput numbers (e.g. $\sim 145$ events/s, $\sim 0.60$s to incident threshold) represent **offline replay compute at max speed, in-process, no live pipeline latency**. They measure CPU throughput of parsing and correlation in memory, not network packet traversal.
+- **Offline Replay Metrics**: Replay throughput numbers (e.g. ~180 events/s, varies run to run across 150–200 events/s, ~0.48s to incident threshold) represent **offline replay compute at max speed, in-process, no live pipeline latency**. They measure CPU throughput of parsing and correlation in memory, not network packet traversal.
 - **Live Rehearsal Latency**: End-to-end wall-clock latency from the adversary's first network packet to API incident threshold crossing is measured live in testbed rehearsals using `scripts/measure_latency.py --live` with active containers (`make lab-up`).
 
