@@ -408,7 +408,7 @@ def update_api_eval_summary(
     """Serialize full evaluation matrix to JSON for the REST API and web UI."""
     captures_list = []
     for cap in ALL_CAPTURES:
-        all_incs, act_incs, sigs, ev_cnt = capture_eval_results[cap]
+        all_incs, act_incs, sigs, ev_cnt = capture_eval_results[cap][:4]
         meta = CAPTURE_METADATA.get(cap, {})
         top = act_incs[0] if act_incs else (all_incs[0] if all_incs else None)
 

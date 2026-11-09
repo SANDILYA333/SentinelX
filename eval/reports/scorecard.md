@@ -1,8 +1,8 @@
-# SentinelX Evaluation Scorecard & Performance Audit (Phase 7.1)
-**Generated**: 2026-11-08 19:06:32 UTC  
-**Git SHA**: `1dad693e1fe075b37d9927cd53e9da4042198411`  
+# SentinelX Evaluation Scorecard & Performance Audit (Phase 7.3)
+**Generated**: 2026-11-09 01:22:25 UTC  
+**Code Commit SHA**: `f226a11d80928edcb0bb691f4a9100b807ca3777` *(clean)*  
 **Evaluation Scope**: Full End-to-End Pipeline (Ingestion -> Normalization -> 5 Detectors -> Kill-Chain Correlator -> Budget Gating at 0.50).  
-**Test Corpus**: 8 Telco/SCADA Captures (5 Benign Days, 3 Multi-Stage Attack Scenarios) + 1 Organizer Windows Enterprise Log Suite (Attack + Benign).
+**Test Corpus**: 8 Enterprise IT / OT (ICS/SCADA) Hybrid Captures (5 Benign Days, 3 Multi-Stage Attack Scenarios) + 1 Organizer Windows Enterprise Log Suite (Attack + Benign).
 
 ---
 
@@ -13,13 +13,14 @@
 | **Incident Precision** | **100.0%** (3/3 True Positives) | >= 90.0% | LOO Cross-Validation | **PASS** |
 | **Incident Recall** | **100.0%** (3/3 Attack Variants) | 100.0% | LOO Cross-Validation | **PASS** |
 | **F1 Score** | **1.0000** | >= 0.950 | LOO Cross-Validation | **PASS** |
-| **Daily False Positive Rate** | **0.000 FP / 24h** (0 FP across 5 LOO folds at 0.50 threshold) | 0.000 strict target | LOO Cross-Validation | **PASS** |
+| **Benign False Positive Rate** | **0.000 FP / 24h** (0 FP across 25.0h simulated = 1.042 days; exact 95% UB: 2.876 FP/24h) | 0.000 strict target | LOO Cross-Validation | **PASS** |
 | **Score Separation Margin** | **0.8500** (Min Attack: 1.0000 - Max LOO Benign: 0.1500) | > 0.400 | LOO Empirical Margin | **PASS** |
 | **Golden Scenario Step Recall**| **7/7 (100.0%)** across all 3 attack variants | 7/7 steps | In-Sample Replay | **PASS** |
-| **Mean Time to First Meaningful Alert (TTFMA)** | **1.69s** (baseline: 1.54s, reordered: 0.94s, slow_burn: 2.58s) | < 5.0s | In-Sample Replay | **PASS** |
+| **Mean TTFMA (From First Signal)** | **1.69s** (baseline: 1.54s, reordered: 0.94s, slow_burn: 2.58s) | < 5.0s | In-Sample Replay | **PASS** |
+| **Mean TTFMA (From Attack Start)**  | **1.69s** (baseline: 1.54s, reordered: 0.94s, slow_burn: 2.58s) | < 5.0s | In-Sample Replay | **PASS** |
 | **Classification Accuracy** | **100.0%** (8/8 captures correctly gated) | 100.0% | In-Sample Replay | **PASS** |
 
-> **Headline FP/24h Code Path**: Derived strictly from Leave-One-Out (LOO) cross-validation folds in `eval/metrics.py:compute_metrics_report` (`fp = sum(1 for scores in loo_benign_scores.values() if any(s >= 0.50 for s in scores)) / 5.0 = 0.000 FP/24h`). It does NOT rely on in-sample training memorization.
+> **Headline FP/24h Code Path**: Derived strictly from Leave-One-Out (LOO) cross-validation folds in `eval/metrics.py:compute_metrics_report` (`fp = sum(1 for scores in loo_benign_scores.values() if any(s >= 0.50 for s in scores))`), normalized by total benign simulated hours: `fp / (25.0h / 24) = 0.000 FP / 24h` with an exact one-sided 95% Poisson upper confidence limit of `chi2.ppf(0.95, 2*(k+1))/2 / (25.0h / 24) = 2.876 FP / 24h`. It does NOT rely on in-sample training memorization.
 
 ---
 
@@ -107,21 +108,22 @@ Evaluated under **Leave-One-Out (LOO) Cross-Validation** across the 5 benign dai
 | **Step 7: Decoy PLC Reconnaissance** | baseline, deception, graph (17 sigs) | baseline, deception, graph (17 sigs) | baseline, deception, graph (15 sigs) |
 | **Total Steps Represented** | **7 / 7 (100.0%)** | **7 / 7 (100.0%)** | **7 / 7 (100.0%)** |
 | **Incident Score** | **1.00 (CRITICAL)** | **1.00 (CRITICAL)** | **1.00 (CRITICAL)** |
-| **Time to First Meaningful Alert (TTFMA)** | **1.54s** (RULE-AUTH-001) | **0.94s** (RULE-AUTH-001) | **2.58s** (RULE-AUTH-001) |
+| **Time to First Meaningful Alert (TTFMA - from first signal)** | **1.54s** (RULE-AUTH-001) | **0.94s** (RULE-AUTH-001) | **2.58s** (RULE-AUTH-001) |
+| **Time to First Meaningful Alert (TTFMA - from attack start)**  | **1.54s** (src: 10.10.1.5) | **0.94s** (src: 10.10.1.5) | **2.58s** (src: 10.10.1.5) |
 
 ---
 
 ## 5. Detector Contribution & Real Ranking Matrix (Task 1)
 
-Ranked strictly by measured impact: **1) Scenario Steps Lost when Dropped Alone**, then **2) Incident Score Delta**.
+Ranked strictly by measured impact: **1) Scenario Steps Lost when Dropped Alone**, then **2) Incident Score Delta**. Detectors tying on both metrics are shown as TIED rather than broken by signal count.
 
 | Rank | Detector Engine | Steps Lost when Dropped | Critical Step Enabler | Score Delta | TP Signals | LOO Noise Delta | Derived Trust Classification |
 | :---: | :--- | :---: | :--- | :---: | :---: | :--- | :--- |
-| **#1** | **Context-Aware Rules Engine** | **3 steps** | Step 6 | 0.0000 | 77 sigs | 0 LOO signals delta | Essential Anchor (3 steps lost when dropped; 0 LOO FPs) |
-| **#2** | **Deception Engine (Honeypot/Honeytoken)** | **3 steps** | Step 4 | 0.0000 | 47 sigs | 0 LOO signals delta | Essential Anchor (3 steps lost when dropped; 0 LOO FPs) |
+| **#1 (Tied)** | **Context-Aware Rules Engine** | **3 steps** | Step 6 | 0.0000 | 77 sigs | 0 LOO signals delta | Essential Anchor (3 steps lost when dropped; 0 LOO FPs) |
+| **#1 (Tied)** | **Deception Engine (Honeypot/Honeytoken)** | **3 steps** | Step 4 | 0.0000 | 47 sigs | 0 LOO signals delta | Essential Anchor (3 steps lost when dropped; 0 LOO FPs) |
 | **#3** | **Isolation Forest Anomaly Detector** | **1 steps** | Step 2 | 0.0000 | 147 sigs | -5 IF signals on day_103 (-0.15 max score) | Scenario Enabler (1 step(s) lost when dropped; LOO noise gated at 0.50) |
-| **#4** | **Behavioral Baseline Engine** | **0 steps** | None (redundant step coverage) | 0.0000 | 57 sigs | 0 LOO signals delta | Supporting Entity Context (0 steps lost when dropped; 0 LOO FPs) |
-| **#5** | **Interaction Graph Detector** | **0 steps** | None (redundant step coverage) | 0.0000 | 43 sigs | 0 LOO signals delta | Redundant Topology Context (0 steps lost when dropped; 0 LOO FPs) |
+| **#4 (Tied)** | **Behavioral Baseline Engine** | **0 steps** | None (redundant step coverage) | 0.0000 | 57 sigs | 0 LOO signals delta | Supporting Entity Context (0 steps lost when dropped; 0 LOO FPs) |
+| **#4 (Tied)** | **Interaction Graph Detector** | **0 steps** | None (redundant step coverage) | 0.0000 | 43 sigs | 0 LOO signals delta | Redundant Topology Context (0 steps lost when dropped; 0 LOO FPs) |
 
 ---
 
@@ -148,13 +150,13 @@ Simulated third-party enterprise audit using `content/mappings/windows_security.
 - RULE-OT-001 (Unauthorized OT Write): Did NOT fire because enterprise Windows telemetry contains no Modbus ICS protocol fields (ot.* is null across all 12 events; has_ot_fields=False).
 
 ### Benign Windows Fixture Evaluation on Unfamiliar Telemetry:
-- **Benign Events Ingested**: 7 (standard administrative and background task activity).
-- **Benign Signals Emitted**: 10 (baseline, graph).
-- **Benign Incidents Formed**: 1 (Score: 0.5625).
-- **Unfamiliar Telemetry Analysis**: On unfamiliar telemetry from an un-baselined host (WIN-CORP-DC01), unsupervised baseline and graph detectors emitted 10 signals across 2 detector(s) (baseline, graph), forming 1 incident (score 0.5625). Because WIN-CORP-DC01 was not in the benign training corpus, novelty detection flags normal admin activity as unobserved user/host pairings; deploying into new environments requires establishing a local baseline to prevent unfamiliar-environment false positives.
+- **Benign Events Ingested**: 14 (standard administrative and background task activity).
+- **Benign Signals Emitted**: 17 (baseline, graph).
+- **Benign Incidents Formed**: 1 (Score: 0.4000).
+- **Unfamiliar Telemetry Analysis**: On unfamiliar telemetry from an un-baselined host (WIN-CORP-DC01), unsupervised baseline and graph detectors emitted 17 signals across 2 detector(s) (baseline, graph), forming 1 incident (score 0.4000). Because WIN-CORP-DC01 was not in the benign training corpus, novelty detection flags normal admin activity as unobserved user/host pairings. Under the corroboration requirement (novelty_only=true), the incident score is capped at 0.4000, preventing a false positive alert at the 0.50 budget threshold.
 
 ### Architectural Takeaway:
-Generic behavioral rules (RULE-SHELL-001) and interaction graphs successfully transfer across diverse operating systems and telemetry schemas without code modification. However, deep context-aware authorization rules (RULE-AUTH-001, RULE-OT-001) strictly require asset inventory registration to establish valid operational boundaries.
+Detecting Windows execution required rule-content extension in content/rules/encoded_or_suspicious_shell.yaml (-EncodedCommand, certutil -urlcache, wmic process call create, schtasks /create, Invoke-WebRequest) and updating MITRE technique mappings to parent T1059/T1021. Unsupervised baseline and graph detectors transferred across operating systems without rule modifications, but required a corroboration requirement (novelty_only <= 0.40) to prevent unfamiliar host false positives at the 0.50 operating threshold. Deep context-aware authorization rules (RULE-AUTH-001, RULE-OT-001) strictly require asset inventory registration to establish valid operational boundaries.
 
 ---
 
@@ -163,11 +165,26 @@ Generic behavioral rules (RULE-SHELL-001) and interaction graphs successfully tr
 1. **In-Distribution Evaluation**:
    The evaluation corpus consists of 3 attack scenario variants (`demo_baseline`, `reordered`, `slow_burn`) that share 7 underlying action primitives (SSH access, discovery scan, credential dumping, decoy pivots, lateral hop, Modbus manipulation, PLC recon). The detection rules and graph models were authored alongside these scenarios within the same virtualized lab environment. Performance against novel, unobserved adversarial tactics outside this sequence will depend on generic living-off-the-land heuristics and baseline deviations rather than deterministic rule landmarks.
 
-2. **TTFMA Measurement Scope**:
-   Time to First Meaningful Alert (TTFMA) strictly measures the latency between the adversary's initial probe and the first actionable alert (`RULE-AUTH-001` firing on Step 1). It does not measure the detection latency for subsequent lateral hops or OT manipulation phases, which occur minutes later in the attack lifecycle.
+2. **TTFMA Reference Baseline Scope & Independence Proof**:
+   Time to First Meaningful Alert (TTFMA) is evaluated under two explicit reference baselines:
+   - **TTFMA from First Signal**: Measures the elapsed duration from the earliest detection signal clustered into the incident to the first high-confidence alert exceeding budget threshold (`RULE-AUTH-001`).
+   - **TTFMA from Attack Start**: Measures the elapsed duration from the adversary's first operational event (`src_ip: 10.10.1.5` in raw telemetry) to that alert.
+   Per-capture event analysis confirms:
+   - In `demo_baseline`: (a) First attacker event is `evt_d6e9398c04ebc64c` at `04:22:44.000Z` (`cmd.jsonl: id; uptime; echo SMOKE_STEP_1_SUCCESS`); (b) First signal points to `evt_d6e9398c04ebc64c` (`GRAPH-EDGE-001`); (c) First `RULE-AUTH-001` signal points to `evt_f2d32298edbd5d41` at `04:22:45.544Z` (`auth.log: Accepted password for svc_backup`).
+   - (a) == (b) is **True**, (b) == (c) is **False**, (a) == (c) is **False**.
+   Both calculations produce identical durations (mean 1.69s: baseline 1.54s, reordered 0.94s, slow_burn 2.58s) because the adversary's first action immediately emits the incident's first graph signal at $T_0$, making $T_{\text{first\_signal}} = T_{\text{attack\_start}}$. However, TTFMA strictly evaluates initial ingress detection; it does not measure detection latency for subsequent lateral hops or OT manipulation phases occurring minutes later.
 
 3. **Benign Corpus Diversity & Volume**:
-   The benign validation corpus consists of N=5 simulated diurnal days (`day_101` through `day_105`) synthesized from a single traffic generator (`lab/benign/benign_loop.py`). While it models diurnal human-like Poisson activity and batch maintenance tasks, it lacks the chaotic diversity, network reconfigurations, software updates, and organizational drift encountered in real multi-tenant production networks.
+   The benign validation corpus consists of N=5 simulated diurnal days (`day_101` through `day_105`) synthesized from a single traffic generator (`lab/benign/benign_loop.py`), totaling 25.0h simulated (computed 25.0016h across 1.042 days). While it models diurnal human-like Poisson activity and batch maintenance tasks, it lacks the chaotic diversity, network reconfigurations, software updates, and organizational drift encountered in real multi-tenant production networks.
 
 4. **Isolation Forest Day 103 False Positives Under LOO**:
    Under Leave-One-Out (LOO) cross-validation, the Isolation Forest model trained on days 101, 102, 104, and 105 emits 5 unsupervised volumetric anomaly signals (`ANOM-IF-001`) during day 103, resulting in an incident score of `0.1500`. While the calibrated budget threshold (`0.50`) successfully suppresses this incident (yielding zero headline false positives), operating at thresholds below `0.20` causes day 103 to register as a false positive.
+
+5. **Remaining Windows False Positive Risk & LOLBIN Boundaries**:
+   While tightening rule patterns (`content/rules/encoded_or_suspicious_shell.yaml`) to specific command-line arguments (`certutil -urlcache`, `schtasks /create`, `wmic process call create`, `-EncodedCommand`, `-enc `) successfully eliminated all 3 false positive alerts on legitimate admin activity (`schtasks /query`, `wmic os get caption`, `certutil -hashfile`) across the 14-event Windows benign control fixture, residual false-positive risk remains. Legitimate automated administrative tooling, deployment agents (e.g. SCCM, Ansible), or scheduled maintenance scripts that legitimately create scheduled tasks or invoke `certutil` with caching flags could still trigger `RULE-SHELL-001` if deployed without enterprise allowlisting. Furthermore, novelty detectors (graph, baseline) will treat any newly seen Windows admin workstation or logon session as anomalous until adequate baselining is established.
+
+6. **Novelty Corroboration Requirement Trade-Off**:
+   Under the corroboration requirement, an incident supported solely by novelty signals (`baseline`, `graph`, `anomaly`) without corroboration from a deterministic rule or deception trap is capped at `score = min(score, novelty_cap)` (default `0.4000`) and flagged `novelty_only=true`.
+   - **Protection**: Prevents false alarms on un-baselined hosts in unfamiliar enterprise environments (e.g., unfamiliar Windows telemetry is capped at 0.4000, suppressing a false alarm).
+   - **Trade-off**: A pure 'living-off-the-land' or novel zero-day attack that eludes all deterministic rules and deception lures will be intentionally capped below the alert threshold ($	heta = 0.50$) by design.
+   - **Configuration & Sensitivity**: The cap is only restrictive below threshold when $	heta > \text{novelty\_cap}$. If an analyst lowers the operating threshold $	heta$ to $0.35$ (below $\text{novelty\_cap} = 0.40$), novelty-only incidents will alert regardless of the corroboration requirement. The cap value is configured in `engine/sentinelx/config.py` via `IncidentConfig.novelty_cap: float = 0.40`.

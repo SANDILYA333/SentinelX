@@ -1,12 +1,17 @@
 {
-  "generated_at": "2026-11-08T19:06:32.568676+00:00",
-  "evaluated_at": "2026-11-08T19:06:32.568684+00:00",
-  "git_sha": "1dad693e1fe075b37d9927cd53e9da4042198411",
+  "generated_at": "2026-11-08T19:58:22.605788+00:00",
+  "evaluated_at": "2026-11-08T19:58:22.605795+00:00",
+  "git_sha": "f75470a76354fbcea1713f107561646e04c8715e",
   "threshold": 0.5,
   "benign_fp_per_24h": 0.0,
-  "benign_fp_evaluation_path": "eval/metrics.py:compute_metrics_report (LOO fold evaluation)",
+  "benign_hours_total": 25.0,
+  "benign_simulated_days": 1.042,
+  "benign_fp_upper_bound_95": 2.88,
+  "benign_fp_evaluation_path": "eval/metrics.py:compute_metrics_report (LOO fold evaluation normalized by benign_hours_total/24)",
   "attack_recall": 1.0,
   "mean_ttfma_seconds": 1.69,
+  "mean_ttfma_from_first_signal_seconds": 1.69,
+  "mean_ttfma_from_attack_start_seconds": 1.69,
   "score_margin": 0.85,
   "guard_ot_interlock": "100% Deterministic",
   "headline": {
@@ -33,6 +38,8 @@
       "unrounded_score": null,
       "severity": null,
       "ttfma_seconds": null,
+      "ttfma_from_first_signal_seconds": null,
+      "ttfma_from_attack_start_seconds": null,
       "status": "PASS (0 FP)",
       "decoy_touched": false,
       "ot_touched": false,
@@ -51,6 +58,8 @@
       "unrounded_score": null,
       "severity": null,
       "ttfma_seconds": null,
+      "ttfma_from_first_signal_seconds": null,
+      "ttfma_from_attack_start_seconds": null,
       "status": "PASS (0 FP)",
       "decoy_touched": false,
       "ot_touched": false,
@@ -69,6 +78,8 @@
       "unrounded_score": null,
       "severity": null,
       "ttfma_seconds": null,
+      "ttfma_from_first_signal_seconds": null,
+      "ttfma_from_attack_start_seconds": null,
       "status": "PASS (0 FP)",
       "decoy_touched": false,
       "ot_touched": false,
@@ -87,6 +98,8 @@
       "unrounded_score": null,
       "severity": null,
       "ttfma_seconds": null,
+      "ttfma_from_first_signal_seconds": null,
+      "ttfma_from_attack_start_seconds": null,
       "status": "PASS (0 FP)",
       "decoy_touched": false,
       "ot_touched": false,
@@ -105,6 +118,8 @@
       "unrounded_score": null,
       "severity": null,
       "ttfma_seconds": null,
+      "ttfma_from_first_signal_seconds": null,
+      "ttfma_from_attack_start_seconds": null,
       "status": "PASS (0 FP)",
       "decoy_touched": false,
       "ot_touched": false,
@@ -123,6 +138,8 @@
       "unrounded_score": 1.0,
       "severity": "critical",
       "ttfma_seconds": 1.54,
+      "ttfma_from_first_signal_seconds": 1.54,
+      "ttfma_from_attack_start_seconds": 1.54,
       "status": "PASS (CRITICAL)",
       "decoy_touched": true,
       "ot_touched": true,
@@ -147,6 +164,8 @@
       "unrounded_score": 1.0,
       "severity": "critical",
       "ttfma_seconds": 0.94,
+      "ttfma_from_first_signal_seconds": 0.94,
+      "ttfma_from_attack_start_seconds": 0.94,
       "status": "PASS (CRITICAL)",
       "decoy_touched": true,
       "ot_touched": true,
@@ -171,6 +190,8 @@
       "unrounded_score": 1.0,
       "severity": "critical",
       "ttfma_seconds": 2.58,
+      "ttfma_from_first_signal_seconds": 2.58,
+      "ttfma_from_attack_start_seconds": 2.58,
       "status": "PASS (CRITICAL)",
       "decoy_touched": true,
       "ot_touched": true,
@@ -733,7 +754,8 @@
       "precision": 0.75,
       "recall": 1.0,
       "f1_score": 0.8571428571428571,
-      "recommendation": "Sub-optimal: 1 benign FP(s) (threshold <= max LOO benign score 0.15)"
+      "recommendation": "Sub-optimal: 1 benign FP(s) (threshold <= max LOO benign score 0.15)",
+      "fp_rate_per_24h": 0.96
     },
     {
       "threshold": 0.2,
@@ -744,7 +766,8 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1_score": 1.0,
-      "recommendation": "Viable operating band (Zero FP, 100% Recall; margin: +0.05 above benign, +0.80 below attack)"
+      "recommendation": "Viable operating band (Zero FP, 100% Recall; margin: +0.05 above benign, +0.80 below attack)",
+      "fp_rate_per_24h": 0.0
     },
     {
       "threshold": 0.3,
@@ -755,7 +778,8 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1_score": 1.0,
-      "recommendation": "Viable operating band (Zero FP, 100% Recall; margin: +0.15 above benign, +0.70 below attack)"
+      "recommendation": "Viable operating band (Zero FP, 100% Recall; margin: +0.15 above benign, +0.70 below attack)",
+      "fp_rate_per_24h": 0.0
     },
     {
       "threshold": 0.4,
@@ -766,7 +790,8 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1_score": 1.0,
-      "recommendation": "Viable operating band (Zero FP, 100% Recall; margin: +0.25 above benign, +0.60 below attack)"
+      "recommendation": "Viable operating band (Zero FP, 100% Recall; margin: +0.25 above benign, +0.60 below attack)",
+      "fp_rate_per_24h": 0.0
     },
     {
       "threshold": 0.5,
@@ -777,7 +802,8 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1_score": 1.0,
-      "recommendation": "Recommended (Zero FP, 100% Recall; margin: +0.35 above benign, +0.50 below attack)"
+      "recommendation": "Recommended (Zero FP, 100% Recall; margin: +0.35 above benign, +0.50 below attack)",
+      "fp_rate_per_24h": 0.0
     },
     {
       "threshold": 0.6,
@@ -788,7 +814,8 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1_score": 1.0,
-      "recommendation": "Viable operating band (Zero FP, 100% Recall; margin: +0.45 above benign, +0.40 below attack)"
+      "recommendation": "Viable operating band (Zero FP, 100% Recall; margin: +0.45 above benign, +0.40 below attack)",
+      "fp_rate_per_24h": 0.0
     },
     {
       "threshold": 0.7,
@@ -799,7 +826,8 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1_score": 1.0,
-      "recommendation": "Viable operating band (Zero FP, 100% Recall; margin: +0.55 above benign, +0.30 below attack)"
+      "recommendation": "Viable operating band (Zero FP, 100% Recall; margin: +0.55 above benign, +0.30 below attack)",
+      "fp_rate_per_24h": 0.0
     },
     {
       "threshold": 0.8,
@@ -810,7 +838,8 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1_score": 1.0,
-      "recommendation": "Viable operating band (Zero FP, 100% Recall; margin: +0.65 above benign, +0.20 below attack)"
+      "recommendation": "Viable operating band (Zero FP, 100% Recall; margin: +0.65 above benign, +0.20 below attack)",
+      "fp_rate_per_24h": 0.0
     },
     {
       "threshold": 0.9,
@@ -821,12 +850,14 @@
       "precision": 1.0,
       "recall": 1.0,
       "f1_score": 1.0,
-      "recommendation": "Viable operating band (Zero FP, 100% Recall; margin: +0.75 above benign, +0.10 below attack)"
+      "recommendation": "Viable operating band (Zero FP, 100% Recall; margin: +0.75 above benign, +0.10 below attack)",
+      "fp_rate_per_24h": 0.0
     }
   ],
   "detector_ranking": [
     {
       "rank": 1,
+      "rank_display": "#1 (Tied)",
       "detector": "rule",
       "name": "Context-Aware Rules Engine",
       "steps_lost": 3,
@@ -855,7 +886,8 @@
       "trust_classification": "Essential Anchor (3 steps lost when dropped; 0 LOO FPs)"
     },
     {
-      "rank": 2,
+      "rank": 1,
+      "rank_display": "#1 (Tied)",
       "detector": "deception",
       "name": "Deception Engine (Honeypot/Honeytoken)",
       "steps_lost": 3,
@@ -885,6 +917,7 @@
     },
     {
       "rank": 3,
+      "rank_display": "#3",
       "detector": "anomaly",
       "name": "Isolation Forest Anomaly Detector",
       "steps_lost": 1,
@@ -910,6 +943,7 @@
     },
     {
       "rank": 4,
+      "rank_display": "#4 (Tied)",
       "detector": "baseline",
       "name": "Behavioral Baseline Engine",
       "steps_lost": 0,
@@ -932,7 +966,8 @@
       "trust_classification": "Supporting Entity Context (0 steps lost when dropped; 0 LOO FPs)"
     },
     {
-      "rank": 5,
+      "rank": 4,
+      "rank_display": "#4 (Tied)",
       "detector": "graph",
       "name": "Interaction Graph Detector",
       "steps_lost": 0,
@@ -989,15 +1024,256 @@
       "RULE-AUTH-001 (Unexpected Zone Login): Did NOT fire because target host(s) (WIN-CORP-DC01) are not registered in content/assets.yaml (zone boundary resolution miss).",
       "RULE-OT-001 (Unauthorized OT Write): Did NOT fire because enterprise Windows telemetry contains no Modbus ICS protocol fields (ot.* is null across all 12 events; has_ot_fields=False)."
     ],
-    "architectural_takeaway": "Generic behavioral rules (RULE-SHELL-001) and interaction graphs successfully transfer across diverse operating systems and telemetry schemas without code modification. However, deep context-aware authorization rules (RULE-AUTH-001, RULE-OT-001) strictly require asset inventory registration to establish valid operational boundaries.",
+    "architectural_takeaway": "Detecting Windows execution required rule-content extension in content/rules/encoded_or_suspicious_shell.yaml (-EncodedCommand, certutil, wmic, schtasks, Invoke-WebRequest) and updating MITRE technique mappings to parent T1059/T1021. Unsupervised baseline and graph detectors transferred across operating systems without rule modifications, but required a cold-start corroboration cap (novelty_only <= 0.40) to prevent unfamiliar host false positives at the 0.50 operating threshold. Deep context-aware authorization rules (RULE-AUTH-001, RULE-OT-001) strictly require asset inventory registration to establish valid operational boundaries.",
     "benign_events_ingested": 7,
     "benign_signals_emitted": 10,
     "benign_incidents_formed": 1,
-    "benign_top_score": 0.5625,
+    "benign_top_score": 0.4,
     "benign_detectors_fired": [
       "baseline",
       "graph"
     ],
-    "benign_fp_narrative": "On unfamiliar telemetry from an un-baselined host (WIN-CORP-DC01), unsupervised baseline and graph detectors emitted 10 signals across 2 detector(s) (baseline, graph), forming 1 incident (score 0.5625). Because WIN-CORP-DC01 was not in the benign training corpus, novelty detection flags normal admin activity as unobserved user/host pairings; deploying into new environments requires establishing a local baseline to prevent unfamiliar-environment false positives."
+    "benign_fp_narrative": "On unfamiliar telemetry from an un-baselined host (WIN-CORP-DC01), unsupervised baseline and graph detectors emitted 10 signals across 2 detector(s) (baseline, graph), forming 1 incident (score 0.4000). Because WIN-CORP-DC01 was not in the benign training corpus, novelty detection flags normal admin activity as unobserved user/host pairings. Under the cold-start novelty corroboration cap (novelty_only=true), the incident score is capped at 0.4000, preventing a false positive alert at the 0.50 budget threshold.",
+    "score_diagnosis": {
+      "attack": {
+        "signals": [
+          {
+            "detector": "baseline",
+            "rule_id": "BASE-DEV-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Baseline Behavioral Deviation (svc_payroll)"
+          },
+          {
+            "detector": "graph",
+            "rule_id": "GRAPH-EDGE-001",
+            "stage": "lateral_movement",
+            "base_weight": 0.25,
+            "title": "Unobserved Interaction Edge (user:svc_payroll -> host:WIN-CORP-DC01)"
+          },
+          {
+            "detector": "baseline",
+            "rule_id": "BASE-DEV-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Baseline Behavioral Deviation (svc_payroll)"
+          },
+          {
+            "detector": "baseline",
+            "rule_id": "BASE-DEV-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Baseline Behavioral Deviation (svc_payroll)"
+          },
+          {
+            "detector": "rule",
+            "rule_id": "RULE-SHELL-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Suspicious Shell Invocation or Automated Credential Injection"
+          },
+          {
+            "detector": "baseline",
+            "rule_id": "BASE-DEV-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Baseline Behavioral Deviation (svc_payroll)"
+          },
+          {
+            "detector": "rule",
+            "rule_id": "RULE-SHELL-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Suspicious Shell Invocation or Automated Credential Injection"
+          },
+          {
+            "detector": "baseline",
+            "rule_id": "BASE-DEV-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Baseline Behavioral Deviation (svc_payroll)"
+          },
+          {
+            "detector": "rule",
+            "rule_id": "RULE-SHELL-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Suspicious Shell Invocation or Automated Credential Injection"
+          },
+          {
+            "detector": "baseline",
+            "rule_id": "BASE-DEV-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Baseline Behavioral Deviation (svc_payroll)"
+          },
+          {
+            "detector": "rule",
+            "rule_id": "RULE-SHELL-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Suspicious Shell Invocation or Automated Credential Injection"
+          },
+          {
+            "detector": "baseline",
+            "rule_id": "BASE-DEV-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Baseline Behavioral Deviation (svc_payroll)"
+          },
+          {
+            "detector": "rule",
+            "rule_id": "RULE-SHELL-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Suspicious Shell Invocation or Automated Credential Injection"
+          },
+          {
+            "detector": "baseline",
+            "rule_id": "BASE-DEV-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Baseline Behavioral Deviation (svc_payroll)"
+          },
+          {
+            "detector": "baseline",
+            "rule_id": "BASE-DEV-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Baseline Behavioral Deviation (Administrator)"
+          },
+          {
+            "detector": "graph",
+            "rule_id": "GRAPH-EDGE-001",
+            "stage": "lateral_movement",
+            "base_weight": 0.25,
+            "title": "Unobserved Interaction Edge (user:Administrator -> host:WIN-CORP-DC01)"
+          },
+          {
+            "detector": "baseline",
+            "rule_id": "BASE-DEV-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Baseline Behavioral Deviation (Administrator)"
+          },
+          {
+            "detector": "baseline",
+            "rule_id": "BASE-DEV-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Baseline Behavioral Deviation (backdoor)"
+          },
+          {
+            "detector": "graph",
+            "rule_id": "GRAPH-EDGE-001",
+            "stage": "lateral_movement",
+            "base_weight": 0.25,
+            "title": "Unobserved Interaction Edge (user:backdoor -> host:WIN-CORP-DC01)"
+          },
+          {
+            "detector": "baseline",
+            "rule_id": "BASE-DEV-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Baseline Behavioral Deviation (backdoor)"
+          }
+        ],
+        "stages": [
+          "initial_access",
+          "lateral_movement"
+        ],
+        "base_sum": 0.45,
+        "progression_multiplier": 1.25,
+        "intermediate_score": 0.5625,
+        "session_taint": 0.0,
+        "novelty_only": false,
+        "final_score": 0.5625
+      },
+      "benign": {
+        "signals": [
+          {
+            "detector": "baseline",
+            "rule_id": "BASE-DEV-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Baseline Behavioral Deviation (SYSTEM)"
+          },
+          {
+            "detector": "graph",
+            "rule_id": "GRAPH-EDGE-001",
+            "stage": "lateral_movement",
+            "base_weight": 0.25,
+            "title": "Unobserved Interaction Edge (user:SYSTEM -> host:WIN-CORP-DC01)"
+          },
+          {
+            "detector": "baseline",
+            "rule_id": "BASE-DEV-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Baseline Behavioral Deviation (SYSTEM)"
+          },
+          {
+            "detector": "baseline",
+            "rule_id": "BASE-DEV-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Baseline Behavioral Deviation (SYSTEM)"
+          },
+          {
+            "detector": "baseline",
+            "rule_id": "BASE-DEV-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Baseline Behavioral Deviation (svc_payroll)"
+          },
+          {
+            "detector": "graph",
+            "rule_id": "GRAPH-EDGE-001",
+            "stage": "lateral_movement",
+            "base_weight": 0.25,
+            "title": "Unobserved Interaction Edge (user:svc_payroll -> host:WIN-CORP-DC01)"
+          },
+          {
+            "detector": "baseline",
+            "rule_id": "BASE-DEV-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Baseline Behavioral Deviation (SYSTEM)"
+          },
+          {
+            "detector": "baseline",
+            "rule_id": "BASE-DEV-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Baseline Behavioral Deviation (Administrator)"
+          },
+          {
+            "detector": "graph",
+            "rule_id": "GRAPH-EDGE-001",
+            "stage": "lateral_movement",
+            "base_weight": 0.25,
+            "title": "Unobserved Interaction Edge (user:Administrator -> host:WIN-CORP-DC01)"
+          },
+          {
+            "detector": "baseline",
+            "rule_id": "BASE-DEV-001",
+            "stage": "initial_access",
+            "base_weight": 0.2,
+            "title": "Baseline Behavioral Deviation (Administrator)"
+          }
+        ],
+        "stages": [
+          "initial_access",
+          "lateral_movement"
+        ],
+        "base_sum": 0.45,
+        "progression_multiplier": 1.25,
+        "intermediate_score": 0.5625,
+        "session_taint": 0.0,
+        "novelty_only": true,
+        "final_score": 0.4
+      },
+      "tie_explanation": "Both attack and benign fixtures covered exactly the same two kill-chain stages ('initial_access' and 'lateral_movement'). In the attack fixture, RULE-SHELL-001 mapped to 'initial_access', which was already contributed by BASE-DEV-001, so it added no new stages. Because SentinelX progression scoring is purely stage-based (0.45 base * 1.25x = 0.5625), both fixtures generated an identical 0.5625 intermediate score. With the cold-start novelty cap (Task 3), the benign incident is capped at 0.4000 (below threshold 0.50), while the attack incident retains 0.5625 due to RULE-SHELL-001 corroboration."
+    }
   }
 }
