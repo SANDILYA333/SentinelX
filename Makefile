@@ -8,7 +8,8 @@ SHELL := /bin/bash
         train-baselines detect-replay detector-eval \
         guard-eval budget-calibrate incident-eval detect-correlate-replay \
         demo-preflight demo-reset demo-attack \
-        ablation metrics organizer-test eval-full
+        ablation metrics organizer-test eval-full \
+        summary-injection-live demo-warm-summaries measure-latency
 
 help: ## Show available Makefile commands
 	@echo "Available commands:"
@@ -229,3 +230,20 @@ organizer-test: ## Run robustness test against unfamiliar Windows EVTX enterpris
 
 eval-full: ## Run unified Phase 7 master evaluation suite and regenerate scorecard.md
 	uv run python eval/eval_full.py
+
+# ==============================================================================
+# LLM Analyst Summary & Safety Targets (Phase 8)
+# ==============================================================================
+summary-injection-live: ## Run live prompt injection resistance test against Gemini API
+	@set -a; [ -f services/api/.env.local ] && . services/api/.env.local; set +a; \
+	if [ -z "$$GEMINI_API_KEY" ]; then \
+	  echo "NOT RUN: GEMINI_API_KEY is not set. Set GEMINI_API_KEY in services/api/.env.local or environment to run live injection tests."; \
+	else \
+	  uv run pytest -s engine/tests/test_llm_summary.py -k "test_live_gemini_injection_resistance"; \
+	fi
+
+demo-warm-summaries: ## Pre-generate and cache verified analyst summaries for the 3 attack incidents
+	uv run python scripts/warm_summaries.py
+
+measure-latency: ## Measure ingestion-to-incident replay throughput and processing latency
+	uv run python scripts/measure_latency.py
