@@ -1,7 +1,14 @@
-"""Graph- and entity-based security incident correlation engine."""
+"""Graph- and entity-based security incident correlation engine.
+
+Phase A improvements:
+  - Task 2: TTFMA uses documented event-time definition (threshold_crossing_ts - first_adversary_ts).
+  - Task 3: Incident state is restored from SQLite on startup (hydrate_from_db).
+  - Task 4: Signal-level idempotency enforced both in-memory and at SQLite level.
+"""
 
 import logging
 import sqlite3
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sentinelx.correlate.graph import build_incident_graph
@@ -16,7 +23,7 @@ from sentinelx.normalize.assets import get_assets
 from sentinelx.schemas.common import Entity, EntityType
 from sentinelx.schemas.incident import Incident
 from sentinelx.schemas.signal import Signal
-from sentinelx.store.sqlite import init_db, upsert_incident
+from sentinelx.store.sqlite import init_db, list_incidents, upsert_incident
 
 logger = logging.getLogger(__name__)
 
@@ -34,9 +41,11 @@ class Correlator:
         window_sec: float = DEFAULT_CORRELATION_WINDOW_SEC,
         db: Any = None,
         novelty_cap: float = 0.40,
+        alert_threshold: float = 0.50,
     ):
         self.window_sec = window_sec
         self.novelty_cap = novelty_cap
+        self.alert_threshold = alert_threshold
         if isinstance(db, sqlite3.Connection):
             self.db = db
         elif db is not None:
@@ -54,6 +63,78 @@ class Correlator:
         """Clear all active in-memory incident tracking state."""
         self.incidents.clear()
         self._incident_signals.clear()
+
+    def hydrate_from_db(self) -> tuple[int, int]:
+        """Restore eligible open incident state from SQLite after a process restart.
+
+        Hydration criteria:
+          - Status == 'open'
+          - Incident updated_at is within the correlation window (not expired)
+          - Associated signals are fetched from the signals table
+
+        Returns (restored_count, skipped_expired_count).
+        Raises RuntimeError if no database is configured.
+        """
+        if self.db is None:
+            raise RuntimeError("Cannot hydrate from database: no database connection configured.")
+
+        now = datetime.now(UTC)
+        window_cutoff = now - timedelta(seconds=self.window_sec)
+
+        # Fetch open incidents from the database (all of them, then filter)
+        all_open = list_incidents(self.db, limit=10_000, status="open")
+
+        restored = 0
+        skipped_expired = 0
+
+        for incident in all_open:
+            # Only hydrate incidents whose last activity falls within the correlation window.
+            # Expired incidents must NOT silently become active again.
+            if incident.updated_at < window_cutoff:
+                skipped_expired += 1
+                logger.debug(
+                    "Skipping expired incident %s (updated_at=%s, cutoff=%s)",
+                    incident.incident_id,
+                    incident.updated_at.isoformat(),
+                    window_cutoff.isoformat(),
+                )
+                continue
+
+            # Fetch the associated signals from the signals table
+            signals_for_incident: list[Signal] = []
+            for sig_id in incident.signal_ids:
+                # list_signals doesn't support filtering by ID directly; query one at a time
+                # via get_signal_by_id which is already available in sqlite module
+                from sentinelx.store.sqlite import get_signal_by_id
+
+                sig = get_signal_by_id(self.db, sig_id)
+                if sig is not None:
+                    signals_for_incident.append(sig)
+                else:
+                    logger.warning(
+                        "Signal %s referenced by incident %s not found in DB during hydration.",
+                        sig_id,
+                        incident.incident_id,
+                    )
+
+            if not signals_for_incident:
+                logger.warning(
+                    "Incident %s has no resolvable signals; skipping hydration.",
+                    incident.incident_id,
+                )
+                skipped_expired += 1
+                continue
+
+            self.incidents[incident.incident_id] = incident
+            self._incident_signals[incident.incident_id] = signals_for_incident
+            restored += 1
+
+        logger.info(
+            "Correlator hydration complete: %d incident(s) restored, %d expired/skipped.",
+            restored,
+            skipped_expired,
+        )
+        return restored, skipped_expired
 
     def _expand_entities(self, entities: list[Entity]) -> set[str]:
         """Expand entity set with multi-homed asset network interfaces and aliases."""
@@ -113,7 +194,22 @@ class Correlator:
         return False
 
     def process_signal(self, signal: Signal) -> Incident:
-        """Ingest a signal, attach to matching incident (or create new), and update correlation state."""
+        """Ingest a signal, attach to matching incident (or create new), and update correlation state.
+
+        Idempotency guarantee:
+          - If the signal_id is already present in a signals list, it is not duplicated.
+          - The SQLite upsert is idempotent by primary key.
+          - Signal persistence uses INSERT OR IGNORE so concurrent duplicate inserts are safe.
+        """
+        # --- Task 4: Persist the signal first (INSERT OR IGNORE = idempotent) ---
+        if self.db is not None:
+            try:
+                from sentinelx.store.sqlite import insert_signal
+
+                insert_signal(self.db, signal)
+            except Exception as e:
+                logger.warning("Failed to persist signal %s: %s", signal.signal_id, e)
+
         matching_incidents: list[Incident] = []
         for inc in self.incidents.values():
             if inc.status == "open" and self._matches_incident(inc, signal):
@@ -128,19 +224,32 @@ class Correlator:
                 else signal.signal_id[:16]
             )
             incident_id = f"inc_{raw_suffix}"
-            signals_list = [signal]
-            incident = self._build_incident(incident_id, signals_list)
-            self.incidents[incident_id] = incident
-            self._incident_signals[incident_id] = signals_list
+
+            # Idempotency: if incident already exists in memory (e.g. race), reuse it
+            if incident_id in self.incidents:
+                signals_list = self._incident_signals[incident_id]
+                if not any(s.signal_id == signal.signal_id for s in signals_list):
+                    signals_list.append(signal)
+                incident = self._build_incident(incident_id, signals_list)
+                self.incidents[incident_id] = incident
+            else:
+                signals_list = [signal]
+                incident = self._build_incident(incident_id, signals_list)
+                self.incidents[incident_id] = incident
+                self._incident_signals[incident_id] = signals_list
         else:
             # Attach to the first matching incident
             primary_inc = matching_incidents[0]
             incident_id = primary_inc.incident_id
             signals_list = self._incident_signals[incident_id]
 
-            # Avoid duplicate signal attachment
+            # Avoid duplicate signal attachment (in-memory idempotency guard)
             if not any(s.signal_id == signal.signal_id for s in signals_list):
                 signals_list.append(signal)
+            else:
+                logger.debug(
+                    "Duplicate signal %s ignored for incident %s.", signal.signal_id, incident_id
+                )
 
             # If signal bridged multiple existing incidents, merge secondary incidents into primary
             if len(matching_incidents) > 1:
@@ -155,7 +264,7 @@ class Correlator:
             incident = self._build_incident(incident_id, signals_list)
             self.incidents[incident_id] = incident
 
-        # Persist to database if provided
+        # Persist incident to database if provided
         if self.db is not None:
             try:
                 upsert_incident(self.db, incident)
@@ -177,7 +286,7 @@ class Correlator:
                 entities_dict[(ent.type, ent.value)] = ent
         entities = list(entities_dict.values())
 
-        # Consolidate signal and event IDs
+        # Consolidate signal and event IDs (deduplicated, ordered)
         signal_ids = list(dict.fromkeys(s.signal_id for s in sorted_signals))
         event_ids: list[str] = []
         for s in sorted_signals:
@@ -192,8 +301,17 @@ class Correlator:
         # MITRE rollup
         techniques = compute_technique_rollup(sorted_signals)
 
-        # TTFMA calculation
-        first_meaningful_alert_ts, ttfma_seconds = compute_ttfma(sorted_signals, first_sig.ts)
+        # TTFMA calculation — Phase A: event-time definition
+        # Returns (first_signal_ts, first_meaningful_alert_ts, threshold_crossing_ts, ttfma_sec)
+        first_signal_ts, first_meaningful_alert_ts, threshold_crossing_event_ts, ttfma_seconds = (
+            compute_ttfma(
+                sorted_signals,
+                alert_threshold=self.alert_threshold,
+                novelty_cap=self.novelty_cap,
+            )
+        )
+        # first_signal_ts from enricher is authoritative (sorted); fall back to first_sig.ts
+        effective_first_ts = first_signal_ts if first_signal_ts is not None else first_sig.ts
 
         # Explanation narrative
         explanation = generate_explanation(sorted_signals)
@@ -223,10 +341,13 @@ class Correlator:
         return Incident(
             incident_id=incident_id,
             status="open",
-            created_at=first_sig.ts,
+            created_at=effective_first_ts,
             updated_at=last_sig.ts,
-            first_signal_ts=first_sig.ts,
+            first_signal_ts=effective_first_ts,
             first_meaningful_alert_ts=first_meaningful_alert_ts,
+            # Phase A TTFMA provenance fields
+            first_adversary_event_ts=effective_first_ts,
+            threshold_crossing_event_ts=threshold_crossing_event_ts,
             ttfma_seconds=ttfma_seconds,
             score=score,
             severity=severity,
