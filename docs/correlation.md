@@ -117,3 +117,37 @@ Verified against actual capture telemetry timestamps (`first_signal_ts` and `fir
 | **Ensemble Mean** | — | — | **1.69s** |
 
 Across all scenarios, event-time alerting occurs in under 3 seconds, providing defenders with immediate containment options before lateral movement or industrial damage can transpire.
+
+---
+
+## 4. Persistent Incident-State Restoration Across Process Restarts (Phase A)
+
+Prior to Phase A, the correlator retained incident state exclusively in memory (`self.incidents = {}`). An API process restart cleared in-memory state, causing subsequent signals for active campaigns to trigger duplicate incidents in SQLite.
+
+### 4.1 Startup Hydration Lifecycle
+The correlation pipeline implements deterministic startup hydration (`hydrate_from_db`):
+1. **Database initialization & schema verification**: Core tables and performance indexes verified in WAL mode.
+2. **Correlator construction**: Correlator initialized with the active sliding window (`1800.0s`) and budget threshold (`0.50`).
+3. **Incident-state hydration**: The correlator queries SQLite for all `status='open'` incidents where `updated_at >= now - window_sec`.
+   - Expired open incidents (`updated_at < window_cutoff`) are skipped to prevent resurrection of stale campaigns.
+   - For each eligible incident, associated `Signal` objects are restored from the `signals` table into `self._incident_signals`.
+4. **Pipeline initialization**: Lifespan binds the hydrated pipeline to the API context.
+5. **Ingestion begins**: New telemetry events are accepted only after hydration has successfully completed.
+
+---
+
+## 5. Idempotent Ingestion & Telemetry Replay Guarantees (Phase A)
+
+SentinelX enforces double-boundary idempotency across signal generation and incident correlation:
+1. **Database Uniqueness**: Signals and events carry deterministic primary keys (`event_id`, `signal_id`). The persistence layer executes `INSERT OR IGNORE`, discarding concurrent or replayed duplicate rows without throwing application exceptions.
+2. **Pre-Correlation Signal Persistence**: `Correlator.process_signal` proactively persists the signal before in-memory evaluation.
+3. **In-Memory Duplicate Elimination**: The correlator checks `if not any(s.signal_id == signal.signal_id for s in signals_list)` before appending. Replaying identical telemetry does not inflate incident scores, kill-chain stages, signal counts, or evidence references.
+
+---
+
+## 6. Alert-Budget API Filtering Semantics (Phase A)
+
+To eliminate analyst noise caused by low-confidence, sub-threshold activity:
+- `GET /api/v1/incidents` defaults to `min_score = active_budget_threshold` (sourced dynamically from `BudgetController.threshold`, defaulting to `0.50`).
+- Sub-threshold records (e.g., isolated Modbus writes scoring `0.30` or baseline network scans scoring `0.15`) remain in SQLite for forensics and evaluation.
+- Forensic retrieval: Clients pass `all_scores=true` or an explicit `min_score=0.0` to query the full catalog of correlated activity regardless of alert threshold.
