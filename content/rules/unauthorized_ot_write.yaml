@@ -18,7 +18,7 @@ condition:
     - field: "ot.register"
       operator: "neq"
       value: null
-explanation_template: "Unauthorized Modbus physical write to register {ot.register} (value: {ot.value}) on PLC {host}"
+explanation_template: "Unauthorized Modbus physical write to register {ot_register} (value: {ot_value}) on PLC {host}"
 metadata:
   category: "OT Process Impairment"
   description: "Detects unauthorized physical manipulation of critical PLC registers outside maintenance window or by unapproved actors."
