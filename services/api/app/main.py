@@ -20,6 +20,7 @@ from app.ingest import set_ingestor
 from app.pipeline_state import set_correlation_pipeline, set_guard_evaluator
 from app.routes.assets import router as assets_router
 from app.routes.budget import router as budget_router
+from app.routes.deception import router as deception_router
 from app.routes.eval import router as eval_router
 from app.routes.events import router as events_router
 from app.routes.guard import router as guard_router
@@ -47,6 +48,20 @@ async def lifespan(app: FastAPI):
 
     set_correlation_pipeline(correlation_pipeline)
     set_guard_evaluator(guard_evaluator)
+
+    # Task 3 — Restore open incident state from SQLite before accepting new signals.
+    # Order is deliberate: DB init -> pipeline init -> hydration -> ingestion start.
+    try:
+        restored, skipped = await correlation_pipeline.hydrate_from_db()
+        logger.info(
+            "Correlator hydration: %d incident(s) restored, %d expired/skipped.",
+            restored,
+            skipped,
+        )
+    except Exception as hydration_exc:
+        # Hydration failure is logged as an error; the system continues in degraded state
+        # (empty correlator) rather than crashing the entire API process.
+        logger.error("Correlator hydration failed: %s", hydration_exc)
 
     # Callback when Ingestor flushes events
     async def on_event(ev: Event) -> None:
@@ -110,6 +125,7 @@ app.include_router(events_router)
 app.include_router(signals_router)
 app.include_router(incidents_router)
 app.include_router(guard_router)
+app.include_router(deception_router)
 app.include_router(budget_router)
 app.include_router(sources_router)
 app.include_router(assets_router)

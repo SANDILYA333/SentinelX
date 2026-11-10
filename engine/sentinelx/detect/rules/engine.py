@@ -332,17 +332,32 @@ class RulesEngine:
             if tech:
                 techniques.append(tech)
 
-        # Format explanation
+        # Format explanation using a flat, well-defined context dict.
+        # OT nested fields (ot.register, ot.value) are flattened to ot_register, ot_value, etc.
+        # to avoid KeyError on dotted placeholder syntax (e.g. "{ot.register}").
+        ot = event.ot
+        format_ctx: dict = {
+            "host": event.host or "unknown-host",
+            "user": event.user or "unknown-user",
+            "src_ip": event.src_ip or "unknown-ip",
+            "dst_ip": event.dst_ip or "unknown-ip",
+            "cmdline": event.cmdline or event.action or "",
+            "action": event.action,
+            # OT flattened fields – safe fallbacks when OT metadata is missing or partial
+            "ot_register": str(ot.register) if ot and ot.register is not None else "unknown",
+            "ot_value": str(ot.value) if ot and ot.value is not None else "unknown",
+            "ot_operation": ("write" if (ot and ot.is_write) else ("read" if ot else "unknown")),
+        }
         try:
-            explanation = rule.explanation_template.format(
-                host=event.host or "unknown-host",
-                user=event.user or "unknown-user",
-                src_ip=event.src_ip or "unknown-ip",
-                dst_ip=event.dst_ip or "unknown-ip",
-                cmdline=event.cmdline or event.action or "",
-                action=event.action,
+            explanation = rule.explanation_template.format_map(format_ctx)
+        except (KeyError, IndexError, ValueError) as exc:
+            logger.warning(
+                "Narrative template formatting failed for rule %s (event %s): %s — "
+                "returning raw template to avoid silent data loss",
+                rule.id,
+                event.event_id,
+                exc,
             )
-        except Exception:
             explanation = rule.explanation_template
 
         # Deterministic signal ID: hash of rule ID + evidence event IDs

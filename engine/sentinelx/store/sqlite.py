@@ -444,20 +444,48 @@ def list_incidents(
 
 
 def insert_guard_decision(db: sqlite3.Connection, decision: GuardDecision) -> bool:
-    """Insert a guard decision record into guard_decisions table.
+    """Insert or update a guard decision record in guard_decisions table.
 
-    Returns True if row was inserted, False if duplicate.
+    Returns True if row was inserted/updated.
     """
     with db:
         cur = db.execute(
             """
-            INSERT OR IGNORE INTO guard_decisions (decision_id, ts, json)
+            INSERT OR REPLACE INTO guard_decisions (decision_id, ts, json)
             VALUES (?, ?, ?)
             """,
             (
                 decision.decision_id,
                 decision.ts.isoformat(),
                 decision.model_dump_json(),
+            ),
+        )
+        return cur.rowcount > 0
+
+
+def get_guard_decision_by_id(db: sqlite3.Connection, decision_id: str) -> GuardDecision | None:
+    """Retrieve an individual guard decision by decision_id."""
+    cursor = db.cursor()
+    row = cursor.execute(
+        "SELECT json FROM guard_decisions WHERE decision_id = ?", (decision_id,)
+    ).fetchone()
+    if not row:
+        return None
+    return GuardDecision.model_validate_json(row[0])
+
+
+def update_guard_decision(db: sqlite3.Connection, decision: GuardDecision) -> bool:
+    """Update an existing guard decision record in guard_decisions table."""
+    with db:
+        cur = db.execute(
+            """
+            UPDATE guard_decisions
+            SET json = ?
+            WHERE decision_id = ?
+            """,
+            (
+                decision.model_dump_json(),
+                decision.decision_id,
             ),
         )
         return cur.rowcount > 0

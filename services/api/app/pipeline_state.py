@@ -31,7 +31,7 @@ def set_correlation_pipeline(pipeline: CorrelationPipeline | None) -> None:
 def get_guard_evaluator(db: sqlite3.Connection | None = None) -> GuardEvaluator:
     """Retrieve shared GuardEvaluator instance or initialize default."""
     global _guard_evaluator
-    if _guard_evaluator is None:
+    if _guard_evaluator is None or (db is not None and _guard_evaluator._db != db):
         _guard_evaluator = GuardEvaluator(
             db=db or Path(settings.SENTINELX_DB_PATH),
         )

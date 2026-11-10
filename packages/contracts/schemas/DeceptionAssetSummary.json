@@ -1,0 +1,87 @@
+{
+  "additionalProperties": false,
+  "description": "Configured deception asset with aggregated runtime interaction statistics.",
+  "properties": {
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "hostname": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Hostname"
+    },
+    "role": {
+      "title": "Role",
+      "type": "string"
+    },
+    "zone": {
+      "title": "Zone",
+      "type": "string"
+    },
+    "ips": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Ips",
+      "type": "object"
+    },
+    "total_interactions": {
+      "default": 0,
+      "title": "Total Interactions",
+      "type": "integer"
+    },
+    "unique_source_ips": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Unique Source Ips",
+      "type": "array"
+    },
+    "last_seen": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Last Seen"
+    },
+    "associated_incident_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Associated Incident Ids",
+      "type": "array"
+    },
+    "status": {
+      "default": "untouched",
+      "enum": [
+        "active",
+        "untouched",
+        "degraded",
+        "unknown"
+      ],
+      "title": "DecoyStatus",
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "role",
+    "zone"
+  ],
+  "title": "DeceptionAssetSummary",
+  "type": "object"
+}

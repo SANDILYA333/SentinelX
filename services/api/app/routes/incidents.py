@@ -1,16 +1,25 @@
-"""REST endpoints for security incidents, attack graph inspection, and guard action testing."""
+"""REST endpoints for security incidents, attack graph inspection, and guard action testing.
+
+Phase A — Task 5: Incident API filtering
+  - GET /api/v1/incidents defaults to min_score = active budget threshold (actionable feed).
+  - Pass all_scores=true or min_score=0 explicitly to retrieve sub-threshold/forensic records.
+  - The effective threshold comes from the single authoritative source: BudgetController.
+"""
 
 import json
+import logging
 import sqlite3
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
+from sentinelx.budget.controller import DEFAULT_INCIDENT_THRESHOLD
+from sentinelx.correlate.graph import build_incident_graph, build_incident_timeline
 from sentinelx.llm.summarizer import compute_evidence_hash, summarize_incident
 from sentinelx.schemas.api_models import IncidentSummaryResponse, SummaryClaim
 from sentinelx.schemas.event import Event
 from sentinelx.schemas.guard import GuardAction, GuardDecision
-from sentinelx.schemas.incident import Incident
+from sentinelx.schemas.incident import Incident, TimelineEvent
 from sentinelx.schemas.signal import Signal
 from sentinelx.store.sqlite import (
     get_event_by_id,
@@ -21,10 +30,24 @@ from sentinelx.store.sqlite import (
 )
 
 from app.db import get_db
-from app.pipeline_state import get_guard_evaluator
+from app.pipeline_state import get_correlation_pipeline, get_guard_evaluator
 from app.ws import manager
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/v1", tags=["incidents"])
+
+
+def _effective_threshold() -> float:
+    """Return the active alert budget threshold from the pipeline, or the compiled default.
+
+    This is the single authoritative source for the alert threshold used by the API.
+    """
+    try:
+        pipeline = get_correlation_pipeline()
+        return pipeline.budget.threshold
+    except Exception:
+        return DEFAULT_INCIDENT_THRESHOLD
 
 
 class IncidentWithEvidence(Incident):
@@ -48,14 +71,48 @@ async def get_incidents(
     limit: Annotated[int, Query(ge=1, le=500)] = 50,
     status: Annotated[str | None, Query()] = None,
     min_score: Annotated[float | None, Query(ge=0.0, le=1.0)] = None,
+    all_scores: Annotated[
+        bool,
+        Query(
+            description="Set true to include sub-threshold forensic records (overrides default threshold filter)"
+        ),
+    ] = False,
     since: Annotated[str | None, Query()] = None,
 ) -> list[Incident]:
-    """Retrieve correlated security incidents, sorted by recency and score."""
+    """Retrieve correlated security incidents, sorted by recency and score.
+
+    Default behaviour (actionable feed):
+      Returns only incidents whose score >= the active alert budget threshold.
+      This prevents sub-threshold noise from appearing in the main incident feed.
+
+    Forensic / sub-threshold retrieval:
+      Pass all_scores=true to retrieve all records regardless of score.
+      Pass an explicit min_score value (including 0.0) to override the threshold.
+
+    The applied threshold is sourced exclusively from the BudgetController — there is
+    no second hardcoded threshold value in this endpoint.
+    """
+    # Determine effective min_score:
+    # Priority: explicit min_score > all_scores flag > active budget threshold
+    if min_score is not None:
+        effective_min_score: float | None = min_score
+    elif all_scores:
+        effective_min_score = None  # forensic mode: no score filter
+    else:
+        effective_min_score = _effective_threshold()
+
+    logger.debug(
+        "GET /incidents: effective_min_score=%s all_scores=%s explicit_min_score=%s",
+        effective_min_score,
+        all_scores,
+        min_score,
+    )
+
     return list_incidents(
         db,
         limit=limit,
         status=status,
-        min_score=min_score,
+        min_score=effective_min_score,
         since=since,
     )
 
@@ -65,7 +122,7 @@ async def get_incident_detail(
     incident_id: str,
     db: Annotated[sqlite3.Connection, Depends(get_db)],
 ) -> IncidentWithEvidence:
-    """Retrieve full incident details with inlined detection signals and raw evidence events."""
+    """Retrieve full incident details with inlined detection signals, raw evidence events, and timeline."""
     incident = get_incident_by_id(db, incident_id)
     if not incident:
         raise HTTPException(status_code=404, detail=f"Incident {incident_id} not found")
@@ -84,11 +141,44 @@ async def get_incident_detail(
         if ev:
             events.append(ev)
 
+    # Generate or enrich attack graph and chronological timeline
+    enriched_graph = build_incident_graph(signals, events) if signals or events else incident.graph
+    timeline = build_incident_timeline(incident_id, events, signals)
+
+    inc_data = incident.model_dump()
+    inc_data["graph"] = enriched_graph
+    inc_data["timeline"] = timeline
+
     return IncidentWithEvidence(
-        **incident.model_dump(),
+        **inc_data,
         signals=signals,
         evidence_events=events,
     )
+
+
+@router.get("/incidents/{incident_id}/timeline", response_model=list[TimelineEvent])
+async def get_incident_timeline_endpoint(
+    incident_id: str,
+    db: Annotated[sqlite3.Connection, Depends(get_db)],
+) -> list[TimelineEvent]:
+    """Retrieve the chronologically reconstructed attack timeline for an incident."""
+    incident = get_incident_by_id(db, incident_id)
+    if not incident:
+        raise HTTPException(status_code=404, detail=f"Incident {incident_id} not found")
+
+    signals: list[Signal] = []
+    for sid in incident.signal_ids:
+        s = get_signal_by_id(db, sid)
+        if s:
+            signals.append(s)
+
+    events: list[Event] = []
+    for eid in incident.event_ids:
+        ev = get_event_by_id(db, eid)
+        if ev:
+            events.append(ev)
+
+    return build_incident_timeline(incident_id, events, signals)
 
 
 @router.post("/incidents/{incident_id}/guard-action", response_model=GuardDecision)

@@ -5,14 +5,19 @@ import json
 from pathlib import Path
 
 from sentinelx.schemas import (
+    DeceptionActivity,
+    DeceptionAssetSummary,
+    DeceptionOverview,
     Entity,
     Event,
     GuardDecision,
     Incident,
+    ResponseRecommendation,
     Signal,
     SourceHealth,
     Technique,
     TelemetryStats,
+    TimelineEvent,
     WSMessage,
 )
 from sentinelx.schemas.api_models import (
@@ -27,7 +32,12 @@ MODELS = {
     "Event": Event,
     "Signal": Signal,
     "Incident": Incident,
+    "TimelineEvent": TimelineEvent,
     "GuardDecision": GuardDecision,
+    "ResponseRecommendation": ResponseRecommendation,
+    "DeceptionActivity": DeceptionActivity,
+    "DeceptionAssetSummary": DeceptionAssetSummary,
+    "DeceptionOverview": DeceptionOverview,
     "WSMessage": WSMessage,
     "Entity": Entity,
     "Technique": Technique,

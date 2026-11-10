@@ -241,7 +241,59 @@ export interface Metadata {
   [k: string]: unknown;
 }
 
+export type Id = string;
+
 export type IncidentId = string;
+
+export type Timestamp = string;
+
+export type EventType = string;
+
+export type Description = string;
+
+export type SourceNodeId = string | null;
+
+export type TargetNodeId = string | null;
+/**
+ * Alert and incident severity levels.
+ */
+
+export type Severity = "low" | "medium" | "high" | "critical";
+
+export type EvidenceReference = string;
+
+export type Provenance = "observed" | "inferred" | "configured";
+
+export type Severity1 = "low" | "medium" | "high" | "critical";
+
+/**
+ * Chronological reconstructed event in an attack incident timeline.
+ */
+
+export interface TimelineEvent {
+  id: Id;
+  event_id: EventId;
+  signal_id?: SignalId;
+  incident_id: IncidentId;
+  timestamp: Timestamp;
+  event_type: EventType;
+  category: Category;
+  title: Title;
+  description: Description;
+  source_node_id?: SourceNodeId;
+  target_node_id?: TargetNodeId;
+  severity?: Severity;
+  evidence_reference: EvidenceReference;
+  provenance?: Provenance;
+  mitre_technique?: Technique | null;
+  metadata?: Metadata;
+}
+/**
+ * MITRE ATT&CK technique mapping.
+ *
+ * This interface was referenced by `TimelineEvent`'s JSON-Schema
+ * via the `definition` "Technique".
+ */
 
 export type Status = "open" | "closed" | "suppressed";
 
@@ -253,18 +305,20 @@ export type FirstSignalTs = string;
 
 export type FirstMeaningfulAlertTs = string | null;
 /**
- * Event-time TTFMA: elapsed event-time seconds from incident start to threshold crossing, NOT processing latency; processing latency not measured in replay; measured live in the demo rehearsal (Phase 8)
+ * Event-time TTFMA: elapsed event-time seconds from the first adversary action to the signal that caused the incident score to reach/cross the alert threshold. Never substitutes processing latency for event-time delta. None when the incident has not yet crossed the threshold or timestamps are unavailable.
  */
 
 export type TtfmaSeconds = number | null;
-
-export type Severity = "low" | "medium" | "high" | "critical";
 /**
- * Observable entity types for graph and correlation analysis.
- *
- * This interface was referenced by `Incident`'s JSON-Schema
- * via the `definition` "EntityType".
+ * Timestamp of the earliest qualifying adversary event in this incident.
  */
+
+export type FirstAdversaryEventTs = string | null;
+/**
+ * Timestamp of the event whose signal caused the incident score to reach or exceed the configured alert threshold for the first time.
+ */
+
+export type ThresholdCrossingEventTs = string | null;
 
 export type SignalIds = string[];
 
@@ -282,11 +336,40 @@ export type Summary = string | null;
 
 export type SummaryCitations = string[];
 
-export type Id = string;
+export type EntityId = string | null;
+/**
+ * Observable entity type for graph node
+ */
+
+export type GraphEntityType = string;
 
 export type Label = string;
 
+export type Hostname = string | null;
+
+export type IpAddress = string | null;
+
+export type NetworkZone = "it" | "dmz" | "ot" | "mgmt" | "external" | "unknown";
+
+export type NetworkZones = ("it" | "dmz" | "ot" | "mgmt" | "external" | "unknown")[];
+
+export type FirstSeen = string | null;
+
+export type LastSeen = string | null;
+
+export type FirstObservedEventId = string | null;
+
+export type LastObservedEventId = string | null;
+
+export type Status1 = string;
+
+export type RiskLevel = string;
+
+export type EvidenceCount = number;
+
 export type Nodes = GraphNode[];
+
+export type Id1 = string | null;
 
 export type Source = string;
 
@@ -294,9 +377,25 @@ export type Target = string;
 
 export type Label1 = string;
 
+export type RelationshipType = string;
+
+export type FirstObservedAt = string | null;
+
+export type LastObservedAt = string | null;
+
 export type EventIds1 = string[];
 
+export type ObservationStatus = "observed" | "inferred" | "configured";
+
 export type Edges = GraphEdge[];
+
+export type Id2 = string;
+
+export type IncidentId1 = string;
+
+export type Provenance1 = "observed" | "inferred" | "configured";
+
+export type Timeline = TimelineEvent[];
 
 /**
  * Correlated attack incident reconstructed across IT/OT domains.
@@ -310,6 +409,8 @@ export interface Incident {
   first_signal_ts: FirstSignalTs;
   first_meaningful_alert_ts?: FirstMeaningfulAlertTs;
   ttfma_seconds?: TtfmaSeconds;
+  first_adversary_event_ts?: FirstAdversaryEventTs;
+  threshold_crossing_event_ts?: ThresholdCrossingEventTs;
   score: Score;
   severity: Severity;
   entities: Entities;
@@ -324,6 +425,7 @@ export interface Incident {
   summary?: Summary;
   summary_citations?: SummaryCitations;
   graph?: IncidentGraph | null;
+  timeline?: Timeline;
 }
 /**
  * Observable entity instance.
@@ -335,9 +437,10 @@ export interface Incident {
 export interface IncidentGraph {
   nodes: Nodes;
   edges: Edges;
+  metadata?: Metadata2;
 }
 /**
- * Node in an incident correlation graph.
+ * Node in an incident correlation graph representing a verified or observed entity.
  *
  * This interface was referenced by `Incident`'s JSON-Schema
  * via the `definition` "GraphNode".
@@ -345,22 +448,55 @@ export interface IncidentGraph {
 
 export interface GraphNode {
   id: Id;
-  type: Type;
+  entity_id?: EntityId;
+  type: GraphEntityType;
   label: Label;
+  hostname?: Hostname;
+  ip_address?: IpAddress;
+  network_zone?: NetworkZone;
+  network_zones?: NetworkZones;
+  first_seen?: FirstSeen;
+  last_seen?: LastSeen;
+  first_observed_event_id?: FirstObservedEventId;
+  last_observed_event_id?: LastObservedEventId;
+  status?: Status1;
+  risk_level?: RiskLevel;
+  evidence_count?: EvidenceCount;
+  metadata?: Metadata;
 }
-/**
- * Edge connecting nodes in an incident correlation graph.
- *
- * This interface was referenced by `Incident`'s JSON-Schema
- * via the `definition` "GraphEdge".
- */
 
 export interface GraphEdge {
+  id?: Id1;
   source: Source;
   target: Target;
   label: Label1;
+  relationship_type?: RelationshipType;
   ts: Ts;
-  event_ids: EventIds1;
+  first_observed_at?: FirstObservedAt;
+  last_observed_at?: LastObservedAt;
+  event_ids?: EventIds1;
+  confidence?: Confidence;
+  provenance?: Provenance;
+  observation_status?: ObservationStatus;
+  metadata?: Metadata1;
+}
+
+export interface Metadata1 {
+  [k: string]: unknown;
+}
+
+export interface Metadata2 {
+  [k: string]: unknown;
+}
+/**
+ * Chronological reconstructed event in an attack incident timeline.
+ *
+ * This interface was referenced by `Incident`'s JSON-Schema
+ * via the `definition` "TimelineEvent".
+ */
+
+export interface Metadata3 {
+  [k: string]: unknown;
 }
 
 export type DecisionId = string;
@@ -374,6 +510,28 @@ export type RuleIds = string[];
 export type AssetCriticality = ("low" | "medium" | "high" | "process_critical") | null;
 
 export type RequestedBy = string;
+
+export type TargetZone = string | null;
+
+export type SafetyRisk = string | null;
+
+export type SupportingEvidenceIds = string[];
+
+export type PolicyId = string;
+
+export type PolicyName = string;
+
+export type Result = "pass" | "fail" | "review";
+
+export type PolicyEvaluations = GuardPolicyEvaluationResult[];
+
+export type ApprovalStatus = "not_required" | "pending_review" | "approved" | "rejected";
+
+export type ApprovedBy = string | null;
+
+export type ApprovedAt = string | null;
+
+export type ApprovalNotes = string | null;
 
 /**
  * Response safety policy decision evaluating proposed containment action.
@@ -390,7 +548,195 @@ export interface GuardDecision {
   rule_ids: RuleIds;
   asset_criticality?: AssetCriticality;
   requested_by: RequestedBy;
+  target_zone?: TargetZone;
+  safety_risk?: SafetyRisk;
+  supporting_evidence_ids?: SupportingEvidenceIds;
+  policy_evaluations?: PolicyEvaluations;
+  approval_status?: ApprovalStatus;
+  approved_by?: ApprovedBy;
+  approved_at?: ApprovedAt;
+  approval_notes?: ApprovalNotes;
 }
+/**
+ * Result of evaluating an individual response safety policy.
+ *
+ * This interface was referenced by `GuardDecision`'s JSON-Schema
+ * via the `definition` "GuardPolicyEvaluationResult".
+ */
+
+export interface GuardPolicyEvaluationResult {
+  policy_id: PolicyId;
+  policy_name: PolicyName;
+  result: Result;
+  explanation: Explanation;
+}
+
+export type RecommendationId = string;
+
+export type Action1 = "isolate_host" | "block_ip" | "disable_account" | "block_modbus_write" | "kill_process";
+
+export type Target1 = string;
+
+export type TargetZone1 = string | null;
+
+export type SupportingEvidenceIds1 = string[];
+
+export type SuggestedAlternative = string | null;
+
+/**
+ * Candidate containment action recommended for an incident and pre-evaluated by the Guard.
+ */
+
+export interface ResponseRecommendation {
+  recommendation_id: RecommendationId;
+  incident_id: IncidentId;
+  action: Action;
+  title: Title;
+  description: Description;
+  target: Target;
+  target_zone: TargetZone;
+  risk_level: RiskLevel;
+  supporting_evidence_ids?: SupportingEvidenceIds;
+  decision: GuardDecision;
+  suggested_alternative?: SuggestedAlternative;
+}
+/**
+ * Response safety policy decision evaluating proposed containment action.
+ *
+ * This interface was referenced by `ResponseRecommendation`'s JSON-Schema
+ * via the `definition` "GuardDecision".
+ */
+
+export type ActivityId = string;
+
+export type DecoyAsset = string;
+
+export type DecoyHostname = string | null;
+
+export type DecoyType = string;
+
+export type SensorTool = string;
+
+export type AttackerRole = string | null;
+
+export type InteractionType =
+  | "ssh_connection"
+  | "ssh_login_attempt"
+  | "ssh_login_success"
+  | "ssh_command_input"
+  | "ssh_file_transfer"
+  | "session_closed"
+  | "service_discovery"
+  | "port_probe"
+  | "http_interaction"
+  | "mysql_login_attempt"
+  | "modbus_discovery"
+  | "modbus_read"
+  | "modbus_write_attempt"
+  | "unauthorized_interaction";
+
+export type MitreTechnique = string | null;
+
+/**
+ * Normalized, classified attacker interaction with a deceptive canary asset.
+ */
+
+export interface DeceptionActivity {
+  activity_id: ActivityId;
+  event_id: EventId;
+  incident_id?: IncidentId;
+  signal_id?: SignalId;
+  decoy_asset: DecoyAsset;
+  decoy_hostname?: DecoyHostname;
+  decoy_type: DecoyType;
+  sensor_tool: SensorTool;
+  network_zone: NetworkZone;
+  src_ip?: SrcIp;
+  attacker_role?: AttackerRole;
+  interaction_type: InteractionType;
+  title: Title;
+  description: Description;
+  ts: Ts;
+  outcome: Outcome;
+  severity: Severity;
+  provenance?: Provenance;
+  mitre_technique?: MitreTechnique;
+  raw_evidence_ref?: RawEvidenceRef;
+  metadata?: Metadata;
+}
+
+export interface RawEvidenceRef {
+  [k: string]: unknown;
+}
+
+export type Role = string;
+
+export type Zone = string;
+
+export type TotalInteractions = number;
+
+export type UniqueSourceIps = string[];
+
+export type AssociatedIncidentIds = string[];
+
+export type DecoyStatus = "active" | "untouched" | "degraded" | "unknown";
+
+/**
+ * Configured deception asset with aggregated runtime interaction statistics.
+ */
+
+export interface DeceptionAssetSummary {
+  name: Name;
+  hostname?: Hostname;
+  role: Role;
+  zone: Zone;
+  ips?: Ips;
+  total_interactions?: TotalInteractions;
+  unique_source_ips?: UniqueSourceIps;
+  last_seen?: LastSeen;
+  associated_incident_ids?: AssociatedIncidentIds;
+  status?: DecoyStatus;
+}
+
+export interface Ips {
+  [k: string]: string;
+}
+
+export type IncidentCount = number;
+
+export type UniqueSources = string[];
+
+export type TopDecoys = {
+  [k: string]: unknown;
+}[];
+
+export type RecentActivities = DeceptionActivity[];
+
+export type DeceptionInterpretations = string[];
+
+/**
+ * Aggregated deception intelligence overview metrics and activity stream.
+ */
+
+export interface DeceptionOverview {
+  total_interactions?: TotalInteractions;
+  incident_count?: IncidentCount;
+  unique_sources?: UniqueSources;
+  top_decoys?: TopDecoys;
+  category_counts?: CategoryCounts;
+  recent_activities?: RecentActivities;
+  deception_interpretations?: DeceptionInterpretations;
+}
+
+export interface CategoryCounts {
+  [k: string]: number;
+}
+/**
+ * Normalized, classified attacker interaction with a deceptive canary asset.
+ *
+ * This interface was referenced by `DeceptionOverview`'s JSON-Schema
+ * via the `definition` "DeceptionActivity".
+ */
 
 export type SourceKey = string;
 
@@ -467,12 +813,6 @@ export interface ByDomain {
   [k: string]: number;
 }
 
-export type Hostname = string | null;
-
-export type Role = string;
-
-export type Zone = string;
-
 export type IsDecoy = boolean;
 
 export type ProcessCritical = boolean;
@@ -495,10 +835,6 @@ export interface AssetResponse {
   process_critical?: ProcessCritical;
   criticality: Criticality;
   allowed_ot_writers?: AllowedOtWriters;
-}
-
-export interface Ips {
-  [k: string]: string;
 }
 
 export type Threshold = number;

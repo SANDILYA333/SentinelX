@@ -1,7 +1,28 @@
-"""Enrichment service for correlated incidents (MITRE rollup, TTFMA, and narrative explanation)."""
+"""Enrichment service for correlated incidents (MITRE rollup, TTFMA, and narrative explanation).
 
+TTFMA — Authoritative Definition (Phase A)
+===========================================
+Event-Time TTFMA = threshold_crossing_event_ts − first_adversary_event_ts
+
+Where:
+  first_adversary_event_ts       — timestamp of the earliest qualifying adversary action
+                                   in the correlated campaign (i.e. the first signal's event ts).
+  threshold_crossing_event_ts    — timestamp of the event whose associated signal causes
+                                   the incident score to reach or exceed the configured alert
+                                   threshold for the first time.
+
+This measures dwell time visible in event-time telemetry, NOT processing latency.
+A genuine 0.0s TTFMA is valid when the first adversary action itself causes the threshold crossing.
+None is returned when the incident has never crossed the threshold or timestamps are unavailable.
+"""
+
+import logging
+
+from sentinelx.correlate.scoring import score_incident
 from sentinelx.schemas.common import Technique, UtcDatetime
 from sentinelx.schemas.signal import Signal
+
+logger = logging.getLogger(__name__)
 
 # Meaningful alert threshold: high confidence (>= 0.85) or high-fidelity detector (rule/deception)
 MEANINGFUL_CONFIDENCE_THRESHOLD: float = 0.85
@@ -25,29 +46,79 @@ def compute_technique_rollup(signals: list[Signal]) -> list[Technique]:
 
 def compute_ttfma(
     signals: list[Signal],
-    first_signal_ts: UtcDatetime,
-) -> tuple[UtcDatetime | None, float | None]:
-    """Calculate Time To First Meaningful Alert (TTFMA).
+    alert_threshold: float,
+    novelty_cap: float = 0.40,
+) -> tuple[UtcDatetime | None, UtcDatetime | None, UtcDatetime | None, float | None]:
+    """Calculate Time To First Meaningful Alert (TTFMA) using the documented event-time definition.
 
     Definition:
-    A meaningful alert is defined as the first detection signal with confidence >= 0.80
-    or from a deterministic high-fidelity detector ('rule' or 'deception') that elevates
-    the incident towards actionable SOC triage. TTFMA is the elapsed duration in seconds
-    from the incident's earliest telemetry signal (first_signal_ts) to this alert.
+      Event-Time TTFMA = threshold_crossing_event_ts − first_adversary_event_ts
+
+      first_adversary_event_ts    — ts of the earliest signal (sorted by event ts).
+      threshold_crossing_event_ts — ts of the signal that first causes the cumulative
+                                    incident score to reach or exceed alert_threshold.
+
+    Returns a 4-tuple:
+      (first_signal_ts, first_meaningful_alert_ts, threshold_crossing_event_ts, ttfma_seconds)
+
+    first_meaningful_alert_ts is kept for backward-compatible API field population; it refers
+    to the same threshold_crossing_event_ts event.
+
+    None values are returned for any field that cannot be determined from available data.
+    Processing latency is never substituted for event-time delta.
     """
+    if not signals:
+        return None, None, None, None
+
+    # Sort by event timestamp — handle duplicate or reordered events correctly.
     sorted_signals = sorted(signals, key=lambda s: s.ts)
-    for s in sorted_signals:
-        is_high_fidelity = s.detector in MEANINGFUL_DETECTORS
-        is_high_confidence = s.confidence >= MEANINGFUL_CONFIDENCE_THRESHOLD
 
-        if is_high_fidelity or is_high_confidence:
-            meaningful_ts: UtcDatetime = s.ts
-            # Difference in seconds
-            dt_diff = (meaningful_ts - first_signal_ts).total_seconds()
-            ttfma_sec = max(0.0, round(dt_diff, 2))
-            return meaningful_ts, ttfma_sec
+    first_signal_ts: UtcDatetime = sorted_signals[0].ts
 
-    return None, None
+    # Walk signals in event-time order and replay scoring to find the threshold crossing moment.
+    # We accumulate signals incrementally and re-score after each addition.
+    threshold_crossing_event_ts: UtcDatetime | None = None
+    first_meaningful_alert_ts: UtcDatetime | None = None
+
+    for idx in range(1, len(sorted_signals) + 1):
+        prefix = sorted_signals[:idx]
+        current_signal = sorted_signals[idx - 1]
+
+        # Compute incident score using the same scorer as the correlator
+        # to stay in sync with actual threshold crossing semantics.
+        score, _stages, _sev = score_incident(prefix, novelty_cap=novelty_cap)
+
+        if score >= alert_threshold:
+            threshold_crossing_event_ts = current_signal.ts
+            first_meaningful_alert_ts = current_signal.ts
+            break
+
+    if threshold_crossing_event_ts is None:
+        # Incident has never crossed the threshold — TTFMA is not available.
+        logger.debug(
+            "Incident has not crossed alert threshold %.2f with %d signals; TTFMA unavailable.",
+            alert_threshold,
+            len(signals),
+        )
+        return first_signal_ts, None, None, None
+
+    # Compute delta in event-time seconds.
+    try:
+        dt_diff = (threshold_crossing_event_ts - first_signal_ts).total_seconds()
+    except Exception as exc:
+        logger.warning(
+            "TTFMA delta calculation failed (first_signal_ts=%s, threshold_crossing_ts=%s): %s",
+            first_signal_ts,
+            threshold_crossing_event_ts,
+            exc,
+        )
+        return first_signal_ts, first_meaningful_alert_ts, threshold_crossing_event_ts, None
+
+    # A genuine 0.0s is valid when the first adversary action is itself the threshold crossing.
+    # We do NOT force non-zero; we return the true delta.
+    ttfma_seconds = round(dt_diff, 2)
+
+    return first_signal_ts, first_meaningful_alert_ts, threshold_crossing_event_ts, ttfma_seconds
 
 
 def generate_explanation(signals: list[Signal]) -> list[str]:

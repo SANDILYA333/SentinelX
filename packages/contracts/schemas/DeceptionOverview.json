@@ -1,0 +1,254 @@
+{
+  "$defs": {
+    "DeceptionActivity": {
+      "additionalProperties": false,
+      "description": "Normalized, classified attacker interaction with a deceptive canary asset.",
+      "properties": {
+        "activity_id": {
+          "title": "Activity Id",
+          "type": "string"
+        },
+        "event_id": {
+          "title": "Event Id",
+          "type": "string"
+        },
+        "incident_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Incident Id"
+        },
+        "signal_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Signal Id"
+        },
+        "decoy_asset": {
+          "title": "Decoy Asset",
+          "type": "string"
+        },
+        "decoy_hostname": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Decoy Hostname"
+        },
+        "decoy_type": {
+          "title": "Decoy Type",
+          "type": "string"
+        },
+        "sensor_tool": {
+          "title": "Sensor Tool",
+          "type": "string"
+        },
+        "network_zone": {
+          "title": "Network Zone",
+          "type": "string"
+        },
+        "src_ip": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Src Ip"
+        },
+        "attacker_role": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Attacker Role"
+        },
+        "interaction_type": {
+          "enum": [
+            "ssh_connection",
+            "ssh_login_attempt",
+            "ssh_login_success",
+            "ssh_command_input",
+            "ssh_file_transfer",
+            "session_closed",
+            "service_discovery",
+            "port_probe",
+            "http_interaction",
+            "mysql_login_attempt",
+            "modbus_discovery",
+            "modbus_read",
+            "modbus_write_attempt",
+            "unauthorized_interaction"
+          ],
+          "title": "Interaction Type",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "outcome": {
+          "$ref": "#/$defs/Outcome"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "provenance": {
+          "default": "observed",
+          "enum": [
+            "observed",
+            "inferred",
+            "configured"
+          ],
+          "title": "Provenance",
+          "type": "string"
+        },
+        "mitre_technique": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mitre Technique"
+        },
+        "raw_evidence_ref": {
+          "additionalProperties": true,
+          "title": "Raw Evidence Ref",
+          "type": "object"
+        },
+        "metadata": {
+          "additionalProperties": true,
+          "title": "Metadata",
+          "type": "object"
+        }
+      },
+      "required": [
+        "activity_id",
+        "event_id",
+        "decoy_asset",
+        "decoy_type",
+        "sensor_tool",
+        "network_zone",
+        "interaction_type",
+        "title",
+        "description",
+        "ts",
+        "outcome",
+        "severity"
+      ],
+      "title": "DeceptionActivity",
+      "type": "object"
+    },
+    "Outcome": {
+      "description": "Action execution outcome.",
+      "enum": [
+        "success",
+        "failure",
+        "unknown"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "Severity": {
+      "description": "Alert and incident severity levels.",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "title": "Severity",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Aggregated deception intelligence overview metrics and activity stream.",
+  "properties": {
+    "total_interactions": {
+      "default": 0,
+      "title": "Total Interactions",
+      "type": "integer"
+    },
+    "incident_count": {
+      "default": 0,
+      "title": "Incident Count",
+      "type": "integer"
+    },
+    "unique_sources": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Unique Sources",
+      "type": "array"
+    },
+    "top_decoys": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Top Decoys",
+      "type": "array"
+    },
+    "category_counts": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Category Counts",
+      "type": "object"
+    },
+    "recent_activities": {
+      "items": {
+        "$ref": "#/$defs/DeceptionActivity"
+      },
+      "title": "Recent Activities",
+      "type": "array"
+    },
+    "deception_interpretations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Deception Interpretations",
+      "type": "array"
+    }
+  },
+  "title": "DeceptionOverview",
+  "type": "object"
+}

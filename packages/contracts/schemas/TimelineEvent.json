@@ -1,0 +1,169 @@
+{
+  "$defs": {
+    "Severity": {
+      "description": "Alert and incident severity levels.",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "Technique": {
+      "additionalProperties": false,
+      "description": "MITRE ATT&CK technique mapping.",
+      "properties": {
+        "framework": {
+          "enum": [
+            "enterprise",
+            "ics"
+          ],
+          "title": "Framework",
+          "type": "string"
+        },
+        "technique_id": {
+          "title": "Technique Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "tactic": {
+          "title": "Tactic",
+          "type": "string"
+        }
+      },
+      "required": [
+        "framework",
+        "technique_id",
+        "name",
+        "tactic"
+      ],
+      "title": "Technique",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Chronological reconstructed event in an attack incident timeline.",
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "event_id": {
+      "title": "Event Id",
+      "type": "string"
+    },
+    "signal_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Signal Id"
+    },
+    "incident_id": {
+      "title": "Incident Id",
+      "type": "string"
+    },
+    "timestamp": {
+      "format": "date-time",
+      "title": "Timestamp",
+      "type": "string"
+    },
+    "event_type": {
+      "title": "Event Type",
+      "type": "string"
+    },
+    "category": {
+      "title": "Category",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "source_node_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Node Id"
+    },
+    "target_node_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Target Node Id"
+    },
+    "severity": {
+      "$ref": "#/$defs/Severity",
+      "default": "low"
+    },
+    "evidence_reference": {
+      "title": "Evidence Reference",
+      "type": "string"
+    },
+    "provenance": {
+      "default": "observed",
+      "enum": [
+        "observed",
+        "inferred",
+        "configured"
+      ],
+      "title": "Provenance",
+      "type": "string"
+    },
+    "mitre_technique": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Technique"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "metadata": {
+      "additionalProperties": true,
+      "title": "Metadata",
+      "type": "object"
+    }
+  },
+  "required": [
+    "id",
+    "event_id",
+    "incident_id",
+    "timestamp",
+    "event_type",
+    "category",
+    "title",
+    "description",
+    "evidence_reference"
+  ],
+  "title": "TimelineEvent",
+  "type": "object"
+}

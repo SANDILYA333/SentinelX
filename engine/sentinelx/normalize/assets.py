@@ -96,7 +96,9 @@ class AssetInventory(BaseModel):
             pass
         return None
 
-    def is_decoy(self, name_or_ip: str) -> bool:
+    def is_decoy(self, name_or_ip: str | None) -> bool:
+        if not name_or_ip:
+            return False
         target = name_or_ip.strip()
         host = self.get_host_by_name(target) or self.get_host_by_ip(target)
         return bool(host and host.is_decoy)

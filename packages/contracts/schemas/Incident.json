@@ -34,8 +34,20 @@
     },
     "GraphEdge": {
       "additionalProperties": false,
-      "description": "Edge connecting nodes in an incident correlation graph.",
+      "description": "Edge connecting nodes in an incident correlation graph with explicit provenance.",
       "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
         "source": {
           "title": "Source",
           "type": "string"
@@ -48,10 +60,41 @@
           "title": "Label",
           "type": "string"
         },
+        "relationship_type": {
+          "default": "network_connection",
+          "title": "Relationship Type",
+          "type": "string"
+        },
         "ts": {
           "format": "date-time",
           "title": "Ts",
           "type": "string"
+        },
+        "first_observed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "First Observed At"
+        },
+        "last_observed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Observed At"
         },
         "event_ids": {
           "items": {
@@ -59,33 +102,197 @@
           },
           "title": "Event Ids",
           "type": "array"
+        },
+        "confidence": {
+          "default": 1.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "provenance": {
+          "default": "observed",
+          "enum": [
+            "observed",
+            "inferred",
+            "configured"
+          ],
+          "title": "Provenance",
+          "type": "string"
+        },
+        "observation_status": {
+          "default": "observed",
+          "enum": [
+            "observed",
+            "inferred",
+            "configured"
+          ],
+          "title": "Observation Status",
+          "type": "string"
+        },
+        "metadata": {
+          "additionalProperties": true,
+          "title": "Metadata",
+          "type": "object"
         }
       },
       "required": [
         "source",
         "target",
         "label",
-        "ts",
-        "event_ids"
+        "ts"
       ],
       "title": "GraphEdge",
       "type": "object"
     },
     "GraphNode": {
       "additionalProperties": false,
-      "description": "Node in an incident correlation graph.",
+      "description": "Node in an incident correlation graph representing a verified or observed entity.",
       "properties": {
         "id": {
           "title": "Id",
           "type": "string"
         },
+        "entity_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Entity Id"
+        },
         "type": {
-          "title": "Type",
+          "description": "Observable entity type for graph node",
+          "title": "GraphEntityType",
           "type": "string"
         },
         "label": {
           "title": "Label",
           "type": "string"
+        },
+        "hostname": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hostname"
+        },
+        "ip_address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ip Address"
+        },
+        "network_zone": {
+          "default": "unknown",
+          "enum": [
+            "it",
+            "dmz",
+            "ot",
+            "mgmt",
+            "external",
+            "unknown"
+          ],
+          "title": "Network Zone",
+          "type": "string"
+        },
+        "network_zones": {
+          "items": {
+            "enum": [
+              "it",
+              "dmz",
+              "ot",
+              "mgmt",
+              "external",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "title": "Network Zones",
+          "type": "array"
+        },
+        "first_seen": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "First Seen"
+        },
+        "last_seen": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Seen"
+        },
+        "first_observed_event_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "First Observed Event Id"
+        },
+        "last_observed_event_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Observed Event Id"
+        },
+        "status": {
+          "default": "active",
+          "title": "Status",
+          "type": "string"
+        },
+        "risk_level": {
+          "default": "low",
+          "title": "Risk Level",
+          "type": "string"
+        },
+        "evidence_count": {
+          "default": 0,
+          "title": "Evidence Count",
+          "type": "integer"
+        },
+        "metadata": {
+          "additionalProperties": true,
+          "title": "Metadata",
+          "type": "object"
         }
       },
       "required": [
@@ -113,6 +320,11 @@
           },
           "title": "Edges",
           "type": "array"
+        },
+        "metadata": {
+          "additionalProperties": true,
+          "title": "Metadata",
+          "type": "object"
         }
       },
       "required": [
@@ -165,6 +377,128 @@
         "tactic"
       ],
       "title": "Technique",
+      "type": "object"
+    },
+    "TimelineEvent": {
+      "additionalProperties": false,
+      "description": "Chronological reconstructed event in an attack incident timeline.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "event_id": {
+          "title": "Event Id",
+          "type": "string"
+        },
+        "signal_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Signal Id"
+        },
+        "incident_id": {
+          "title": "Incident Id",
+          "type": "string"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "event_type": {
+          "title": "Event Type",
+          "type": "string"
+        },
+        "category": {
+          "title": "Category",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "source_node_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Node Id"
+        },
+        "target_node_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Node Id"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity",
+          "default": "low"
+        },
+        "evidence_reference": {
+          "title": "Evidence Reference",
+          "type": "string"
+        },
+        "provenance": {
+          "default": "observed",
+          "enum": [
+            "observed",
+            "inferred",
+            "configured"
+          ],
+          "title": "Provenance",
+          "type": "string"
+        },
+        "mitre_technique": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Technique"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "metadata": {
+          "additionalProperties": true,
+          "title": "Metadata",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "event_id",
+        "incident_id",
+        "timestamp",
+        "event_type",
+        "category",
+        "title",
+        "description",
+        "evidence_reference"
+      ],
+      "title": "TimelineEvent",
       "type": "object"
     }
   },
@@ -222,8 +556,36 @@
         }
       ],
       "default": null,
-      "description": "Event-time TTFMA: elapsed event-time seconds from incident start to threshold crossing, NOT processing latency; processing latency not measured in replay; measured live in the demo rehearsal (Phase 8)",
+      "description": "Event-time TTFMA: elapsed event-time seconds from the first adversary action to the signal that caused the incident score to reach/cross the alert threshold. Never substitutes processing latency for event-time delta. None when the incident has not yet crossed the threshold or timestamps are unavailable.",
       "title": "Ttfma Seconds"
+    },
+    "first_adversary_event_ts": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Timestamp of the earliest qualifying adversary event in this incident.",
+      "title": "First Adversary Event Ts"
+    },
+    "threshold_crossing_event_ts": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Timestamp of the event whose signal caused the incident score to reach or exceed the configured alert threshold for the first time.",
+      "title": "Threshold Crossing Event Ts"
     },
     "score": {
       "title": "Score",
@@ -316,6 +678,13 @@
         }
       ],
       "default": null
+    },
+    "timeline": {
+      "items": {
+        "$ref": "#/$defs/TimelineEvent"
+      },
+      "title": "Timeline",
+      "type": "array"
     }
   },
   "required": [

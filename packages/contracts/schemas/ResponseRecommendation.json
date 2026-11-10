@@ -1,0 +1,302 @@
+{
+  "$defs": {
+    "GuardDecision": {
+      "additionalProperties": false,
+      "description": "Response safety policy decision evaluating proposed containment action.",
+      "properties": {
+        "decision_id": {
+          "title": "Decision Id",
+          "type": "string"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "incident_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Incident Id"
+        },
+        "action": {
+          "enum": [
+            "isolate_host",
+            "block_ip",
+            "disable_account",
+            "block_modbus_write",
+            "kill_process"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "target": {
+          "title": "Target",
+          "type": "string"
+        },
+        "decision": {
+          "enum": [
+            "allow",
+            "deny",
+            "needs_human"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "rule_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rule Ids",
+          "type": "array"
+        },
+        "asset_criticality": {
+          "anyOf": [
+            {
+              "enum": [
+                "low",
+                "medium",
+                "high",
+                "process_critical"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Asset Criticality"
+        },
+        "requested_by": {
+          "title": "Requested By",
+          "type": "string"
+        },
+        "target_zone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Zone"
+        },
+        "safety_risk": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Safety Risk"
+        },
+        "supporting_evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Supporting Evidence Ids",
+          "type": "array"
+        },
+        "policy_evaluations": {
+          "items": {
+            "$ref": "#/$defs/GuardPolicyEvaluationResult"
+          },
+          "title": "Policy Evaluations",
+          "type": "array"
+        },
+        "approval_status": {
+          "default": "not_required",
+          "enum": [
+            "not_required",
+            "pending_review",
+            "approved",
+            "rejected"
+          ],
+          "title": "Approval Status",
+          "type": "string"
+        },
+        "approved_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approved By"
+        },
+        "approved_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approved At"
+        },
+        "approval_notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approval Notes"
+        }
+      },
+      "required": [
+        "decision_id",
+        "ts",
+        "action",
+        "target",
+        "decision",
+        "reasons",
+        "rule_ids",
+        "requested_by"
+      ],
+      "title": "GuardDecision",
+      "type": "object"
+    },
+    "GuardPolicyEvaluationResult": {
+      "additionalProperties": false,
+      "description": "Result of evaluating an individual response safety policy.",
+      "properties": {
+        "policy_id": {
+          "title": "Policy Id",
+          "type": "string"
+        },
+        "policy_name": {
+          "title": "Policy Name",
+          "type": "string"
+        },
+        "result": {
+          "enum": [
+            "pass",
+            "fail",
+            "review"
+          ],
+          "title": "Result",
+          "type": "string"
+        },
+        "explanation": {
+          "title": "Explanation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "policy_id",
+        "policy_name",
+        "result",
+        "explanation"
+      ],
+      "title": "GuardPolicyEvaluationResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Candidate containment action recommended for an incident and pre-evaluated by the Guard.",
+  "properties": {
+    "recommendation_id": {
+      "title": "Recommendation Id",
+      "type": "string"
+    },
+    "incident_id": {
+      "title": "Incident Id",
+      "type": "string"
+    },
+    "action": {
+      "enum": [
+        "isolate_host",
+        "block_ip",
+        "disable_account",
+        "block_modbus_write",
+        "kill_process"
+      ],
+      "title": "Action",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "target": {
+      "title": "Target",
+      "type": "string"
+    },
+    "target_zone": {
+      "title": "Target Zone",
+      "type": "string"
+    },
+    "risk_level": {
+      "title": "Risk Level",
+      "type": "string"
+    },
+    "supporting_evidence_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Supporting Evidence Ids",
+      "type": "array"
+    },
+    "decision": {
+      "$ref": "#/$defs/GuardDecision"
+    },
+    "suggested_alternative": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Suggested Alternative"
+    }
+  },
+  "required": [
+    "recommendation_id",
+    "incident_id",
+    "action",
+    "title",
+    "description",
+    "target",
+    "target_zone",
+    "risk_level",
+    "decision"
+  ],
+  "title": "ResponseRecommendation",
+  "type": "object"
+}

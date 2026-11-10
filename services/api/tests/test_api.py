@@ -220,3 +220,100 @@ def test_incident_summary_endpoints(client: TestClient):
     assert res_get.status_code == 200
     assert res_get.json()["incident_id"] == "inc_summary_test"
     assert res_get.json()["evidence_hash"] == summary["evidence_hash"]
+
+
+def test_incident_graph_and_timeline_api(client: TestClient):
+    from datetime import datetime, timezone
+
+    from sentinelx.schemas.common import Domain, Entity, EntityType, Outcome, SourceTool
+    from sentinelx.schemas.event import Event
+    from sentinelx.schemas.incident import Incident
+    from sentinelx.schemas.signal import Signal
+    from sentinelx.store.sqlite import insert_event, insert_signal, upsert_incident
+
+    now = datetime.now(timezone.utc)
+    ev = Event(
+        event_id="evt_api_001",
+        ts=now,
+        ingested_at=now,
+        source_tool=SourceTool.zeek,
+        domain=Domain.it,
+        category="network",
+        action="conn_ssh",
+        outcome=Outcome.success,
+        host="jump-host",
+        src_ip="10.10.1.5",
+        dst_ip="10.10.1.10",
+        raw_ref={"src": "test"},
+        raw={"ok": True},
+    )
+    sig = Signal(
+        signal_id="sig_api_001",
+        ts=now,
+        detector="rule",
+        rule_id="RULE-AUTH-001",
+        title="Unauthorized SSH Access",
+        score=0.8,
+        confidence=0.95,
+        entities=[
+            Entity(type=EntityType.ip, value="10.10.1.5"),
+            Entity(type=EntityType.host, value="jump-host"),
+        ],
+        evidence_event_ids=["evt_api_001"],
+        techniques=[],
+        explanation="Adversary connected via SSH",
+    )
+    inc = Incident(
+        incident_id="inc_graph_test",
+        status="open",
+        created_at=now,
+        updated_at=now,
+        first_signal_ts=now,
+        score=0.8,
+        severity="high",
+        entities=[
+            Entity(type=EntityType.ip, value="10.10.1.5"),
+            Entity(type=EntityType.host, value="jump-host"),
+        ],
+        signal_ids=["sig_api_001"],
+        event_ids=["evt_api_001"],
+        kill_chain_stages=["initial_access"],
+        techniques=[],
+        decoy_touched=False,
+        ot_touched=False,
+        explanation=["Adversary accessed jump-host"],
+    )
+
+    db = get_db()
+    insert_event(db, ev)
+    insert_signal(db, sig)
+    upsert_incident(db, inc)
+
+    # 1. Test GET /api/v1/incidents/{incident_id}
+    res_detail = client.get("/api/v1/incidents/inc_graph_test")
+    assert res_detail.status_code == 200
+    detail = res_detail.json()
+    assert detail["incident_id"] == "inc_graph_test"
+    assert "graph" in detail
+    assert detail["graph"] is not None
+    assert len(detail["graph"]["nodes"]) >= 2
+    assert len(detail["graph"]["edges"]) >= 1
+
+    # Verify canonical node attributes
+    jump_node = next(n for n in detail["graph"]["nodes"] if "jump-host" in n["label"])
+    assert jump_node["network_zone"] == "it"
+    assert jump_node["risk_level"] in ("high", "critical", "medium")
+
+    # Verify timeline inlined
+    assert "timeline" in detail
+    assert len(detail["timeline"]) == 1
+    assert detail["timeline"][0]["event_id"] == "evt_api_001"
+    assert detail["timeline"][0]["provenance"] == "observed"
+
+    # 2. Test GET /api/v1/incidents/{incident_id}/timeline
+    res_timeline = client.get("/api/v1/incidents/inc_graph_test/timeline")
+    assert res_timeline.status_code == 200
+    timeline = res_timeline.json()
+    assert len(timeline) == 1
+    assert timeline[0]["event_id"] == "evt_api_001"
+    assert "jump-host" in timeline[0]["description"]
