@@ -7,6 +7,7 @@ Any breaking change bumps `SCHEMA_VERSION` (defined in `engine/sentinelx/schemas
 ### Changelog
 - **v1.0 (Phase 0):** Initial frozen data contracts covering `Event`, `Signal`, `Incident`, `GuardDecision`, and `WSMessage`.
 - **v1.0.1 (Phase 7.2 / 7.3):** Single post-Phase-0 core-schema additive extension: added `novelty_only: bool = False` to `Incident` schema (tracks whether an incident is supported exclusively by unsupervised novelty detectors `{baseline, graph, anomaly}` requiring rule or deception corroboration; capped below threshold at `novelty_cap = 0.40`). Non-breaking additive field with safe default `false`.
+- **v1.0.2 (Phase A):** Additive provenance extensions for Event-Time TTFMA traceability: added `first_adversary_event_ts: UtcDatetime | None = None` and `threshold_crossing_event_ts: UtcDatetime | None = None` to `Incident` schema. Non-breaking additive fields with safe default `None`. Sourced from the earliest qualifying adversary event and the specific event crossing the configured operational alert threshold.
 
 ---
 
@@ -128,6 +129,8 @@ Any breaking change bumps `SCHEMA_VERSION` (defined in `engine/sentinelx/schemas
   "first_signal_ts": "2026-11-07T12:28:10Z",
   "first_meaningful_alert_ts": "2026-11-07T12:30:05Z",
   "ttfma_seconds": 115.0,
+  "first_adversary_event_ts": "2026-11-07T12:28:10Z",
+  "threshold_crossing_event_ts": "2026-11-07T12:30:05Z",
   "score": 0.92,
   "severity": "critical",
   "entities": [
