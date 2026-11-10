@@ -1,16 +1,21 @@
 import type {
   AssetResponse,
   BudgetStatusResponse,
+  DeceptionActivity,
+  DeceptionAssetSummary,
+  DeceptionOverview,
   EvalSummaryResponse,
   Event,
   GuardDecision,
   Incident,
   IncidentSummaryResponse,
+  ResponseRecommendation,
   Signal,
   SourceHealth,
   SystemStatusResponse,
   Technique,
   TelemetryStats,
+  TimelineEvent,
 } from "@contracts/index";
 
 export function getApiBaseUrl(): string {
@@ -207,6 +212,16 @@ export async function fetchIncidentById(incidentId: string): Promise<IncidentWit
   return res.json();
 }
 
+export async function fetchIncidentTimeline(incidentId: string): Promise<TimelineEvent[]> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/incidents/${encodeURIComponent(incidentId)}/timeline`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch incident timeline ${incidentId}: ${res.statusText}`);
+  }
+  return res.json();
+}
+
 export async function evaluateGuardAction(
   action: string,
   target: string,
@@ -233,6 +248,108 @@ export async function fetchGuardDecisions(limit: number = 20): Promise<GuardDeci
   });
   if (!res.ok) {
     throw new Error(`Failed to fetch guard decisions: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchGuardDecisionById(decisionId: string): Promise<GuardDecision> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/guard/decisions/${encodeURIComponent(decisionId)}`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch guard decision ${decisionId}: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function approveGuardDecision(
+  decisionId: string,
+  actor: string = "analyst",
+  notes?: string
+): Promise<GuardDecision> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/guard/decisions/${encodeURIComponent(decisionId)}/approve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ actor, notes }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || `Failed to approve guard decision: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function rejectGuardDecision(
+  decisionId: string,
+  actor: string = "analyst",
+  notes?: string
+): Promise<GuardDecision> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/guard/decisions/${encodeURIComponent(decisionId)}/reject`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ actor, notes }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || `Failed to reject guard decision: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchGuardRecommendations(incidentId: string): Promise<ResponseRecommendation[]> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/guard/recommendations/${encodeURIComponent(incidentId)}`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch guard recommendations: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchDeceptionOverview(): Promise<DeceptionOverview> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/deception/overview`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch deception overview: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchDeceptionActivities(
+  incidentId?: string,
+  limit: number = 100
+): Promise<DeceptionActivity[]> {
+  const url = new URL(`${getApiBaseUrl()}/api/v1/deception/activities`);
+  url.searchParams.set("limit", limit.toString());
+  if (incidentId) {
+    url.searchParams.set("incident_id", incidentId);
+  }
+  const res = await fetch(url.toString(), {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch deception activities: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchDeceptionActivity(activityId: string): Promise<DeceptionActivity> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/deception/activities/${encodeURIComponent(activityId)}`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch deception activity ${activityId}: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchDeceptionAssets(): Promise<DeceptionAssetSummary[]> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/deception/assets`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch deception assets: ${res.statusText}`);
   }
   return res.json();
 }
