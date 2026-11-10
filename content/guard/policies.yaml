@@ -75,7 +75,7 @@ policies:
     description: "Allow killing malicious process on non-critical IT endpoints."
     conditions:
       actions: ["kill_process"]
-      target_criticality: ["low", "medium", "high"]
+      target_criticality: ["low", "medium"]
     outcome: "allow"
     reasons:
       - "Target process is running on an IT host with no direct PLC hardware actuator loops."
