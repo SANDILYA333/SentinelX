@@ -98,9 +98,14 @@ lab-up: ## Start all lab services in background and wait for health
 	mkdir -p data/logs/wazuh data/logs/plc data/logs/cowrie data/logs/opencanary data/logs/zeek-it data/logs/zeek-dmz data/logs/zeek-ot
 	touch data/logs/plc/decoy-plc.jsonl data/logs/cowrie/cowrie.json
 	chmod 755 data/logs data/logs/plc data/logs/opencanary data/logs/zeek-it data/logs/zeek-dmz data/logs/zeek-ot
-	# Wazuh manager and Cowrie run as non-root UID 999; allow daemon write access without host UID remapping
-	chmod 777 data/logs/wazuh data/logs/cowrie
-	chmod 666 data/logs/plc/decoy-plc.jsonl data/logs/cowrie/cowrie.json 2>/dev/null || true
+	# Wazuh manager and Cowrie run as non-root UID 999.
+	# Preserve container ownership when directories are already writable.
+	@for dir in data/logs/wazuh data/logs/cowrie; do \
+		if [ "$$(stat -c %a "$$dir")" != "777" ] && [ -O "$$dir" ]; then \
+			chmod 777 "$$dir"; \
+		fi; \
+	done
+	chmod 666 data/logs/plc/decoy-plc.jsonl 2>/dev/null || true
 	docker compose -f lab/compose.yml up -d
 	@echo "Waiting for services to become healthy..."
 	@for i in $$(seq 1 60); do \
