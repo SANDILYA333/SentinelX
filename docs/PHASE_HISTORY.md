@@ -28,6 +28,7 @@ This document chronicles the engineering development lifecycle of SentinelX acro
 | **Phase 8** | [`72b28e5`](https://github.com/innovasia/SentinelX/commit/72b28e5) – [`b6dc91e`](https://github.com/innovasia/SentinelX/commit/b6dc91e) | 2026-11-09 08:31 – 08:36 | LLM Analyst Summary subsystem, Google Gemini client, and grounding verifier (V1–V4). |
 | **Phase 8.1** | [`769fba0`](https://github.com/innovasia/SentinelX/commit/769fba0) | 2026-11-09 09:31 | Prompt injection defense: added non-verdict rule V5, headline checks, and schema cleanup. |
 | **Phase 8.2** | [`664e6bb`](https://github.com/innovasia/SentinelX/commit/664e6bb) | 2026-11-09 10:04 | Headline verification fallback, evidence ranking for noisy multi-stage captures, and tests. |
+| **Phase D** | *(Working Tree)* | 2026-11-11 15:15 – 20:50 | Detection Evaluation & System Performance: multi-level benchmark, ground truth v1.0.0, API, Next.js UI. |
 
 ---
 
@@ -325,3 +326,61 @@ Implement an advisory AI analyst briefing layer using Google Gemini with strict 
 
 ### State at End of Phase
 Advisory AI analyst briefing layer protected by multi-stage Python verification, complete prompt injection resistance tests, and zero-downtime template fallback.
+
+---
+
+## Phase D: Detection Evaluation & System Performance
+
+### Goal
+Transform SentinelX from an operational detection system into a rigorously evaluated, reproducible, and evidence-backed platform. Quantify detection efficacy (Precision, Recall, F1, Accuracy, Specificity, FPR, FNR) across Event, Scenario (headline), and Incident levels, measure pipeline latencies across percentiles, assess Alert Budget preservation, verify throughput scaling ($\ge 100\text{ EPS}$), and provide full UI and API surfaces for detection engineering.
+
+### What Was Built
+- **D0 — Audit & System Design**:
+  - `docs/phase-d/phase_d_audit.md` comprehensive architecture and evaluation audit.
+  - Core methodology docs: `docs/phase-d/evaluation_methodology.md`, `docs/phase-d/dataset_documentation.md`, `docs/phase-d/metric_definitions.md`, and `docs/phase-d/performance_methodology.md`.
+- **D1 — Ground Truth & Dataset Integrity**:
+  - Strict Pydantic schemas in `engine/sentinelx/schemas/eval.py` (`EvaluationScenario`, `ExpectedDetection`, `GroundTruthDataset`).
+  - Curated, deterministic ground truth dataset `eval/scenarios/ground_truth.json` containing 17 scenarios across IT, DMZ, Deception, OT, and Benign profiles with dev/val/test splits.
+  - Validation utility `scripts/validate_evaluation_dataset.py` enforcing uniqueness, temporal validity, and label invariants.
+- **D2 — Multi-Level Detection Evaluation Engine**:
+  - `engine/sentinelx/eval/engine.py` supporting deterministic Event-level, Scenario-level (headline), and Incident-level evaluations.
+  - Rigorous zero-division handling returning `None` instead of arbitrary placeholders.
+  - MITRE ATT&CK parent technique matching hierarchy (e.g., `T1078.003` matches expected parent `T1078`).
+  - Per-engine and per-rule confusion matrices and classification metrics.
+- **D3 — Latency Profiling & Load Benchmarking**:
+  - Timestamp profiling across $L_{\text{ingest}}, L_{\text{detect}}, L_{\text{corr}}, L_{\text{e2e}}, \text{TTD}$ aggregated to P50, P90, P95, P99.
+  - Load benchmark script `scripts/eval_load_benchmark.py` testing normal, moderate, high, burst, and sustained workloads up to 1,000 EPS.
+  - Verified peak sustained pipeline throughput of 197.8 EPS ($\ge 100\text{ EPS}$ requirement) and P95 $L_{\text{e2e}}$ of 6.76 ms ($\le 50\text{ ms}$).
+- **D4 — Alert Budget Evaluation**:
+  - `engine/sentinelx/budget/controller.py` evaluation integration tracking signal admission, suppression, and high-severity preservation rates.
+  - Proved 100% preservation of critical threats under budget constraints.
+- **D5 — Evaluation API & SQLite Persistence**:
+  - SQLite tables `evaluation_runs` and `evaluation_scenario_results` in `engine/sentinelx/store/sqlite.py`.
+  - Comprehensive REST endpoints in `services/api/app/routes/evaluation.py` serving overview, runs, detector matrices, scenario breakdowns, latency percentiles, and run execution.
+- **D6 — Analyst Evaluation Dashboard**:
+  - Next.js 15 UI at `apps/web/src/app/eval/page.tsx` with KPI overview cards, multi-level evaluation tables, detector/rule matrices, scenario modal inspector, false negative gap analysis, latency quantiles, and side-by-side run comparison.
+  - Strictly typed API client in `apps/web/src/lib/api.ts` with zero `any` types.
+- **D7 — CLI Harness, Edge Case Tests & Documentation**:
+  - Evaluation CLI entrypoint `engine/sentinelx/eval/__main__.py` (`uv run python -m sentinelx.eval`).
+  - Makefile targets: `make eval`, `make eval-benchmark`, and `make eval-validate`.
+  - Edge case unit test suite `engine/tests/test_eval_edge_cases.py` verifying empty runs, zero-division, missing fields, and budget overflow.
+  - Full implementation report: `docs/phase-d/phase_d_implementation_report.md`.
+
+### Defects Found and Fixed
+- *Defect:* `AttributeError: 'Incident' object has no attribute 'signals'` during incident correlation evaluation.
+  - *Fix:* Corrected incident reference from `.signals` to `.signal_ids`.
+- *Defect:* ATT&CK subtechnique mismatch in `SCEN-AUTH-001` where detector emitted `T1078.003` but scenario expected parent `T1078`.
+  - *Fix:* Enhanced `DetectionEvaluationEngine` matching logic to support hierarchical MITRE parent technique matching.
+- *Defect:* TypeScript build failure in Next.js frontend due to `no-explicit-any` ESLint rules in API client.
+  - *Fix:* Added `EvaluationOverviewResponse` and `EvaluationRunListItem` interfaces in `apps/web/src/lib/api.ts`.
+- *Defect:* Category validation error in synthetic load benchmark (`'auth'` instead of canonical `'authentication'`).
+  - *Fix:* Corrected category literal to `'authentication'` in `scripts/eval_load_benchmark.py`.
+- *Defect:* Target collision in `Makefile` where `make eval` printed `'eval' is up to date` due to `eval/` directory.
+  - *Fix:* Added `eval eval-benchmark eval-validate` to `.PHONY:` in `Makefile`.
+
+### Decisions Deferred
+- Distributed live agent telemetry replay over network sockets: deferred to production deployment phase; local file replay in SQLite WAL mode provides reproducible, deterministic ground truth benchmarks.
+
+### State at End of Phase
+Fully verified, reproducible evaluation and benchmarking framework with 187 passing unit/integration tests, zero linter warnings, complete Next.js 15 UI compilation, and documented baseline performance metrics.
+

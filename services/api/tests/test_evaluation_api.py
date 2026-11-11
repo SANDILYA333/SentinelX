@@ -5,11 +5,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.config import settings
 from app.db import close_db, get_db
 from app.main import app
+from fastapi.testclient import TestClient
 from sentinelx.eval.engine import compute_metrics, compute_percentiles
 from sentinelx.schemas.eval import (
     BudgetEvaluationMetric,
@@ -168,7 +167,9 @@ def test_evaluation_api_endpoints(client: TestClient):
     scs = resp.json()
     assert len(scs) == 2
 
-    resp_filtered = client.get("/api/v1/evaluation/runs/eval-test-01/scenarios?category=industrial_ot")
+    resp_filtered = client.get(
+        "/api/v1/evaluation/runs/eval-test-01/scenarios?category=industrial_ot"
+    )
     assert resp_filtered.status_code == 200
     filtered_scs = resp_filtered.json()
     assert len(filtered_scs) == 1
@@ -195,4 +196,3 @@ def test_evaluation_api_endpoints(client: TestClient):
     resp_hist = client.get("/api/v1/evaluation/history")
     assert resp_hist.status_code == 200
     assert len(resp_hist.json()) == 1
-

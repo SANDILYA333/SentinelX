@@ -446,7 +446,85 @@ export async function generateIncidentSummary(
   return res.json();
 }
 
-export async function fetchEvaluationOverview(): Promise<any> {
+export interface EvaluationOverviewResponse {
+  latest_run_id: string;
+  created_at: string;
+  git_commit: string;
+  dataset_version: string;
+  splits_evaluated: string[];
+  headline: {
+    tp: number;
+    fp: number;
+    fn: number;
+    tn: number;
+    precision: number | null;
+    recall: number | null;
+    f1_score: number | null;
+    accuracy: number | null;
+    fpr: number | null;
+    fnr: number | null;
+  };
+  event_level: {
+    tp: number;
+    fp: number;
+    fn: number;
+    tn: number;
+    precision: number | null;
+    recall: number | null;
+    f1_score: number | null;
+    accuracy: number | null;
+    fpr: number | null;
+    fnr: number | null;
+  };
+  scenario_level: {
+    tp: number;
+    fp: number;
+    fn: number;
+    tn: number;
+    precision: number | null;
+    recall: number | null;
+    f1_score: number | null;
+    accuracy: number | null;
+    fpr: number | null;
+    fnr: number | null;
+  };
+  incident_level: {
+    tp: number;
+    fp: number;
+    fn: number;
+    tn: number;
+    precision: number | null;
+    recall: number | null;
+    f1_score: number | null;
+    accuracy: number | null;
+    fpr: number | null;
+    fnr: number | null;
+  };
+  throughput_eps: number;
+  p95_latency_ms: number;
+  total_historical_runs: number;
+}
+
+export interface EvaluationRunListItem {
+  run_id: string;
+  created_at: string;
+  git_commit: string;
+  dataset_version: string;
+  splits_evaluated: string[];
+  headline: {
+    tp: number;
+    fp: number;
+    fn: number;
+    tn: number;
+    precision: number | null;
+    recall: number | null;
+    f1_score: number | null;
+    accuracy: number | null;
+  };
+  throughput_eps: number;
+}
+
+export async function fetchEvaluationOverview(): Promise<EvaluationOverviewResponse> {
   const res = await fetch(`${getApiBaseUrl()}/api/v1/evaluation/overview`, {
     headers: { "Content-Type": "application/json" },
   });
@@ -456,7 +534,7 @@ export async function fetchEvaluationOverview(): Promise<any> {
   return res.json();
 }
 
-export async function fetchEvaluationRuns(limit: number = 20): Promise<any[]> {
+export async function fetchEvaluationRuns(limit: number = 20): Promise<EvaluationRunListItem[]> {
   const res = await fetch(`${getApiBaseUrl()}/api/v1/evaluation/runs?limit=${limit}`, {
     headers: { "Content-Type": "application/json" },
   });
@@ -501,6 +579,26 @@ export async function fetchEvaluationDetectors(runId: string): Promise<DetectorE
   });
   if (!res.ok) {
     throw new Error(`Failed to fetch evaluation detectors: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchEvaluationFalsePositives(runId: string): Promise<Record<string, unknown>[]> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/evaluation/runs/${runId}/false-positives`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch evaluation false positives: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchEvaluationFalseNegatives(runId: string): Promise<Record<string, unknown>[]> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/evaluation/runs/${runId}/false-negatives`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch evaluation false negatives: ${res.statusText}`);
   }
   return res.json();
 }

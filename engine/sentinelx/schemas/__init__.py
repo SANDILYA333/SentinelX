@@ -19,6 +19,22 @@ from sentinelx.schemas.deception import (
     DeceptionInteractionType,
     DeceptionOverview,
 )
+from sentinelx.schemas.eval import (
+    BudgetEvaluationMetric,
+    ClassificationType,
+    DatasetSplit,
+    DetectorEvaluationMetric,
+    EvaluationRunSummary,
+    EvaluationScenario,
+    ExpectedDetection,
+    GroundTruthDataset,
+    LatencyMetrics,
+    MetricScores,
+    PercentileDistribution,
+    RuleEvaluationMetric,
+    ScenarioCategory,
+    ScenarioEvaluationResult,
+)
 from sentinelx.schemas.event import Event, EventCategory, OTFields
 from sentinelx.schemas.guard import (
     ApprovalActionRequest,
@@ -41,22 +57,6 @@ from sentinelx.schemas.incident import (
     TimelineEvent,
 )
 from sentinelx.schemas.signal import DetectorType, Signal
-from sentinelx.schemas.eval import (
-    BudgetEvaluationMetric,
-    ClassificationType,
-    DatasetSplit,
-    DetectorEvaluationMetric,
-    EvaluationRunSummary,
-    EvaluationScenario,
-    ExpectedDetection,
-    GroundTruthDataset,
-    LatencyMetrics,
-    MetricScores,
-    PercentileDistribution,
-    RuleEvaluationMetric,
-    ScenarioCategory,
-    ScenarioEvaluationResult,
-)
 
 __all__ = [
     "SCHEMA_VERSION",

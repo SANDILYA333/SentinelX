@@ -3,9 +3,8 @@
 import sqlite3
 from typing import Annotated, Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-
 from sentinelx.eval.engine import DetectionEvaluationEngine
 from sentinelx.schemas.eval import (
     DatasetSplit,
@@ -185,4 +184,3 @@ async def trigger_evaluation_run(
     )
     save_evaluation_run(db, run)
     return run
-

@@ -1,6 +1,7 @@
 """Schemas for SentinelX detection evaluation, ground truth datasets, and metrics."""
 
 from typing import Any, Literal
+
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from sentinelx.schemas.common import Severity, UtcDatetime
@@ -212,7 +213,9 @@ class EvaluationRunSummary(BaseModel):
     created_at: UtcDatetime
     git_commit: str = "unknown"
     dataset_version: str = "1.0.0"
-    splits_evaluated: list[DatasetSplit] = Field(default_factory=lambda: ["dev", "validation", "test"])
+    splits_evaluated: list[DatasetSplit] = Field(
+        default_factory=lambda: ["dev", "validation", "test"]
+    )
     headline: MetricScores
     event_level: MetricScores
     scenario_level: MetricScores

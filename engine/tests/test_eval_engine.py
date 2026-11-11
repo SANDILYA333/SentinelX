@@ -1,18 +1,15 @@
 """Unit tests for SentinelX Detection Evaluation Engine and metric computations."""
 
-import sys
 from pathlib import Path
+
 import pytest
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT))
-
 from sentinelx.eval.engine import (
     DetectionEvaluationEngine,
     compute_metrics,
     compute_percentiles,
 )
-from sentinelx.schemas.eval import MetricScores, PercentileDistribution
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_compute_metrics_standard():
@@ -81,4 +78,3 @@ async def test_eval_engine_single_capture():
         assert len(res["signals"]) > 0
         assert len(res["active_incidents"]) > 0
         assert len(res["l_detect"]) > 0
-

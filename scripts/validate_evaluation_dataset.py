@@ -10,7 +10,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(REPO_ROOT / "engine"))
 
-from sentinelx.schemas.eval import GroundTruthDataset
+from sentinelx.schemas.eval import GroundTruthDataset  # noqa: E402
 
 DATASET_PATH = REPO_ROOT / "eval" / "scenarios" / "ground_truth.json"
 
@@ -51,9 +51,15 @@ def validate_dataset(path: Path = DATASET_PATH) -> GroundTruthDataset:
 
     print(f"Dataset '{dataset.description}' (v{dataset.version}) validated successfully.")
     print(f"Total scenarios: {len(dataset.scenarios)}")
-    print(f"  - Dev split: {len(dev)} (Malicious: {len([s for s in dev if s.is_malicious])}, Benign: {len([s for s in dev if not s.is_malicious])})")
-    print(f"  - Validation split: {len(val)} (Malicious: {len([s for s in val if s.is_malicious])}, Benign: {len([s for s in val if not s.is_malicious])})")
-    print(f"  - Test split: {len(test)} (Malicious: {len([s for s in test if s.is_malicious])}, Benign: {len([s for s in test if not s.is_malicious])})")
+    print(
+        f"  - Dev split: {len(dev)} (Malicious: {len([s for s in dev if s.is_malicious])}, Benign: {len([s for s in dev if not s.is_malicious])})"
+    )
+    print(
+        f"  - Validation split: {len(val)} (Malicious: {len([s for s in val if s.is_malicious])}, Benign: {len([s for s in val if not s.is_malicious])})"
+    )
+    print(
+        f"  - Test split: {len(test)} (Malicious: {len([s for s in test if s.is_malicious])}, Benign: {len([s for s in test if not s.is_malicious])})"
+    )
 
     return dataset
 
@@ -65,4 +71,3 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Dataset validation failed: {e}", file=sys.stderr)
         sys.exit(1)
-

@@ -1,18 +1,20 @@
 """Unit tests for SentinelX ground truth evaluation dataset validation and schema constraints."""
 
-import pytest
 import sys
 from pathlib import Path
+
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
-from sentinelx.schemas.eval import (
+from sentinelx.schemas.eval import (  # noqa: E402
     EvaluationScenario,
     ExpectedDetection,
     GroundTruthDataset,
 )
-from scripts.validate_evaluation_dataset import validate_dataset
+
+from scripts.validate_evaluation_dataset import validate_dataset  # noqa: E402
 
 
 def test_ground_truth_dataset_integrity():

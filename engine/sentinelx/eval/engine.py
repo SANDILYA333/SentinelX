@@ -9,11 +9,9 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import sqlite3
 import subprocess
 import tempfile
 import time
-from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -21,13 +19,11 @@ from typing import Any
 from sentinelx.correlate.pipeline import CorrelationPipeline
 from sentinelx.detect.runtime import DetectorPipeline
 from sentinelx.ingest.runtime import Ingestor
-from sentinelx.schemas.common import UtcDatetime
 from sentinelx.schemas.eval import (
     BudgetEvaluationMetric,
     DatasetSplit,
     DetectorEvaluationMetric,
     EvaluationRunSummary,
-    EvaluationScenario,
     GroundTruthDataset,
     LatencyMetrics,
     MetricScores,
@@ -36,7 +32,6 @@ from sentinelx.schemas.eval import (
     ScenarioEvaluationResult,
 )
 from sentinelx.schemas.event import Event
-from sentinelx.schemas.incident import Incident
 from sentinelx.schemas.signal import Signal
 from sentinelx.store.sqlite import init_db
 
@@ -305,9 +300,10 @@ class DetectionEvaluationEngine:
                     for s in sigs:
                         rule_match = exp.rule_id is None or s.rule_id == exp.rule_id
                         det_match = exp.detector is None or s.detector == exp.detector
-                        tech_match = (
-                            exp.technique_id is None
-                            or any(t.technique_id == exp.technique_id for t in s.techniques)
+                        tech_match = exp.technique_id is None or any(
+                            t.technique_id == exp.technique_id
+                            or t.technique_id.startswith(exp.technique_id + ".")
+                            for t in s.techniques
                         )
                         if rule_match and det_match and tech_match:
                             matched_sigs.append(s.signal_id)
@@ -330,7 +326,9 @@ class DetectionEvaluationEngine:
                             "scenario_id": sc.scenario_id,
                             "name": sc.name,
                             "category": sc.category,
-                            "expected_detections": [ed.model_dump() for ed in sc.expected_detections],
+                            "expected_detections": [
+                                ed.model_dump() for ed in sc.expected_detections
+                            ],
                             "expected_stages": sc.expected_attack_stages,
                             "target_assets": sc.target_assets,
                             "notes": "Expected detection did not fire during capture replay.",
@@ -494,14 +492,12 @@ class DetectionEvaluationEngine:
 
         for c in capture_results.values():
             for inc in c["all_incidents"]:
-                for s in inc.signals:
+                for _sid in inc.signal_ids:
                     total_admitted += 1
                     if inc.score >= 0.8:
                         crit_admitted += 1
 
-        suppression_ratio = (
-            (total_suppressed / total_sigs) if total_sigs > 0 else 0.0
-        )
+        suppression_ratio = (total_suppressed / total_sigs) if total_sigs > 0 else 0.0
         high_preservation = (
             (crit_admitted / (crit_admitted + crit_suppressed))
             if (crit_admitted + crit_suppressed) > 0
@@ -530,9 +526,7 @@ class DetectionEvaluationEngine:
             time_to_detect=compute_percentiles(all_ttd),
         )
 
-        throughput_eps = (
-            total_events / total_wall_time if total_wall_time > 0 else 0.0
-        )
+        throughput_eps = total_events / total_wall_time if total_wall_time > 0 else 0.0
 
         scenario_scores = compute_metrics(sc_tp, sc_fp, sc_fn, sc_tn)
         incident_scores = compute_metrics(inc_tp, inc_fp, inc_fn, inc_tn)
@@ -557,4 +551,3 @@ class DetectionEvaluationEngine:
             false_negatives=false_negatives,
             throughput_eps=round(throughput_eps, 2),
         )
-

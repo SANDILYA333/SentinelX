@@ -9,6 +9,7 @@ SHELL := /bin/bash
         guard-eval budget-calibrate incident-eval detect-correlate-replay \
         demo-preflight demo-reset demo-attack \
         ablation metrics organizer-test eval-full \
+        eval eval-benchmark eval-validate \
         summary-injection-live demo-warm-summaries measure-latency
 
 help: ## Show available Makefile commands
@@ -222,8 +223,17 @@ demo-attack: ## Trigger live paced baseline attack scenario (demo_baseline)
 	uv run python scripts/attack_runner.py baseline
 
 # ==============================================================================
-# Comprehensive Evaluation & Scorecard Targets (Phase 7)
+# Comprehensive Evaluation & Scorecard Targets (Phase 7 & Phase D)
 # ==============================================================================
+eval: ## Run Phase D detection evaluation harness across all captures and scenarios
+	uv run python -m sentinelx.eval
+
+eval-benchmark: ## Run Phase D load and latency benchmark with synthetic telemetry
+	uv run python scripts/eval_load_benchmark.py --workload $${WORKLOAD:-normal}
+
+eval-validate: ## Validate ground truth evaluation dataset schema and invariants
+	uv run python scripts/validate_evaluation_dataset.py
+
 ablation: ## Run 4-configuration detector ablation study across all 8 captures
 	uv run python eval/ablation.py
 

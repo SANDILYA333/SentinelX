@@ -1,0 +1,806 @@
+{
+  "run_id": "eval-1794410191",
+  "created_at": "2026-11-11T15:16:31.604025Z",
+  "git_commit": "df63933",
+  "dataset_version": "1.0.0",
+  "splits_evaluated": [
+    "dev",
+    "validation",
+    "test"
+  ],
+  "headline": {
+    "tp": 6,
+    "fp": 0,
+    "fn": 3,
+    "tn": 8,
+    "precision": 1.0,
+    "recall": 0.6667,
+    "f1_score": 0.8,
+    "accuracy": 0.8235,
+    "fpr": 0.0,
+    "fnr": 0.3333
+  },
+  "event_level": {
+    "tp": 371,
+    "fp": 0,
+    "fn": 0,
+    "tn": 1325,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0,
+    "accuracy": 1.0,
+    "fpr": 0.0,
+    "fnr": 0.0
+  },
+  "scenario_level": {
+    "tp": 6,
+    "fp": 0,
+    "fn": 3,
+    "tn": 8,
+    "precision": 1.0,
+    "recall": 0.6667,
+    "f1_score": 0.8,
+    "accuracy": 0.8235,
+    "fpr": 0.0,
+    "fnr": 0.3333
+  },
+  "incident_level": {
+    "tp": 3,
+    "fp": 0,
+    "fn": 0,
+    "tn": 5,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0,
+    "accuracy": 1.0,
+    "fpr": 0.0,
+    "fnr": 0.0
+  },
+  "detectors": [
+    {
+      "detector": "rule",
+      "metrics": {
+        "tp": 77,
+        "fp": 0,
+        "fn": 0,
+        "tn": 5,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "accuracy": 1.0,
+        "fpr": 0.0,
+        "fnr": 0.0
+      },
+      "total_signals": 77,
+      "attack_signals": 77,
+      "benign_signals": 0
+    },
+    {
+      "detector": "baseline",
+      "metrics": {
+        "tp": 57,
+        "fp": 0,
+        "fn": 0,
+        "tn": 5,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "accuracy": 1.0,
+        "fpr": 0.0,
+        "fnr": 0.0
+      },
+      "total_signals": 57,
+      "attack_signals": 57,
+      "benign_signals": 0
+    },
+    {
+      "detector": "anomaly",
+      "metrics": {
+        "tp": 147,
+        "fp": 0,
+        "fn": 0,
+        "tn": 5,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "accuracy": 1.0,
+        "fpr": 0.0,
+        "fnr": 0.0
+      },
+      "total_signals": 147,
+      "attack_signals": 147,
+      "benign_signals": 0
+    },
+    {
+      "detector": "graph",
+      "metrics": {
+        "tp": 43,
+        "fp": 0,
+        "fn": 0,
+        "tn": 5,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "accuracy": 1.0,
+        "fpr": 0.0,
+        "fnr": 0.0
+      },
+      "total_signals": 43,
+      "attack_signals": 43,
+      "benign_signals": 0
+    },
+    {
+      "detector": "deception",
+      "metrics": {
+        "tp": 47,
+        "fp": 0,
+        "fn": 0,
+        "tn": 5,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "accuracy": 1.0,
+        "fpr": 0.0,
+        "fnr": 0.0
+      },
+      "total_signals": 47,
+      "attack_signals": 47,
+      "benign_signals": 0
+    }
+  ],
+  "rules": [
+    {
+      "rule_id": "RULE-CRED-001",
+      "title": "Access to Sensitive Credential File or Honeytoken Asset",
+      "detector": "rule",
+      "metrics": {
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "tn": 5,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "accuracy": 1.0,
+        "fpr": 0.0,
+        "fnr": 0.0
+      },
+      "total_fires": 3,
+      "attack_fires": 3,
+      "benign_fires": 0
+    },
+    {
+      "rule_id": "RULE-NET-001",
+      "title": "Cross-Zone Network Perimeter Boundary Pivot",
+      "detector": "rule",
+      "metrics": {
+        "tp": 4,
+        "fp": 0,
+        "fn": 0,
+        "tn": 5,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "accuracy": 1.0,
+        "fpr": 0.0,
+        "fnr": 0.0
+      },
+      "total_fires": 4,
+      "attack_fires": 4,
+      "benign_fires": 0
+    },
+    {
+      "rule_id": "RULE-DECOY-001",
+      "title": "Interaction with High-Interaction Decoy Asset",
+      "detector": "rule",
+      "metrics": {
+        "tp": 43,
+        "fp": 0,
+        "fn": 0,
+        "tn": 5,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "accuracy": 1.0,
+        "fpr": 0.0,
+        "fnr": 0.0
+      },
+      "total_fires": 43,
+      "attack_fires": 43,
+      "benign_fires": 0
+    },
+    {
+      "rule_id": "RULE-SHELL-001",
+      "title": "Suspicious Shell Invocation or Automated Credential Injection",
+      "detector": "rule",
+      "metrics": {
+        "tp": 6,
+        "fp": 0,
+        "fn": 0,
+        "tn": 5,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "accuracy": 1.0,
+        "fpr": 0.0,
+        "fnr": 0.0
+      },
+      "total_fires": 6,
+      "attack_fires": 6,
+      "benign_fires": 0
+    },
+    {
+      "rule_id": "RULE-AUTH-001",
+      "title": "Successful SSH Authentication from Untrusted or External Client",
+      "detector": "rule",
+      "metrics": {
+        "tp": 57,
+        "fp": 0,
+        "fn": 0,
+        "tn": 5,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "accuracy": 1.0,
+        "fpr": 0.0,
+        "fnr": 0.0
+      },
+      "total_fires": 57,
+      "attack_fires": 57,
+      "benign_fires": 0
+    },
+    {
+      "rule_id": "RULE-OT-001",
+      "title": "Unauthorized Modbus Physical Process Control Manipulation",
+      "detector": "rule",
+      "metrics": {
+        "tp": 11,
+        "fp": 0,
+        "fn": 0,
+        "tn": 5,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "accuracy": 1.0,
+        "fpr": 0.0,
+        "fnr": 0.0
+      },
+      "total_fires": 11,
+      "attack_fires": 11,
+      "benign_fires": 0
+    }
+  ],
+  "latency": {
+    "ingest_latency": {
+      "p50": 0.05,
+      "p90": 0.05,
+      "p95": 0.05,
+      "p99": 0.05,
+      "min_ms": 0.05,
+      "mean_ms": 0.05,
+      "max_ms": 0.05,
+      "count": 1696
+    },
+    "detector_latency": {
+      "p50": 4.423,
+      "p90": 5.139,
+      "p95": 8.566,
+      "p99": 9.544,
+      "min_ms": 3.85,
+      "mean_ms": 4.791,
+      "max_ms": 10.271,
+      "count": 1696
+    },
+    "correlator_latency": {
+      "p50": 4.04,
+      "p90": 7.332,
+      "p95": 7.881,
+      "p99": 8.401,
+      "min_ms": 0.298,
+      "mean_ms": 4.26,
+      "max_ms": 46.089,
+      "count": 371
+    },
+    "end_to_end_latency": {
+      "p50": 4.427,
+      "p90": 10.394,
+      "p95": 14.183,
+      "p99": 22.079,
+      "min_ms": 3.851,
+      "mean_ms": 5.725,
+      "max_ms": 54.383,
+      "count": 1696
+    },
+    "time_to_detect": {
+      "p50": 4.882,
+      "p90": 5.258,
+      "p95": 5.258,
+      "p99": 5.258,
+      "min_ms": 4.411,
+      "mean_ms": 4.85,
+      "max_ms": 5.258,
+      "count": 3
+    }
+  },
+  "budget": {
+    "total_signals_emitted": 371,
+    "admitted_signals": 371,
+    "suppressed_signals": 0,
+    "suppression_ratio": 0.0,
+    "critical_signals_admitted": 371,
+    "critical_signals_suppressed": 0,
+    "high_severity_preservation_rate": 1.0,
+    "incidents_formed": 3,
+    "active_incidents": 3,
+    "budget_admitted_without_suppressing_attacks": true
+  },
+  "scenarios": [
+    {
+      "scenario_id": "SCEN-AUTH-001",
+      "name": "External SSH Login from Unexpected Zone",
+      "category": "authentication",
+      "split": "dev",
+      "is_malicious": true,
+      "detected": true,
+      "classification": "TP",
+      "score": 1.0,
+      "time_to_detect_ms": 4.8820780002643005,
+      "matched_signals": [
+        "sig_097db73a8f840d2c",
+        "sig_afb45c8dd5aff462",
+        "sig_6ea6f7f654a5caa9",
+        "sig_c1236c5e5fad2e38",
+        "sig_e2516f4e91ffec4d",
+        "sig_eeb59610647613fb",
+        "sig_6ece1cd4692ef085",
+        "sig_2b9af97446f05988",
+        "sig_2b6f9c5fd0f63faa",
+        "sig_3e5a360acf0acbd7",
+        "sig_da931b9c8f1aa4b3",
+        "sig_19683004eb76cbf3",
+        "sig_f37f5c673e46cd0c",
+        "sig_75e72640f9d077d0",
+        "sig_070eb0c962f4f04a",
+        "sig_dddf48cbc80535c5",
+        "sig_a0431639c3c434bf",
+        "sig_6df178ae66f4e224",
+        "sig_07684fdcb60ae4fd"
+      ],
+      "matched_rules": [
+        "RULE-AUTH-001"
+      ],
+      "matched_detectors": [
+        "rule"
+      ],
+      "notes": "Evaluated against capture replay",
+      "evidence_events": [
+        "evt-auth-jump-01"
+      ]
+    },
+    {
+      "scenario_id": "SCEN-AUTH-002",
+      "name": "Legitimate Admin SSH Session During Business Hours",
+      "category": "authentication",
+      "split": "dev",
+      "is_malicious": false,
+      "detected": false,
+      "classification": "TN",
+      "score": 0.0,
+      "time_to_detect_ms": null,
+      "matched_signals": [],
+      "matched_rules": [],
+      "matched_detectors": [],
+      "notes": "Evaluated against capture replay",
+      "evidence_events": [
+        "evt-benign-auth-01"
+      ]
+    },
+    {
+      "scenario_id": "SCEN-NET-001",
+      "name": "IT Subnet Discovery and Port Sweep",
+      "category": "lateral_movement",
+      "split": "validation",
+      "is_malicious": true,
+      "detected": true,
+      "classification": "TP",
+      "score": 1.0,
+      "time_to_detect_ms": 4.8820780002643005,
+      "matched_signals": [
+        "sig_74ddbc3edc13fea7",
+        "sig_88e34d7fca3cbc9e"
+      ],
+      "matched_rules": [
+        "GRAPH-SCAN-001"
+      ],
+      "matched_detectors": [
+        "graph"
+      ],
+      "notes": "Evaluated against capture replay",
+      "evidence_events": [
+        "evt-scan-01",
+        "evt-scan-02"
+      ]
+    },
+    {
+      "scenario_id": "SCEN-NET-002",
+      "name": "Cross-Zone Pivot into OT Engineering Workstation",
+      "category": "lateral_movement",
+      "split": "dev",
+      "is_malicious": true,
+      "detected": false,
+      "classification": "FN",
+      "score": 0.0,
+      "time_to_detect_ms": null,
+      "matched_signals": [],
+      "matched_rules": [],
+      "matched_detectors": [],
+      "notes": "Evaluated against capture replay",
+      "evidence_events": [
+        "evt-pivot-ot-01"
+      ]
+    },
+    {
+      "scenario_id": "SCEN-NET-003",
+      "name": "Routine NTP and DNS Infrastructure Traffic",
+      "category": "lateral_movement",
+      "split": "validation",
+      "is_malicious": false,
+      "detected": false,
+      "classification": "TN",
+      "score": 0.0,
+      "time_to_detect_ms": null,
+      "matched_signals": [],
+      "matched_rules": [],
+      "matched_detectors": [],
+      "notes": "Evaluated against capture replay",
+      "evidence_events": [
+        "evt-ntp-01",
+        "evt-dns-01"
+      ]
+    },
+    {
+      "scenario_id": "SCEN-EP-001",
+      "name": "Suspicious Encoded Shell Execution",
+      "category": "endpoint",
+      "split": "test",
+      "is_malicious": true,
+      "detected": true,
+      "classification": "TP",
+      "score": 1.0,
+      "time_to_detect_ms": 4.8820780002643005,
+      "matched_signals": [
+        "sig_2906f6f70bd6f43e",
+        "sig_dcd1f17595bf745e"
+      ],
+      "matched_rules": [
+        "RULE-SHELL-001"
+      ],
+      "matched_detectors": [
+        "rule"
+      ],
+      "notes": "Evaluated against capture replay",
+      "evidence_events": [
+        "evt-shell-01"
+      ]
+    },
+    {
+      "scenario_id": "SCEN-EP-002",
+      "name": "Scheduled Backup Archive Generation",
+      "category": "endpoint",
+      "split": "test",
+      "is_malicious": false,
+      "detected": false,
+      "classification": "TN",
+      "score": 0.0,
+      "time_to_detect_ms": null,
+      "matched_signals": [],
+      "matched_rules": [],
+      "matched_detectors": [],
+      "notes": "Evaluated against capture replay",
+      "evidence_events": [
+        "evt-backup-cron-01"
+      ]
+    },
+    {
+      "scenario_id": "SCEN-DEC-001",
+      "name": "Cowrie SSH Decoy Interaction",
+      "category": "deception",
+      "split": "dev",
+      "is_malicious": true,
+      "detected": false,
+      "classification": "FN",
+      "score": 0.0,
+      "time_to_detect_ms": null,
+      "matched_signals": [],
+      "matched_rules": [],
+      "matched_detectors": [],
+      "notes": "Evaluated against capture replay",
+      "evidence_events": [
+        "evt-cowrie-01"
+      ]
+    },
+    {
+      "scenario_id": "SCEN-DEC-002",
+      "name": "OpenCanary Database Decoy Port Probe",
+      "category": "deception",
+      "split": "validation",
+      "is_malicious": true,
+      "detected": false,
+      "classification": "FN",
+      "score": 0.0,
+      "time_to_detect_ms": null,
+      "matched_signals": [],
+      "matched_rules": [],
+      "matched_detectors": [],
+      "notes": "Evaluated against capture replay",
+      "evidence_events": [
+        "evt-canary-01"
+      ]
+    },
+    {
+      "scenario_id": "SCEN-DEC-003",
+      "name": "Decoy PLC Modbus Protocol Probe",
+      "category": "deception",
+      "split": "test",
+      "is_malicious": true,
+      "detected": true,
+      "classification": "TP",
+      "score": 1.0,
+      "time_to_detect_ms": 4.8820780002643005,
+      "matched_signals": [
+        "sig_aa0db70e959fd937",
+        "sig_749d2e8fb54cdbb2",
+        "sig_ad9be99f131f1717",
+        "sig_6e0d011853c968dd",
+        "sig_5bbdb69ffe7b1062",
+        "sig_abd6f8557e16770f",
+        "sig_0f8e8c1d3c06bc41",
+        "sig_3c55009489a3cf5b",
+        "sig_d85c017d798ebabb",
+        "sig_69bec44271d32485",
+        "sig_e1b690857321be4d",
+        "sig_e9838283d096d3cf",
+        "sig_fcd2f6fd399acb51",
+        "sig_24e2f2fea10e0fec",
+        "sig_8583c21a276e25e5"
+      ],
+      "matched_rules": [
+        "RULE-DECOY-001"
+      ],
+      "matched_detectors": [
+        "deception"
+      ],
+      "notes": "Evaluated against capture replay",
+      "evidence_events": [
+        "evt-decoy-plc-01"
+      ]
+    },
+    {
+      "scenario_id": "SCEN-OT-001",
+      "name": "Unauthorized Modbus Physical Process Control Manipulation",
+      "category": "industrial_ot",
+      "split": "dev",
+      "is_malicious": true,
+      "detected": true,
+      "classification": "TP",
+      "score": 1.0,
+      "time_to_detect_ms": 4.8820780002643005,
+      "matched_signals": [
+        "sig_8a8a1dfa1500361e",
+        "sig_1d08a3d3ff00b510",
+        "sig_14c68abc13c4a660"
+      ],
+      "matched_rules": [
+        "RULE-OT-001"
+      ],
+      "matched_detectors": [
+        "rule"
+      ],
+      "notes": "Evaluated against capture replay",
+      "evidence_events": [
+        "evt-ot-write-01"
+      ]
+    },
+    {
+      "scenario_id": "SCEN-OT-002",
+      "name": "Authorized Modbus Periodic Telemetry Polling",
+      "category": "industrial_ot",
+      "split": "dev",
+      "is_malicious": false,
+      "detected": false,
+      "classification": "TN",
+      "score": 0.0,
+      "time_to_detect_ms": null,
+      "matched_signals": [],
+      "matched_rules": [],
+      "matched_detectors": [],
+      "notes": "Evaluated against capture replay",
+      "evidence_events": [
+        "evt-ot-poll-01"
+      ]
+    },
+    {
+      "scenario_id": "SCEN-OT-003",
+      "name": "Authorized Engineering Workstation Maintenance Setpoint Update",
+      "category": "industrial_ot",
+      "split": "validation",
+      "is_malicious": false,
+      "detected": false,
+      "classification": "TN",
+      "score": 0.0,
+      "time_to_detect_ms": null,
+      "matched_signals": [],
+      "matched_rules": [],
+      "matched_detectors": [],
+      "notes": "Evaluated against capture replay",
+      "evidence_events": [
+        "evt-ot-maint-01"
+      ]
+    },
+    {
+      "scenario_id": "SCEN-BENIGN-101",
+      "name": "Day 101 Telemetry Capture (Benign Baseline 1)",
+      "category": "benign",
+      "split": "dev",
+      "is_malicious": false,
+      "detected": false,
+      "classification": "TN",
+      "score": 0.0,
+      "time_to_detect_ms": null,
+      "matched_signals": [],
+      "matched_rules": [],
+      "matched_detectors": [],
+      "notes": "Evaluated against capture replay",
+      "evidence_events": []
+    },
+    {
+      "scenario_id": "SCEN-BENIGN-103",
+      "name": "Day 103 Telemetry Capture (Benign with Transient Noise)",
+      "category": "benign",
+      "split": "validation",
+      "is_malicious": false,
+      "detected": false,
+      "classification": "TN",
+      "score": 0.0,
+      "time_to_detect_ms": null,
+      "matched_signals": [],
+      "matched_rules": [],
+      "matched_detectors": [],
+      "notes": "Evaluated against capture replay",
+      "evidence_events": []
+    },
+    {
+      "scenario_id": "SCEN-BENIGN-105",
+      "name": "Day 105 Telemetry Capture (Benign Baseline 5)",
+      "category": "benign",
+      "split": "test",
+      "is_malicious": false,
+      "detected": false,
+      "classification": "TN",
+      "score": 0.0,
+      "time_to_detect_ms": null,
+      "matched_signals": [],
+      "matched_rules": [],
+      "matched_detectors": [],
+      "notes": "Evaluated against capture replay",
+      "evidence_events": []
+    },
+    {
+      "scenario_id": "SCEN-ATK-BASE",
+      "name": "Full Multi-Stage Attack Campaign: Demo Baseline",
+      "category": "industrial_ot",
+      "split": "dev",
+      "is_malicious": true,
+      "detected": true,
+      "classification": "TP",
+      "score": 1.0,
+      "time_to_detect_ms": 4.8820780002643005,
+      "matched_signals": [
+        "sig_097db73a8f840d2c",
+        "sig_1d08a3d3ff00b510",
+        "sig_afb45c8dd5aff462",
+        "sig_6ea6f7f654a5caa9",
+        "sig_c1236c5e5fad2e38",
+        "sig_e2516f4e91ffec4d",
+        "sig_eeb59610647613fb",
+        "sig_6ece1cd4692ef085",
+        "sig_2b9af97446f05988",
+        "sig_2b6f9c5fd0f63faa",
+        "sig_2fe1336d0d6846c4",
+        "sig_3e5a360acf0acbd7",
+        "sig_14c68abc13c4a660",
+        "sig_8a8a1dfa1500361e",
+        "sig_da931b9c8f1aa4b3",
+        "sig_19683004eb76cbf3",
+        "sig_f37f5c673e46cd0c",
+        "sig_75e72640f9d077d0",
+        "sig_070eb0c962f4f04a",
+        "sig_dddf48cbc80535c5",
+        "sig_a0431639c3c434bf",
+        "sig_6df178ae66f4e224",
+        "sig_07684fdcb60ae4fd"
+      ],
+      "matched_rules": [
+        "RULE-CRED-001",
+        "RULE-AUTH-001",
+        "RULE-OT-001"
+      ],
+      "matched_detectors": [
+        "rule"
+      ],
+      "notes": "Evaluated against capture replay",
+      "evidence_events": []
+    }
+  ],
+  "false_positives": [],
+  "false_negatives": [
+    {
+      "scenario_id": "SCEN-NET-002",
+      "name": "Cross-Zone Pivot into OT Engineering Workstation",
+      "category": "lateral_movement",
+      "expected_detections": [
+        {
+          "rule_id": "RULE-NET-001",
+          "detector": "rule",
+          "severity": "high",
+          "technique_id": "T1021",
+          "target_asset": "eng-ws",
+          "description": "Cross-zone network pivot"
+        }
+      ],
+      "expected_stages": [
+        "lateral_movement"
+      ],
+      "target_assets": [
+        "eng-ws"
+      ],
+      "notes": "Expected detection did not fire during capture replay."
+    },
+    {
+      "scenario_id": "SCEN-DEC-001",
+      "name": "Cowrie SSH Decoy Interaction",
+      "category": "deception",
+      "expected_detections": [
+        {
+          "rule_id": "RULE-DECOY-001",
+          "detector": "deception",
+          "severity": "high",
+          "technique_id": "T1078",
+          "target_asset": "backup-srv-02",
+          "description": "Decoy interaction on Cowrie SSH service"
+        }
+      ],
+      "expected_stages": [
+        "credential_access",
+        "discovery"
+      ],
+      "target_assets": [
+        "backup-srv-02"
+      ],
+      "notes": "Expected detection did not fire during capture replay."
+    },
+    {
+      "scenario_id": "SCEN-DEC-002",
+      "name": "OpenCanary Database Decoy Port Probe",
+      "category": "deception",
+      "expected_detections": [
+        {
+          "rule_id": "RULE-DECOY-001",
+          "detector": "deception",
+          "severity": "high",
+          "technique_id": "T1046",
+          "target_asset": "db-prod-02",
+          "description": "OpenCanary fake service tripwire triggered"
+        }
+      ],
+      "expected_stages": [
+        "discovery"
+      ],
+      "target_assets": [
+        "db-prod-02"
+      ],
+      "notes": "Expected detection did not fire during capture replay."
+    }
+  ],
+  "throughput_eps": 171.12
+}
