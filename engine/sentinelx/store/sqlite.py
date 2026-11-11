@@ -1,10 +1,12 @@
 """SQLite storage layer in WAL mode using standard library sqlite3."""
 
+import json
 import sqlite3
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from sentinelx.schemas.eval import EvaluationRunSummary
 from sentinelx.schemas.event import Event
 from sentinelx.schemas.guard import GuardDecision
 from sentinelx.schemas.incident import Incident
@@ -121,6 +123,44 @@ def init_db(path: str | Path) -> sqlite3.Connection:
             pass
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_incident_summaries_lookup ON incident_summaries(incident_id, generated_at DESC);"
+        )
+
+        # Tables for Detection Evaluation Runs and Scenario Results (Phase D)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS evaluation_runs (
+                run_id TEXT PRIMARY KEY,
+                created_at TEXT NOT NULL,
+                git_commit TEXT NOT NULL,
+                dataset_version TEXT NOT NULL,
+                splits TEXT NOT NULL,
+                headline_precision REAL,
+                headline_recall REAL,
+                headline_f1 REAL,
+                headline_accuracy REAL,
+                p95_latency_ms REAL,
+                throughput_eps REAL,
+                json TEXT NOT NULL
+            );
+        """)
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_evaluation_runs_created ON evaluation_runs(created_at DESC);"
+        )
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS evaluation_scenario_results (
+                run_id TEXT NOT NULL,
+                scenario_id TEXT NOT NULL,
+                classification TEXT NOT NULL,
+                detected INTEGER NOT NULL,
+                score REAL NOT NULL,
+                time_to_detect_ms REAL,
+                notes TEXT,
+                PRIMARY KEY (run_id, scenario_id),
+                FOREIGN KEY (run_id) REFERENCES evaluation_runs(run_id) ON DELETE CASCADE
+            );
+        """)
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_evaluation_scenarios_lookup ON evaluation_scenario_results(run_id, scenario_id);"
         )
 
     return conn
@@ -617,3 +657,105 @@ def get_latest_incident_summary(
         "generated_at": row[9],
         "headline_source": row[10] if len(row) > 10 and row[10] is not None else "llm",
     }
+
+
+def save_evaluation_run(db: sqlite3.Connection, run: EvaluationRunSummary) -> None:
+    """Persist an evaluation run and its scenario breakdown in SQLite."""
+    with db:
+        splits_str = json.dumps(run.splits_evaluated)
+        db.execute(
+            """
+            INSERT OR REPLACE INTO evaluation_runs (
+                run_id, created_at, git_commit, dataset_version, splits,
+                headline_precision, headline_recall, headline_f1, headline_accuracy,
+                p95_latency_ms, throughput_eps, json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                run.run_id,
+                run.created_at.isoformat(),
+                run.git_commit,
+                run.dataset_version,
+                splits_str,
+                run.headline.precision,
+                run.headline.recall,
+                run.headline.f1_score,
+                run.headline.accuracy,
+                run.latency.end_to_end_latency.p95,
+                run.throughput_eps,
+                run.model_dump_json(),
+            ),
+        )
+
+        for sc in run.scenarios:
+            db.execute(
+                """
+                INSERT OR REPLACE INTO evaluation_scenario_results (
+                    run_id, scenario_id, classification, detected, score, time_to_detect_ms, notes
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    run.run_id,
+                    sc.scenario_id,
+                    sc.classification,
+                    1 if sc.detected else 0,
+                    sc.score,
+                    sc.time_to_detect_ms,
+                    sc.notes,
+                ),
+            )
+
+
+def get_evaluation_run(db: sqlite3.Connection, run_id: str) -> EvaluationRunSummary | None:
+    """Retrieve full evaluation run summary by run_id."""
+    cursor = db.cursor()
+    cursor.execute("SELECT json FROM evaluation_runs WHERE run_id = ?", (run_id,))
+    row = cursor.fetchone()
+    if not row:
+        return None
+    return EvaluationRunSummary.model_validate_json(row[0])
+
+
+def get_latest_evaluation_run(db: sqlite3.Connection) -> EvaluationRunSummary | None:
+    """Retrieve the most recent evaluation run summary."""
+    cursor = db.cursor()
+    cursor.execute("SELECT json FROM evaluation_runs ORDER BY created_at DESC LIMIT 1")
+    row = cursor.fetchone()
+    if not row:
+        return None
+    return EvaluationRunSummary.model_validate_json(row[0])
+
+
+def list_evaluation_runs(db: sqlite3.Connection, limit: int = 20) -> list[dict[str, Any]]:
+    """List historical evaluation runs with headline metrics."""
+    cursor = db.cursor()
+    cursor.execute(
+        """
+        SELECT run_id, created_at, git_commit, dataset_version, splits,
+               headline_precision, headline_recall, headline_f1, headline_accuracy,
+               p95_latency_ms, throughput_eps
+        FROM evaluation_runs
+        ORDER BY created_at DESC
+        LIMIT ?
+        """,
+        (limit,),
+    )
+    rows = cursor.fetchall()
+    results = []
+    for r in rows:
+        results.append(
+            {
+                "run_id": r[0],
+                "created_at": r[1],
+                "git_commit": r[2],
+                "dataset_version": r[3],
+                "splits": json.loads(r[4]) if r[4] else [],
+                "headline_precision": r[5],
+                "headline_recall": r[6],
+                "headline_f1": r[7],
+                "headline_accuracy": r[8],
+                "p95_latency_ms": r[9],
+                "throughput_eps": r[10],
+            }
+        )
+    return results

@@ -1,0 +1,114 @@
+{
+  "additionalProperties": false,
+  "description": "Evaluation result for a single scenario.",
+  "properties": {
+    "scenario_id": {
+      "title": "Scenario Id",
+      "type": "string"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "category": {
+      "enum": [
+        "authentication",
+        "lateral_movement",
+        "endpoint",
+        "deception",
+        "industrial_ot",
+        "benign"
+      ],
+      "title": "Category",
+      "type": "string"
+    },
+    "split": {
+      "enum": [
+        "dev",
+        "validation",
+        "test"
+      ],
+      "title": "Split",
+      "type": "string"
+    },
+    "is_malicious": {
+      "title": "Is Malicious",
+      "type": "boolean"
+    },
+    "detected": {
+      "title": "Detected",
+      "type": "boolean"
+    },
+    "classification": {
+      "enum": [
+        "TP",
+        "FP",
+        "FN",
+        "TN"
+      ],
+      "title": "Classification",
+      "type": "string"
+    },
+    "score": {
+      "default": 0.0,
+      "title": "Score",
+      "type": "number"
+    },
+    "time_to_detect_ms": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Time To Detect Ms"
+    },
+    "matched_signals": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Matched Signals",
+      "type": "array"
+    },
+    "matched_rules": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Matched Rules",
+      "type": "array"
+    },
+    "matched_detectors": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Matched Detectors",
+      "type": "array"
+    },
+    "notes": {
+      "default": "",
+      "title": "Notes",
+      "type": "string"
+    },
+    "evidence_events": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Events",
+      "type": "array"
+    }
+  },
+  "required": [
+    "scenario_id",
+    "name",
+    "category",
+    "split",
+    "is_malicious",
+    "detected",
+    "classification"
+  ],
+  "title": "ScenarioEvaluationResult",
+  "type": "object"
+}

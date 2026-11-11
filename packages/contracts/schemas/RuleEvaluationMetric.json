@@ -1,0 +1,146 @@
+{
+  "$defs": {
+    "MetricScores": {
+      "additionalProperties": false,
+      "description": "Standard evaluation metrics with explicit zero-division handling.",
+      "properties": {
+        "tp": {
+          "default": 0,
+          "title": "Tp",
+          "type": "integer"
+        },
+        "fp": {
+          "default": 0,
+          "title": "Fp",
+          "type": "integer"
+        },
+        "fn": {
+          "default": 0,
+          "title": "Fn",
+          "type": "integer"
+        },
+        "tn": {
+          "default": 0,
+          "title": "Tn",
+          "type": "integer"
+        },
+        "precision": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Precision"
+        },
+        "recall": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recall"
+        },
+        "f1_score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "F1 Score"
+        },
+        "accuracy": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Accuracy"
+        },
+        "fpr": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fpr"
+        },
+        "fnr": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fnr"
+        }
+      },
+      "title": "MetricScores",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Evaluation metrics for an individual detection rule.",
+  "properties": {
+    "rule_id": {
+      "title": "Rule Id",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "detector": {
+      "default": "rule",
+      "title": "Detector",
+      "type": "string"
+    },
+    "metrics": {
+      "$ref": "#/$defs/MetricScores"
+    },
+    "total_fires": {
+      "default": 0,
+      "title": "Total Fires",
+      "type": "integer"
+    },
+    "attack_fires": {
+      "default": 0,
+      "title": "Attack Fires",
+      "type": "integer"
+    },
+    "benign_fires": {
+      "default": 0,
+      "title": "Benign Fires",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "rule_id",
+    "title",
+    "metrics"
+  ],
+  "title": "RuleEvaluationMetric",
+  "type": "object"
+}

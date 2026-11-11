@@ -1,0 +1,80 @@
+{
+  "$defs": {
+    "PercentileDistribution": {
+      "additionalProperties": false,
+      "description": "Percentile summary for latency distributions in milliseconds.",
+      "properties": {
+        "p50": {
+          "default": 0.0,
+          "title": "P50",
+          "type": "number"
+        },
+        "p90": {
+          "default": 0.0,
+          "title": "P90",
+          "type": "number"
+        },
+        "p95": {
+          "default": 0.0,
+          "title": "P95",
+          "type": "number"
+        },
+        "p99": {
+          "default": 0.0,
+          "title": "P99",
+          "type": "number"
+        },
+        "min_ms": {
+          "default": 0.0,
+          "title": "Min Ms",
+          "type": "number"
+        },
+        "mean_ms": {
+          "default": 0.0,
+          "title": "Mean Ms",
+          "type": "number"
+        },
+        "max_ms": {
+          "default": 0.0,
+          "title": "Max Ms",
+          "type": "number"
+        },
+        "count": {
+          "default": 0,
+          "title": "Count",
+          "type": "integer"
+        }
+      },
+      "title": "PercentileDistribution",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Breakdown of processing and detection latencies.",
+  "properties": {
+    "ingest_latency": {
+      "$ref": "#/$defs/PercentileDistribution"
+    },
+    "detector_latency": {
+      "$ref": "#/$defs/PercentileDistribution"
+    },
+    "correlator_latency": {
+      "$ref": "#/$defs/PercentileDistribution"
+    },
+    "end_to_end_latency": {
+      "$ref": "#/$defs/PercentileDistribution"
+    },
+    "time_to_detect": {
+      "$ref": "#/$defs/PercentileDistribution"
+    }
+  },
+  "required": [
+    "ingest_latency",
+    "detector_latency",
+    "correlator_latency",
+    "end_to_end_latency",
+    "time_to_detect"
+  ],
+  "title": "LatencyMetrics",
+  "type": "object"
+}

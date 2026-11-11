@@ -1,0 +1,58 @@
+{
+  "additionalProperties": false,
+  "description": "Assessment of Alert Budget Controller performance.",
+  "properties": {
+    "total_signals_emitted": {
+      "default": 0,
+      "title": "Total Signals Emitted",
+      "type": "integer"
+    },
+    "admitted_signals": {
+      "default": 0,
+      "title": "Admitted Signals",
+      "type": "integer"
+    },
+    "suppressed_signals": {
+      "default": 0,
+      "title": "Suppressed Signals",
+      "type": "integer"
+    },
+    "suppression_ratio": {
+      "default": 0.0,
+      "title": "Suppression Ratio",
+      "type": "number"
+    },
+    "critical_signals_admitted": {
+      "default": 0,
+      "title": "Critical Signals Admitted",
+      "type": "integer"
+    },
+    "critical_signals_suppressed": {
+      "default": 0,
+      "title": "Critical Signals Suppressed",
+      "type": "integer"
+    },
+    "high_severity_preservation_rate": {
+      "default": 1.0,
+      "title": "High Severity Preservation Rate",
+      "type": "number"
+    },
+    "incidents_formed": {
+      "default": 0,
+      "title": "Incidents Formed",
+      "type": "integer"
+    },
+    "active_incidents": {
+      "default": 0,
+      "title": "Active Incidents",
+      "type": "integer"
+    },
+    "budget_admitted_without_suppressing_attacks": {
+      "default": true,
+      "title": "Budget Admitted Without Suppressing Attacks",
+      "type": "boolean"
+    }
+  },
+  "title": "BudgetEvaluationMetric",
+  "type": "object"
+}

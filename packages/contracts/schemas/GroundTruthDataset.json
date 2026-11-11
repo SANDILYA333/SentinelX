@@ -1,0 +1,231 @@
+{
+  "$defs": {
+    "EvaluationScenario": {
+      "additionalProperties": false,
+      "description": "A ground truth evaluation scenario representing either an attack step or benign activity.",
+      "properties": {
+        "scenario_id": {
+          "title": "Scenario Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "authentication",
+            "lateral_movement",
+            "endpoint",
+            "deception",
+            "industrial_ot",
+            "benign"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "split": {
+          "enum": [
+            "dev",
+            "validation",
+            "test"
+          ],
+          "title": "Split",
+          "type": "string"
+        },
+        "is_malicious": {
+          "title": "Is Malicious",
+          "type": "boolean"
+        },
+        "capture_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capture Name"
+        },
+        "target_assets": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Target Assets",
+          "type": "array"
+        },
+        "expected_detections": {
+          "items": {
+            "$ref": "#/$defs/ExpectedDetection"
+          },
+          "title": "Expected Detections",
+          "type": "array"
+        },
+        "expected_attack_stages": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Expected Attack Stages",
+          "type": "array"
+        },
+        "event_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Event Ids",
+          "type": "array"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "metadata": {
+          "additionalProperties": true,
+          "title": "Metadata",
+          "type": "object"
+        }
+      },
+      "required": [
+        "scenario_id",
+        "name",
+        "description",
+        "category",
+        "split",
+        "is_malicious"
+      ],
+      "title": "EvaluationScenario",
+      "type": "object"
+    },
+    "ExpectedDetection": {
+      "additionalProperties": false,
+      "description": "Specification of a detection expected from a scenario.",
+      "properties": {
+        "rule_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rule Id"
+        },
+        "detector": {
+          "anyOf": [
+            {
+              "enum": [
+                "rule",
+                "baseline",
+                "anomaly",
+                "graph",
+                "deception"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detector"
+        },
+        "severity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Severity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "technique_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Technique Id"
+        },
+        "target_asset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Asset"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        }
+      },
+      "title": "ExpectedDetection",
+      "type": "object"
+    },
+    "Severity": {
+      "description": "Alert and incident severity levels.",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "title": "Severity",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Collection of evaluation scenarios with filter and lookup operations.",
+  "properties": {
+    "version": {
+      "default": "1.0.0",
+      "title": "Version",
+      "type": "string"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "scenarios": {
+      "items": {
+        "$ref": "#/$defs/EvaluationScenario"
+      },
+      "title": "Scenarios",
+      "type": "array"
+    }
+  },
+  "required": [
+    "description"
+  ],
+  "title": "GroundTruthDataset",
+  "type": "object"
+}

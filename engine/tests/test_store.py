@@ -122,3 +122,83 @@ def test_sqlite_incident_novelty_only_roundtrip():
         assert retrieved_std.score == 0.85
 
         db.close()
+
+
+def test_sqlite_evaluation_runs_roundtrip():
+    """Verify that evaluation runs and scenario results persist and retrieve accurately."""
+    from sentinelx.eval.engine import compute_metrics, compute_percentiles
+    from sentinelx.schemas.eval import (
+        BudgetEvaluationMetric,
+        EvaluationRunSummary,
+        LatencyMetrics,
+        ScenarioEvaluationResult,
+    )
+    from sentinelx.store.sqlite import (
+        get_evaluation_run,
+        get_latest_evaluation_run,
+        list_evaluation_runs,
+        save_evaluation_run,
+    )
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        db_path = Path(tmp_dir) / "test_eval_store.db"
+        db = init_db(db_path)
+
+        now = datetime(2026, 11, 10, 12, 0, 0, tzinfo=UTC)
+        scores = compute_metrics(10, 1, 0, 6)
+
+        run = EvaluationRunSummary(
+            run_id="run-test-001",
+            created_at=now,
+            git_commit="abc1234",
+            dataset_version="1.0.0",
+            splits_evaluated=["dev", "validation"],
+            headline=scores,
+            event_level=scores,
+            scenario_level=scores,
+            incident_level=scores,
+            detectors=[],
+            rules=[],
+            latency=LatencyMetrics(
+                ingest_latency=compute_percentiles([1.0]),
+                detector_latency=compute_percentiles([2.0]),
+                correlator_latency=compute_percentiles([1.5]),
+                end_to_end_latency=compute_percentiles([4.5]),
+                time_to_detect=compute_percentiles([12.0]),
+            ),
+            budget=BudgetEvaluationMetric(),
+            scenarios=[
+                ScenarioEvaluationResult(
+                    scenario_id="SCEN-OT-001",
+                    name="Modbus Write",
+                    category="industrial_ot",
+                    split="dev",
+                    is_malicious=True,
+                    detected=True,
+                    classification="TP",
+                    score=0.95,
+                )
+            ],
+            throughput_eps=150.0,
+        )
+
+        save_evaluation_run(db, run)
+
+        retrieved = get_evaluation_run(db, "run-test-001")
+        assert retrieved is not None
+        assert retrieved.run_id == "run-test-001"
+        assert retrieved.headline.tp == 10
+        assert retrieved.headline.fp == 1
+        assert len(retrieved.scenarios) == 1
+        assert retrieved.scenarios[0].scenario_id == "SCEN-OT-001"
+
+        latest = get_latest_evaluation_run(db)
+        assert latest is not None
+        assert latest.run_id == "run-test-001"
+
+        runs_list = list_evaluation_runs(db)
+        assert len(runs_list) == 1
+        assert runs_list[0]["run_id"] == "run-test-001"
+        assert runs_list[0]["git_commit"] == "abc1234"
+
+        db.close()

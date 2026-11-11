@@ -4,12 +4,15 @@ import type {
   DeceptionActivity,
   DeceptionAssetSummary,
   DeceptionOverview,
+  DetectorEvaluationMetric,
   EvalSummaryResponse,
+  EvaluationRunSummary,
   Event,
   GuardDecision,
   Incident,
   IncidentSummaryResponse,
   ResponseRecommendation,
+  ScenarioEvaluationResult,
   Signal,
   SourceHealth,
   SystemStatusResponse,
@@ -439,6 +442,80 @@ export async function generateIncidentSummary(
   );
   if (!res.ok) {
     throw new Error(`Failed to generate incident summary: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchEvaluationOverview(): Promise<any> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/evaluation/overview`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch evaluation overview: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchEvaluationRuns(limit: number = 20): Promise<any[]> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/evaluation/runs?limit=${limit}`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch evaluation runs: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchEvaluationRun(runId: string): Promise<EvaluationRunSummary> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/evaluation/runs/${runId}`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch evaluation run ${runId}: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchEvaluationScenarios(
+  runId: string,
+  params?: { category?: string; split?: string; classification?: string }
+): Promise<ScenarioEvaluationResult[]> {
+  const query = new URLSearchParams();
+  if (params?.category) query.set("category", params.category);
+  if (params?.split) query.set("split", params.split);
+  if (params?.classification) query.set("classification", params.classification);
+
+  const qs = query.toString() ? `?${query.toString()}` : "";
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/evaluation/runs/${runId}/scenarios${qs}`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch evaluation scenarios: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchEvaluationDetectors(runId: string): Promise<DetectorEvaluationMetric[]> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/evaluation/runs/${runId}/detectors`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch evaluation detectors: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function triggerEvaluationRun(
+  splits: string[] = ["dev", "validation", "test"],
+  budgetThreshold: number = 0.50
+): Promise<EvaluationRunSummary> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/evaluation/run`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ splits, budget_threshold: budgetThreshold }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to trigger evaluation run: ${res.statusText}`);
   }
   return res.json();
 }

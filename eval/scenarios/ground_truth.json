@@ -1,0 +1,340 @@
+{
+  "version": "1.0.0",
+  "description": "Authoritative ground truth evaluation dataset for SentinelX detection validation across IT, DMZ, and OT environments.",
+  "scenarios": [
+    {
+      "scenario_id": "SCEN-AUTH-001",
+      "name": "External SSH Login from Unexpected Zone",
+      "description": "Adversary authenticates via compromised svc_backup account originating from external IP into jump-host.",
+      "category": "authentication",
+      "split": "dev",
+      "is_malicious": true,
+      "capture_name": "demo_baseline",
+      "target_assets": ["jump-host", "srv-backup"],
+      "expected_detections": [
+        {
+          "rule_id": "RULE-AUTH-001",
+          "detector": "rule",
+          "severity": "high",
+          "technique_id": "T1078",
+          "target_asset": "jump-host",
+          "description": "SSH login from unexpected network zone"
+        }
+      ],
+      "expected_attack_stages": ["initial_access"],
+      "event_ids": ["evt-auth-jump-01"],
+      "tags": ["ssh", "credential_abuse", "initial_access"],
+      "metadata": { "adversary_actor": "APT-Industrial", "source_ip": "198.51.100.45" }
+    },
+    {
+      "scenario_id": "SCEN-AUTH-002",
+      "name": "Legitimate Admin SSH Session During Business Hours",
+      "description": "Authorized system administrator logs into jumphost from internal management workstation during standard hours.",
+      "category": "authentication",
+      "split": "dev",
+      "is_malicious": false,
+      "capture_name": "day_101",
+      "target_assets": ["jump-host"],
+      "expected_detections": [],
+      "expected_attack_stages": [],
+      "event_ids": ["evt-benign-auth-01"],
+      "tags": ["ssh", "admin", "routine"],
+      "metadata": { "user": "admin_ops", "source_ip": "10.10.1.10" }
+    },
+    {
+      "scenario_id": "SCEN-NET-001",
+      "name": "IT Subnet Discovery and Port Sweep",
+      "description": "Adversary sweeps enterprise subnet looking for active services and vulnerable listening ports.",
+      "category": "lateral_movement",
+      "split": "validation",
+      "is_malicious": true,
+      "capture_name": "demo_baseline",
+      "target_assets": ["jump-host", "corp-dc-01", "db-prod-01"],
+      "expected_detections": [
+        {
+          "rule_id": "GRAPH-SCAN-001",
+          "detector": "graph",
+          "severity": "medium",
+          "technique_id": "T1046",
+          "target_asset": "jump-host",
+          "description": "Anomalous network fan-out sweep"
+        }
+      ],
+      "expected_attack_stages": ["discovery"],
+      "event_ids": ["evt-scan-01", "evt-scan-02"],
+      "tags": ["network_scan", "t1046", "discovery"],
+      "metadata": { "ports": [22, 80, 443, 502, 3389] }
+    },
+    {
+      "scenario_id": "SCEN-NET-002",
+      "name": "Cross-Zone Pivot into OT Engineering Workstation",
+      "description": "Adversary traverses from enterprise DMZ host directly into OT cell engineering workstation.",
+      "category": "lateral_movement",
+      "split": "dev",
+      "is_malicious": true,
+      "capture_name": "demo_baseline",
+      "target_assets": ["eng-ws"],
+      "expected_detections": [
+        {
+          "rule_id": "RULE-NET-001",
+          "detector": "rule",
+          "severity": "high",
+          "technique_id": "T1021",
+          "target_asset": "eng-ws",
+          "description": "Cross-zone network pivot"
+        }
+      ],
+      "expected_attack_stages": ["lateral_movement"],
+      "event_ids": ["evt-pivot-ot-01"],
+      "tags": ["lateral_movement", "cross_zone", "eng_ws"],
+      "metadata": { "protocol": "ssh", "dest_zone": "ot" }
+    },
+    {
+      "scenario_id": "SCEN-NET-003",
+      "name": "Routine NTP and DNS Infrastructure Traffic",
+      "description": "Standard automated background time synchronization and name resolution traffic across subnets.",
+      "category": "lateral_movement",
+      "split": "validation",
+      "is_malicious": false,
+      "capture_name": "day_102",
+      "target_assets": ["corp-dc-01"],
+      "expected_detections": [],
+      "expected_attack_stages": [],
+      "event_ids": ["evt-ntp-01", "evt-dns-01"],
+      "tags": ["ntp", "dns", "baseline"],
+      "metadata": { "traffic_type": "standard_infra" }
+    },
+    {
+      "scenario_id": "SCEN-EP-001",
+      "name": "Suspicious Encoded Shell Execution",
+      "description": "Adversary launches base64 encoded bash command on staging host to establish reverse shell or dump creds.",
+      "category": "endpoint",
+      "split": "test",
+      "is_malicious": true,
+      "capture_name": "demo_baseline",
+      "target_assets": ["jump-host"],
+      "expected_detections": [
+        {
+          "rule_id": "RULE-SHELL-001",
+          "detector": "rule",
+          "severity": "high",
+          "technique_id": "T1059",
+          "target_asset": "jump-host",
+          "description": "Encoded or obfuscated shell execution"
+        }
+      ],
+      "expected_attack_stages": ["execution"],
+      "event_ids": ["evt-shell-01"],
+      "tags": ["sysmon", "process_creation", "bash", "reverse_shell"],
+      "metadata": { "command": "bash -c echo bWtjZmlmby... | base64 -d | sh" }
+    },
+    {
+      "scenario_id": "SCEN-EP-002",
+      "name": "Scheduled Backup Archive Generation",
+      "description": "Cron-driven scheduled backup script creating compressed archive and verifying checksum.",
+      "category": "endpoint",
+      "split": "test",
+      "is_malicious": false,
+      "capture_name": "day_104",
+      "target_assets": ["srv-backup"],
+      "expected_detections": [],
+      "expected_attack_stages": [],
+      "event_ids": ["evt-backup-cron-01"],
+      "tags": ["cron", "tar", "backup"],
+      "metadata": { "script": "/opt/scripts/nightly_backup.sh" }
+    },
+    {
+      "scenario_id": "SCEN-DEC-001",
+      "name": "Cowrie SSH Decoy Interaction",
+      "description": "Adversary probes and attempts password brute-force against Cowrie SSH honeypot backup-srv-02.",
+      "category": "deception",
+      "split": "dev",
+      "is_malicious": true,
+      "capture_name": "demo_baseline",
+      "target_assets": ["backup-srv-02"],
+      "expected_detections": [
+        {
+          "rule_id": "RULE-DECOY-001",
+          "detector": "deception",
+          "severity": "high",
+          "technique_id": "T1078",
+          "target_asset": "backup-srv-02",
+          "description": "Decoy interaction on Cowrie SSH service"
+        }
+      ],
+      "expected_attack_stages": ["credential_access", "discovery"],
+      "event_ids": ["evt-cowrie-01"],
+      "tags": ["deception", "cowrie", "honeypot"],
+      "metadata": { "decoy_type": "cowrie", "service": "ssh" }
+    },
+    {
+      "scenario_id": "SCEN-DEC-002",
+      "name": "OpenCanary Database Decoy Port Probe",
+      "description": "Adversary scans fake database server db-prod-02 listening on port 3306/5432.",
+      "category": "deception",
+      "split": "validation",
+      "is_malicious": true,
+      "capture_name": "demo_baseline",
+      "target_assets": ["db-prod-02"],
+      "expected_detections": [
+        {
+          "rule_id": "RULE-DECOY-001",
+          "detector": "deception",
+          "severity": "high",
+          "technique_id": "T1046",
+          "target_asset": "db-prod-02",
+          "description": "OpenCanary fake service tripwire triggered"
+        }
+      ],
+      "expected_attack_stages": ["discovery"],
+      "event_ids": ["evt-canary-01"],
+      "tags": ["deception", "opencanary", "tripwire"],
+      "metadata": { "decoy_type": "opencanary", "port": 3306 }
+    },
+    {
+      "scenario_id": "SCEN-DEC-003",
+      "name": "Decoy PLC Modbus Protocol Probe",
+      "description": "Adversary attempts Modbus discovery interrogation against Decoy PLC at 10.10.3.60.",
+      "category": "deception",
+      "split": "test",
+      "is_malicious": true,
+      "capture_name": "demo_baseline",
+      "target_assets": ["decoy-plc"],
+      "expected_detections": [
+        {
+          "rule_id": "RULE-DECOY-001",
+          "detector": "deception",
+          "severity": "critical",
+          "technique_id": "T0846",
+          "target_asset": "decoy-plc",
+          "description": "Decoy PLC Modbus interrogation"
+        }
+      ],
+      "expected_attack_stages": ["discovery", "lateral_movement"],
+      "event_ids": ["evt-decoy-plc-01"],
+      "tags": ["deception", "decoy_plc", "modbus"],
+      "metadata": { "ip": "10.10.3.60", "protocol": "modbus" }
+    },
+    {
+      "scenario_id": "SCEN-OT-001",
+      "name": "Unauthorized Modbus Physical Process Control Manipulation",
+      "description": "Attacker issues unauthorized Modbus write command to PLC register 40001 (water level setpoint) on primary PLC.",
+      "category": "industrial_ot",
+      "split": "dev",
+      "is_malicious": true,
+      "capture_name": "demo_baseline",
+      "target_assets": ["plc-primary"],
+      "expected_detections": [
+        {
+          "rule_id": "RULE-OT-001",
+          "detector": "rule",
+          "severity": "critical",
+          "technique_id": "T0855",
+          "target_asset": "plc-primary",
+          "description": "Unauthorized physical process write to PLC register"
+        }
+      ],
+      "expected_attack_stages": ["impact"],
+      "event_ids": ["evt-ot-write-01"],
+      "tags": ["modbus", "t0855", "ot_write", "plc"],
+      "metadata": { "register": 40001, "value": 9999, "is_write": true }
+    },
+    {
+      "scenario_id": "SCEN-OT-002",
+      "name": "Authorized Modbus Periodic Telemetry Polling",
+      "description": "SCADA HMI polls PLC registers for tank pressure and flow rates every 2 seconds.",
+      "category": "industrial_ot",
+      "split": "dev",
+      "is_malicious": false,
+      "capture_name": "day_101",
+      "target_assets": ["plc-primary"],
+      "expected_detections": [],
+      "expected_attack_stages": [],
+      "event_ids": ["evt-ot-poll-01"],
+      "tags": ["modbus", "scada_poll", "read_only"],
+      "metadata": { "function_code": 3, "is_write": false }
+    },
+    {
+      "scenario_id": "SCEN-OT-003",
+      "name": "Authorized Engineering Workstation Maintenance Setpoint Update",
+      "description": "Authorized control engineer calibrates sensor setpoint on secondary PLC during scheduled shift.",
+      "category": "industrial_ot",
+      "split": "validation",
+      "is_malicious": false,
+      "capture_name": "day_103",
+      "target_assets": ["plc-secondary"],
+      "expected_detections": [],
+      "expected_attack_stages": [],
+      "event_ids": ["evt-ot-maint-01"],
+      "tags": ["engineering_ws", "authorized_maintenance"],
+      "metadata": { "operator": "eng_lead", "register": 40002 }
+    },
+    {
+      "scenario_id": "SCEN-BENIGN-101",
+      "name": "Day 101 Telemetry Capture (Benign Baseline 1)",
+      "description": "Normal enterprise IT and industrial OT operation capture over 5 hours without adversary activity.",
+      "category": "benign",
+      "split": "dev",
+      "is_malicious": false,
+      "capture_name": "day_101",
+      "target_assets": ["jump-host", "srv-backup", "eng-ws", "plc-primary"],
+      "expected_detections": [],
+      "expected_attack_stages": [],
+      "event_ids": [],
+      "tags": ["benign", "capture", "day_101"],
+      "metadata": { "total_events": 105, "duration_hours": 5 }
+    },
+    {
+      "scenario_id": "SCEN-BENIGN-103",
+      "name": "Day 103 Telemetry Capture (Benign with Transient Noise)",
+      "description": "Enterprise IT background operations with transient network jitter and high log volume.",
+      "category": "benign",
+      "split": "validation",
+      "is_malicious": false,
+      "capture_name": "day_103",
+      "target_assets": ["jump-host", "srv-backup", "eng-ws", "plc-primary"],
+      "expected_detections": [],
+      "expected_attack_stages": [],
+      "event_ids": [],
+      "tags": ["benign", "capture", "day_103", "noisy"],
+      "metadata": { "total_events": 98, "duration_hours": 5 }
+    },
+    {
+      "scenario_id": "SCEN-BENIGN-105",
+      "name": "Day 105 Telemetry Capture (Benign Baseline 5)",
+      "description": "Quiet weekend baseline capture representing low-frequency telemetry across IT and OT.",
+      "category": "benign",
+      "split": "test",
+      "is_malicious": false,
+      "capture_name": "day_105",
+      "target_assets": ["jump-host", "srv-backup", "eng-ws", "plc-primary"],
+      "expected_detections": [],
+      "expected_attack_stages": [],
+      "event_ids": [],
+      "tags": ["benign", "capture", "day_105", "quiet"],
+      "metadata": { "total_events": 85, "duration_hours": 5 }
+    },
+    {
+      "scenario_id": "SCEN-ATK-BASE",
+      "name": "Full Multi-Stage Attack Campaign: Demo Baseline",
+      "description": "Complete 7-stage attack campaign progressing from external initial access through IT lateral movement and deception interaction to unauthorized physical Modbus write.",
+      "category": "industrial_ot",
+      "split": "dev",
+      "is_malicious": true,
+      "capture_name": "demo_baseline",
+      "target_assets": ["jump-host", "backup-srv-02", "eng-ws", "plc-primary", "decoy-plc"],
+      "expected_detections": [
+        { "rule_id": "RULE-AUTH-001", "detector": "rule", "severity": "high", "technique_id": "T1078" },
+        { "rule_id": "RULE-CRED-001", "detector": "rule", "severity": "high", "technique_id": "T1552" },
+        { "rule_id": "RULE-DECOY-001", "detector": "deception", "severity": "high", "technique_id": "T1078" },
+        { "rule_id": "RULE-NET-001", "detector": "rule", "severity": "high", "technique_id": "T1021" },
+        { "rule_id": "RULE-OT-001", "detector": "rule", "severity": "critical", "technique_id": "T0855" }
+      ],
+      "expected_attack_stages": ["initial_access", "credential_access", "lateral_movement", "impact"],
+      "event_ids": [],
+      "tags": ["full_campaign", "baseline", "it_to_ot"],
+      "metadata": { "stages": 7 }
+    }
+  ]
+}
+

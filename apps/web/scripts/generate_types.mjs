@@ -28,6 +28,14 @@ async function main() {
     "SystemStatusResponse.json",
     "EvalSummaryResponse.json",
     "IncidentSummaryResponse.json",
+    "MetricScores.json",
+    "LatencyMetrics.json",
+    "BudgetEvaluationMetric.json",
+    "ScenarioEvaluationResult.json",
+    "DetectorEvaluationMetric.json",
+    "RuleEvaluationMetric.json",
+    "EvaluationRunSummary.json",
+    "GroundTruthDataset.json",
   ];
 
   let outputTs = "/* eslint-disable */\n/**\n * Auto-generated TypeScript data contracts for SentinelX.\n * DO NOT EDIT MANUALLY - Generated from Pydantic schemas via scripts/export_contracts.py\n */\n\n";

@@ -1,0 +1,100 @@
+{
+  "additionalProperties": false,
+  "description": "Standard evaluation metrics with explicit zero-division handling.",
+  "properties": {
+    "tp": {
+      "default": 0,
+      "title": "Tp",
+      "type": "integer"
+    },
+    "fp": {
+      "default": 0,
+      "title": "Fp",
+      "type": "integer"
+    },
+    "fn": {
+      "default": 0,
+      "title": "Fn",
+      "type": "integer"
+    },
+    "tn": {
+      "default": 0,
+      "title": "Tn",
+      "type": "integer"
+    },
+    "precision": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Precision"
+    },
+    "recall": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Recall"
+    },
+    "f1_score": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "F1 Score"
+    },
+    "accuracy": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Accuracy"
+    },
+    "fpr": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Fpr"
+    },
+    "fnr": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Fnr"
+    }
+  },
+  "title": "MetricScores",
+  "type": "object"
+}

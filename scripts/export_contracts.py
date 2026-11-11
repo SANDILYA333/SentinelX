@@ -5,14 +5,22 @@ import json
 from pathlib import Path
 
 from sentinelx.schemas import (
+    BudgetEvaluationMetric,
     DeceptionActivity,
     DeceptionAssetSummary,
     DeceptionOverview,
+    DetectorEvaluationMetric,
     Entity,
+    EvaluationRunSummary,
     Event,
+    GroundTruthDataset,
     GuardDecision,
     Incident,
+    LatencyMetrics,
+    MetricScores,
     ResponseRecommendation,
+    RuleEvaluationMetric,
+    ScenarioEvaluationResult,
     Signal,
     SourceHealth,
     Technique,
@@ -48,6 +56,14 @@ MODELS = {
     "SystemStatusResponse": SystemStatusResponse,
     "EvalSummaryResponse": EvalSummaryResponse,
     "IncidentSummaryResponse": IncidentSummaryResponse,
+    "EvaluationRunSummary": EvaluationRunSummary,
+    "ScenarioEvaluationResult": ScenarioEvaluationResult,
+    "DetectorEvaluationMetric": DetectorEvaluationMetric,
+    "RuleEvaluationMetric": RuleEvaluationMetric,
+    "MetricScores": MetricScores,
+    "LatencyMetrics": LatencyMetrics,
+    "BudgetEvaluationMetric": BudgetEvaluationMetric,
+    "GroundTruthDataset": GroundTruthDataset,
 }
 
 

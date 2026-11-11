@@ -1,0 +1,539 @@
+{
+  "$defs": {
+    "BudgetEvaluationMetric": {
+      "additionalProperties": false,
+      "description": "Assessment of Alert Budget Controller performance.",
+      "properties": {
+        "total_signals_emitted": {
+          "default": 0,
+          "title": "Total Signals Emitted",
+          "type": "integer"
+        },
+        "admitted_signals": {
+          "default": 0,
+          "title": "Admitted Signals",
+          "type": "integer"
+        },
+        "suppressed_signals": {
+          "default": 0,
+          "title": "Suppressed Signals",
+          "type": "integer"
+        },
+        "suppression_ratio": {
+          "default": 0.0,
+          "title": "Suppression Ratio",
+          "type": "number"
+        },
+        "critical_signals_admitted": {
+          "default": 0,
+          "title": "Critical Signals Admitted",
+          "type": "integer"
+        },
+        "critical_signals_suppressed": {
+          "default": 0,
+          "title": "Critical Signals Suppressed",
+          "type": "integer"
+        },
+        "high_severity_preservation_rate": {
+          "default": 1.0,
+          "title": "High Severity Preservation Rate",
+          "type": "number"
+        },
+        "incidents_formed": {
+          "default": 0,
+          "title": "Incidents Formed",
+          "type": "integer"
+        },
+        "active_incidents": {
+          "default": 0,
+          "title": "Active Incidents",
+          "type": "integer"
+        },
+        "budget_admitted_without_suppressing_attacks": {
+          "default": true,
+          "title": "Budget Admitted Without Suppressing Attacks",
+          "type": "boolean"
+        }
+      },
+      "title": "BudgetEvaluationMetric",
+      "type": "object"
+    },
+    "DetectorEvaluationMetric": {
+      "additionalProperties": false,
+      "description": "Evaluation metrics for an individual detector engine.",
+      "properties": {
+        "detector": {
+          "title": "Detector",
+          "type": "string"
+        },
+        "metrics": {
+          "$ref": "#/$defs/MetricScores"
+        },
+        "total_signals": {
+          "default": 0,
+          "title": "Total Signals",
+          "type": "integer"
+        },
+        "attack_signals": {
+          "default": 0,
+          "title": "Attack Signals",
+          "type": "integer"
+        },
+        "benign_signals": {
+          "default": 0,
+          "title": "Benign Signals",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "detector",
+        "metrics"
+      ],
+      "title": "DetectorEvaluationMetric",
+      "type": "object"
+    },
+    "LatencyMetrics": {
+      "additionalProperties": false,
+      "description": "Breakdown of processing and detection latencies.",
+      "properties": {
+        "ingest_latency": {
+          "$ref": "#/$defs/PercentileDistribution"
+        },
+        "detector_latency": {
+          "$ref": "#/$defs/PercentileDistribution"
+        },
+        "correlator_latency": {
+          "$ref": "#/$defs/PercentileDistribution"
+        },
+        "end_to_end_latency": {
+          "$ref": "#/$defs/PercentileDistribution"
+        },
+        "time_to_detect": {
+          "$ref": "#/$defs/PercentileDistribution"
+        }
+      },
+      "required": [
+        "ingest_latency",
+        "detector_latency",
+        "correlator_latency",
+        "end_to_end_latency",
+        "time_to_detect"
+      ],
+      "title": "LatencyMetrics",
+      "type": "object"
+    },
+    "MetricScores": {
+      "additionalProperties": false,
+      "description": "Standard evaluation metrics with explicit zero-division handling.",
+      "properties": {
+        "tp": {
+          "default": 0,
+          "title": "Tp",
+          "type": "integer"
+        },
+        "fp": {
+          "default": 0,
+          "title": "Fp",
+          "type": "integer"
+        },
+        "fn": {
+          "default": 0,
+          "title": "Fn",
+          "type": "integer"
+        },
+        "tn": {
+          "default": 0,
+          "title": "Tn",
+          "type": "integer"
+        },
+        "precision": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Precision"
+        },
+        "recall": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recall"
+        },
+        "f1_score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "F1 Score"
+        },
+        "accuracy": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Accuracy"
+        },
+        "fpr": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fpr"
+        },
+        "fnr": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fnr"
+        }
+      },
+      "title": "MetricScores",
+      "type": "object"
+    },
+    "PercentileDistribution": {
+      "additionalProperties": false,
+      "description": "Percentile summary for latency distributions in milliseconds.",
+      "properties": {
+        "p50": {
+          "default": 0.0,
+          "title": "P50",
+          "type": "number"
+        },
+        "p90": {
+          "default": 0.0,
+          "title": "P90",
+          "type": "number"
+        },
+        "p95": {
+          "default": 0.0,
+          "title": "P95",
+          "type": "number"
+        },
+        "p99": {
+          "default": 0.0,
+          "title": "P99",
+          "type": "number"
+        },
+        "min_ms": {
+          "default": 0.0,
+          "title": "Min Ms",
+          "type": "number"
+        },
+        "mean_ms": {
+          "default": 0.0,
+          "title": "Mean Ms",
+          "type": "number"
+        },
+        "max_ms": {
+          "default": 0.0,
+          "title": "Max Ms",
+          "type": "number"
+        },
+        "count": {
+          "default": 0,
+          "title": "Count",
+          "type": "integer"
+        }
+      },
+      "title": "PercentileDistribution",
+      "type": "object"
+    },
+    "RuleEvaluationMetric": {
+      "additionalProperties": false,
+      "description": "Evaluation metrics for an individual detection rule.",
+      "properties": {
+        "rule_id": {
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "detector": {
+          "default": "rule",
+          "title": "Detector",
+          "type": "string"
+        },
+        "metrics": {
+          "$ref": "#/$defs/MetricScores"
+        },
+        "total_fires": {
+          "default": 0,
+          "title": "Total Fires",
+          "type": "integer"
+        },
+        "attack_fires": {
+          "default": 0,
+          "title": "Attack Fires",
+          "type": "integer"
+        },
+        "benign_fires": {
+          "default": 0,
+          "title": "Benign Fires",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "rule_id",
+        "title",
+        "metrics"
+      ],
+      "title": "RuleEvaluationMetric",
+      "type": "object"
+    },
+    "ScenarioEvaluationResult": {
+      "additionalProperties": false,
+      "description": "Evaluation result for a single scenario.",
+      "properties": {
+        "scenario_id": {
+          "title": "Scenario Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "authentication",
+            "lateral_movement",
+            "endpoint",
+            "deception",
+            "industrial_ot",
+            "benign"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "split": {
+          "enum": [
+            "dev",
+            "validation",
+            "test"
+          ],
+          "title": "Split",
+          "type": "string"
+        },
+        "is_malicious": {
+          "title": "Is Malicious",
+          "type": "boolean"
+        },
+        "detected": {
+          "title": "Detected",
+          "type": "boolean"
+        },
+        "classification": {
+          "enum": [
+            "TP",
+            "FP",
+            "FN",
+            "TN"
+          ],
+          "title": "Classification",
+          "type": "string"
+        },
+        "score": {
+          "default": 0.0,
+          "title": "Score",
+          "type": "number"
+        },
+        "time_to_detect_ms": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Time To Detect Ms"
+        },
+        "matched_signals": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Matched Signals",
+          "type": "array"
+        },
+        "matched_rules": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Matched Rules",
+          "type": "array"
+        },
+        "matched_detectors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Matched Detectors",
+          "type": "array"
+        },
+        "notes": {
+          "default": "",
+          "title": "Notes",
+          "type": "string"
+        },
+        "evidence_events": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Events",
+          "type": "array"
+        }
+      },
+      "required": [
+        "scenario_id",
+        "name",
+        "category",
+        "split",
+        "is_malicious",
+        "detected",
+        "classification"
+      ],
+      "title": "ScenarioEvaluationResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Complete summary of an evaluation run across all metrics and granularities.",
+  "properties": {
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "git_commit": {
+      "default": "unknown",
+      "title": "Git Commit",
+      "type": "string"
+    },
+    "dataset_version": {
+      "default": "1.0.0",
+      "title": "Dataset Version",
+      "type": "string"
+    },
+    "splits_evaluated": {
+      "items": {
+        "enum": [
+          "dev",
+          "validation",
+          "test"
+        ],
+        "type": "string"
+      },
+      "title": "Splits Evaluated",
+      "type": "array"
+    },
+    "headline": {
+      "$ref": "#/$defs/MetricScores"
+    },
+    "event_level": {
+      "$ref": "#/$defs/MetricScores"
+    },
+    "scenario_level": {
+      "$ref": "#/$defs/MetricScores"
+    },
+    "incident_level": {
+      "$ref": "#/$defs/MetricScores"
+    },
+    "detectors": {
+      "items": {
+        "$ref": "#/$defs/DetectorEvaluationMetric"
+      },
+      "title": "Detectors",
+      "type": "array"
+    },
+    "rules": {
+      "items": {
+        "$ref": "#/$defs/RuleEvaluationMetric"
+      },
+      "title": "Rules",
+      "type": "array"
+    },
+    "latency": {
+      "$ref": "#/$defs/LatencyMetrics"
+    },
+    "budget": {
+      "$ref": "#/$defs/BudgetEvaluationMetric"
+    },
+    "scenarios": {
+      "items": {
+        "$ref": "#/$defs/ScenarioEvaluationResult"
+      },
+      "title": "Scenarios",
+      "type": "array"
+    },
+    "false_positives": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "False Positives",
+      "type": "array"
+    },
+    "false_negatives": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "False Negatives",
+      "type": "array"
+    },
+    "throughput_eps": {
+      "default": 0.0,
+      "title": "Throughput Eps",
+      "type": "number"
+    }
+  },
+  "required": [
+    "run_id",
+    "created_at",
+    "headline",
+    "event_level",
+    "scenario_level",
+    "incident_level",
+    "latency",
+    "budget"
+  ],
+  "title": "EvaluationRunSummary",
+  "type": "object"
+}

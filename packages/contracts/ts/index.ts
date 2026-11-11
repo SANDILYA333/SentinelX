@@ -1122,4 +1122,329 @@ export interface SummaryClaim {
   deterministic?: Deterministic;
 }
 
+export type Tp = number;
+
+export type Fp = number;
+
+export type Fn = number;
+
+export type Tn = number;
+
+export type Precision = number | null;
+
+export type F1Score = number | null;
+
+export type Accuracy = number | null;
+
+export type Fpr = number | null;
+
+export type Fnr = number | null;
+
+/**
+ * Standard evaluation metrics with explicit zero-division handling.
+ */
+
+export interface MetricScores {
+  tp?: Tp;
+  fp?: Fp;
+  fn?: Fn;
+  tn?: Tn;
+  precision?: Precision;
+  recall?: Recall;
+  f1_score?: F1Score;
+  accuracy?: Accuracy;
+  fpr?: Fpr;
+  fnr?: Fnr;
+}
+
+export type P50 = number;
+
+export type P90 = number;
+
+export type P95 = number;
+
+export type P99 = number;
+
+export type MinMs = number;
+
+export type MeanMs = number;
+
+export type MaxMs = number;
+
+export type Count = number;
+
+/**
+ * Breakdown of processing and detection latencies.
+ */
+
+export interface LatencyMetrics {
+  ingest_latency: PercentileDistribution;
+  detector_latency: PercentileDistribution;
+  correlator_latency: PercentileDistribution;
+  end_to_end_latency: PercentileDistribution;
+  time_to_detect: PercentileDistribution;
+}
+/**
+ * Percentile summary for latency distributions in milliseconds.
+ *
+ * This interface was referenced by `LatencyMetrics`'s JSON-Schema
+ * via the `definition` "PercentileDistribution".
+ */
+
+export interface PercentileDistribution {
+  p50?: P50;
+  p90?: P90;
+  p95?: P95;
+  p99?: P99;
+  min_ms?: MinMs;
+  mean_ms?: MeanMs;
+  max_ms?: MaxMs;
+  count?: Count;
+}
+
+export type TotalSignalsEmitted = number;
+
+export type AdmittedSignals = number;
+
+export type SuppressedSignals = number;
+
+export type SuppressionRatio = number;
+
+export type CriticalSignalsAdmitted = number;
+
+export type CriticalSignalsSuppressed = number;
+
+export type HighSeverityPreservationRate = number;
+
+export type IncidentsFormed = number;
+
+export type ActiveIncidents = number;
+
+export type BudgetAdmittedWithoutSuppressingAttacks = boolean;
+
+/**
+ * Assessment of Alert Budget Controller performance.
+ */
+
+export interface BudgetEvaluationMetric {
+  total_signals_emitted?: TotalSignalsEmitted;
+  admitted_signals?: AdmittedSignals;
+  suppressed_signals?: SuppressedSignals;
+  suppression_ratio?: SuppressionRatio;
+  critical_signals_admitted?: CriticalSignalsAdmitted;
+  critical_signals_suppressed?: CriticalSignalsSuppressed;
+  high_severity_preservation_rate?: HighSeverityPreservationRate;
+  incidents_formed?: IncidentsFormed;
+  active_incidents?: ActiveIncidents;
+  budget_admitted_without_suppressing_attacks?: BudgetAdmittedWithoutSuppressingAttacks;
+}
+
+export type ScenarioId = string;
+
+export type Split = "dev" | "validation" | "test";
+
+export type IsMalicious = boolean;
+
+export type Detected = boolean;
+
+export type Classification = "TP" | "FP" | "FN" | "TN";
+
+export type TimeToDetectMs = number | null;
+
+export type MatchedSignals = string[];
+
+export type MatchedRules = string[];
+
+export type MatchedDetectors = string[];
+
+export type Notes = string;
+
+export type EvidenceEvents = string[];
+
+/**
+ * Evaluation result for a single scenario.
+ */
+
+export interface ScenarioEvaluationResult {
+  scenario_id: ScenarioId;
+  name: Name;
+  category: Category;
+  split: Split;
+  is_malicious: IsMalicious;
+  detected: Detected;
+  classification: Classification;
+  score?: Score;
+  time_to_detect_ms?: TimeToDetectMs;
+  matched_signals?: MatchedSignals;
+  matched_rules?: MatchedRules;
+  matched_detectors?: MatchedDetectors;
+  notes?: Notes;
+  evidence_events?: EvidenceEvents;
+}
+
+export type TotalSignals = number;
+
+export type AttackSignals = number;
+
+export type BenignSignals = number;
+
+/**
+ * Evaluation metrics for an individual detector engine.
+ */
+
+export interface DetectorEvaluationMetric {
+  detector: Detector;
+  metrics: MetricScores;
+  total_signals?: TotalSignals;
+  attack_signals?: AttackSignals;
+  benign_signals?: BenignSignals;
+}
+/**
+ * Standard evaluation metrics with explicit zero-division handling.
+ *
+ * This interface was referenced by `DetectorEvaluationMetric`'s JSON-Schema
+ * via the `definition` "MetricScores".
+ */
+
+export type TotalFires = number;
+
+export type AttackFires = number;
+
+export type BenignFires = number;
+
+/**
+ * Evaluation metrics for an individual detection rule.
+ */
+
+export interface RuleEvaluationMetric {
+  rule_id: RuleId;
+  title: Title;
+  detector?: Detector;
+  metrics: MetricScores;
+  total_fires?: TotalFires;
+  attack_fires?: AttackFires;
+  benign_fires?: BenignFires;
+}
+/**
+ * Standard evaluation metrics with explicit zero-division handling.
+ *
+ * This interface was referenced by `RuleEvaluationMetric`'s JSON-Schema
+ * via the `definition` "MetricScores".
+ */
+
+export type RunId = string;
+
+export type GitCommit = string;
+
+export type DatasetVersion = string;
+
+export type SplitsEvaluated = ("dev" | "validation" | "test")[];
+
+export type Detectors = DetectorEvaluationMetric[];
+
+export type Detector1 = string;
+
+export type Rules = RuleEvaluationMetric[];
+
+export type Scenarios = ScenarioEvaluationResult[];
+
+export type FalsePositives = {
+  [k: string]: unknown;
+}[];
+
+export type FalseNegatives = {
+  [k: string]: unknown;
+}[];
+
+export type ThroughputEps = number;
+
+/**
+ * Complete summary of an evaluation run across all metrics and granularities.
+ */
+
+export interface EvaluationRunSummary {
+  run_id: RunId;
+  created_at: CreatedAt;
+  git_commit?: GitCommit;
+  dataset_version?: DatasetVersion;
+  splits_evaluated?: SplitsEvaluated;
+  headline: MetricScores;
+  event_level: MetricScores;
+  scenario_level: MetricScores;
+  incident_level: MetricScores;
+  detectors?: Detectors;
+  rules?: Rules;
+  latency: LatencyMetrics;
+  budget: BudgetEvaluationMetric;
+  scenarios?: Scenarios;
+  false_positives?: FalsePositives;
+  false_negatives?: FalseNegatives;
+  throughput_eps?: ThroughputEps;
+}
+/**
+ * Standard evaluation metrics with explicit zero-division handling.
+ *
+ * This interface was referenced by `EvaluationRunSummary`'s JSON-Schema
+ * via the `definition` "MetricScores".
+ */
+
+export type Version = string;
+
+export type Description1 = string;
+
+export type CaptureName = string | null;
+
+export type TargetAssets = string[];
+
+export type TargetAsset = string | null;
+
+export type Description2 = string | null;
+
+export type ExpectedDetections = ExpectedDetection[];
+
+export type ExpectedAttackStages = string[];
+
+export interface GroundTruthDataset {
+  version?: Version;
+  description: Description;
+  scenarios?: Scenarios;
+}
+/**
+ * A ground truth evaluation scenario representing either an attack step or benign activity.
+ *
+ * This interface was referenced by `GroundTruthDataset`'s JSON-Schema
+ * via the `definition` "EvaluationScenario".
+ */
+
+export interface EvaluationScenario {
+  scenario_id: ScenarioId;
+  name: Name;
+  description: Description1;
+  category: Category;
+  split: Split;
+  is_malicious: IsMalicious;
+  capture_name?: CaptureName;
+  target_assets?: TargetAssets;
+  expected_detections?: ExpectedDetections;
+  expected_attack_stages?: ExpectedAttackStages;
+  event_ids?: EventIds;
+  tags?: Tags;
+  metadata?: Metadata;
+}
+/**
+ * Specification of a detection expected from a scenario.
+ *
+ * This interface was referenced by `GroundTruthDataset`'s JSON-Schema
+ * via the `definition` "ExpectedDetection".
+ */
+
+export interface ExpectedDetection {
+  rule_id?: RuleId;
+  detector?: Detector;
+  severity?: Severity | null;
+  technique_id?: TechniqueId;
+  target_asset?: TargetAsset;
+  description?: Description2;
+}
+
 export type SourceStatus = "live" | "idle" | "stale" | "error";
