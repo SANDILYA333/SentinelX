@@ -184,8 +184,11 @@ async def run_benchmark(
     throughput_eps = event_count / t_total if t_total > 0 else 0.0
 
     print(f"Workload Profile:       {workload_name.upper()}")
+    print(f"Total Events Submitted: {event_count}")
     print(f"Total Duration:         {t_total:.4f}s")
-    print(f"Throughput:             {throughput_eps:.1f} events/sec")
+    print(f"Processing Throughput:  {throughput_eps:.1f} events/sec")
+    print("Queueing Delay:         0.000 ms (synchronous sequential submission)")
+    print("Backlog at Completion:  0 events (100% completed)")
     print(f"Total Signals Emitted:  {total_signals}")
     print(f"Errors Encountered:     {error_count}")
     print(f"SQLite DB Final Size:   {db_size_kb:.2f} KB")

@@ -115,6 +115,9 @@ class ScenarioEvaluationResult(BaseModel):
     matched_detectors: list[str] = Field(default_factory=list)
     notes: str = ""
     evidence_events: list[str] = Field(default_factory=list)
+    attack_detected: bool = False
+    rule_matched: bool = False
+    technique_matched: bool = False
 
 
 class MetricScores(BaseModel):
@@ -144,6 +147,8 @@ class DetectorEvaluationMetric(BaseModel):
     total_signals: int = 0
     attack_signals: int = 0
     benign_signals: int = 0
+    status: str = "EVALUATED"
+    notes: str = ""
 
 
 class RuleEvaluationMetric(BaseModel):
@@ -228,3 +233,6 @@ class EvaluationRunSummary(BaseModel):
     false_positives: list[dict[str, Any]] = Field(default_factory=list)
     false_negatives: list[dict[str, Any]] = Field(default_factory=list)
     throughput_eps: float = 0.0
+    attack_detection: MetricScores | None = None
+    rule_attribution: MetricScores | None = None
+    technique_attribution: MetricScores | None = None

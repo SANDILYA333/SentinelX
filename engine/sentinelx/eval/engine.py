@@ -162,11 +162,11 @@ class DetectionEvaluationEngine:
                 if ev.src_ip == "10.10.1.5" and first_attacker_action_time is None:
                     first_attacker_action_time = t_arr
 
-                # Ingest latency (normalized event creation)
-                l_ingest.append(0.05)  # nominal replay unpack overhead
+                # Ingest latency (normalized event unpack / registration overhead)
+                t_det_start = time.perf_counter()
+                l_ingest.append(max(0.001, (t_det_start - t_arr) * 1000.0))
 
                 # Detection latency
-                t_det_start = time.perf_counter()
                 sigs = detector_pipe.process_event(ev)
                 t_det_end = time.perf_counter()
                 det_ms = (t_det_end - t_det_start) * 1000.0
@@ -211,6 +211,7 @@ class DetectionEvaluationEngine:
             return {
                 "capture_name": capture_name,
                 "events_count": len(events),
+                "events": events,
                 "signals": all_signals,
                 "all_incidents": all_incidents,
                 "active_incidents": active_incidents,
@@ -261,6 +262,21 @@ class DetectionEvaluationEngine:
         sc_fn = 0
         sc_tn = 0
 
+        atk_tp = 0
+        atk_fp = 0
+        atk_fn = 0
+        atk_tn = 0
+
+        rule_tp = 0
+        rule_fp = 0
+        rule_fn = 0
+        rule_tn = 0
+
+        tech_tp = 0
+        tech_fp = 0
+        tech_fn = 0
+        tech_tn = 0
+
         false_positives: list[dict[str, Any]] = []
         false_negatives: list[dict[str, Any]] = []
 
@@ -294,18 +310,35 @@ class DetectionEvaluationEngine:
             matched_detectors: list[str] = []
             detected = False
 
+            attack_detected = False
+            rule_matched = False
+            technique_matched = False
+
             if sc.is_malicious:
-                # Attack scenario
+                # 1. Attack detection (platform flagged malicious activity on target / capture)
+                if active_incs:
+                    attack_detected = True
+                elif sigs:
+                    for s in sigs:
+                        if any(ent in str(s.entities) for ent in sc.target_assets):
+                            attack_detected = True
+                            break
+
+                # 2. Rule & Technique attribution
                 for exp in sc.expected_detections:
                     for s in sigs:
-                        rule_match = exp.rule_id is None or s.rule_id == exp.rule_id
-                        det_match = exp.detector is None or s.detector == exp.detector
-                        tech_match = exp.technique_id is None or any(
+                        r_match = exp.rule_id is None or s.rule_id == exp.rule_id
+                        d_match = exp.detector is None or s.detector == exp.detector
+                        t_match = exp.technique_id is None or any(
                             t.technique_id == exp.technique_id
                             or t.technique_id.startswith(exp.technique_id + ".")
                             for t in s.techniques
                         )
-                        if rule_match and det_match and tech_match:
+                        if r_match and d_match:
+                            rule_matched = True
+                        if t_match:
+                            technique_matched = True
+                        if r_match and d_match and t_match:
                             matched_sigs.append(s.signal_id)
                             matched_rules.append(s.rule_id)
                             matched_detectors.append(s.detector)
@@ -313,6 +346,9 @@ class DetectionEvaluationEngine:
 
                 # If no specific expected detection or it's a full campaign, check active incidents
                 if not sc.expected_detections and active_incs:
+                    attack_detected = True
+                    rule_matched = True
+                    technique_matched = True
                     detected = True
 
                 if detected:
@@ -331,13 +367,28 @@ class DetectionEvaluationEngine:
                             ],
                             "expected_stages": sc.expected_attack_stages,
                             "target_assets": sc.target_assets,
-                            "notes": "Expected detection did not fire during capture replay.",
+                            "attack_detected": attack_detected,
+                            "rule_matched": rule_matched,
+                            "technique_matched": technique_matched,
+                            "notes": (
+                                "Attributed expected detection did not fire in exact conjunction"
+                                if attack_detected
+                                else "Completely missed attack scenario"
+                            ),
                         }
                     )
+
+                atk_tp += 1 if attack_detected else 0
+                atk_fn += 1 if not attack_detected else 0
+                rule_tp += 1 if rule_matched else 0
+                rule_fn += 1 if not rule_matched else 0
+                tech_tp += 1 if technique_matched else 0
+                tech_fn += 1 if not technique_matched else 0
             else:
                 # Benign scenario
                 # Any active incident or unexpected signal on benign is FP
-                if active_incs or (sc.category == "benign" and len(sigs) > 10):
+                is_benign_alert = bool(active_incs or (sc.category == "benign" and len(sigs) > 10))
+                if is_benign_alert:
                     sc_fp += 1
                     classification = "FP"
                     false_positives.append(
@@ -350,9 +401,15 @@ class DetectionEvaluationEngine:
                             "notes": "Unwarranted active alerts or incident generated on benign traffic.",
                         }
                     )
+                    atk_fp += 1
+                    rule_fp += 1
+                    tech_fp += 1
                 else:
                     sc_tn += 1
                     classification = "TN"
+                    atk_tn += 1
+                    rule_tn += 1
+                    tech_tn += 1
 
             scenario_results.append(
                 ScenarioEvaluationResult(
@@ -370,6 +427,9 @@ class DetectionEvaluationEngine:
                     matched_detectors=list(set(matched_detectors)),
                     notes="Evaluated against capture replay",
                     evidence_events=sc.event_ids,
+                    attack_detected=attack_detected,
+                    rule_matched=rule_matched,
+                    technique_matched=technique_matched,
                 )
             )
 
@@ -392,22 +452,48 @@ class DetectionEvaluationEngine:
                 else:
                     inc_tn += 1
 
-        # 4. Event Level Metrics
+        # 4. Event Level Metrics (Audited exact event matching)
+        all_detected_eids = {
+            eid
+            for c_res in capture_results.values()
+            for s in c_res["signals"]
+            for eid in s.evidence_event_ids
+        }
+
         ev_tp = 0
         ev_fp = 0
         ev_fn = 0
         ev_tn = 0
-        for cname, c_res in capture_results.items():
-            is_attack = "baseline" in cname or "reordered" in cname or "slow" in cname
-            ev_count = c_res["events_count"]
-            sig_count = len(c_res["signals"])
-            if is_attack:
-                ev_tp += sig_count
-                ev_fn += max(0, 10 - sig_count)  # 10 expected attack steps
-                ev_tn += max(0, ev_count - sig_count)
-            else:
-                ev_fp += sig_count
-                ev_tn += max(0, ev_count - sig_count)
+
+        def is_malicious_event(ev: Event) -> bool:
+            if ev.src_ip == "10.10.1.5":
+                return True
+            if ev.user == "svc_backup":
+                return True
+            if ev.ot and ev.ot.is_write:
+                return True
+            if ev.domain.value == "decoy":
+                return True
+            if ev.host in ("cowrie", "opencanary"):
+                return True
+            if ev.dst_ip in ("10.10.2.20", "10.10.2.30", "10.10.3.60"):
+                return True
+            return False
+
+        for c_res in capture_results.values():
+            for ev in c_res.get("events", []):
+                mal = is_malicious_event(ev)
+                flagged = ev.event_id in all_detected_eids
+                if mal:
+                    if flagged:
+                        ev_tp += 1
+                    else:
+                        ev_fn += 1
+                else:
+                    if flagged:
+                        ev_fp += 1
+                    else:
+                        ev_tn += 1
 
         # 5. Per-Detector Breakdown
         detector_metrics: list[DetectorEvaluationMetric] = []
@@ -423,12 +509,44 @@ class DetectionEvaluationEngine:
                         else:
                             d_ben_sigs += 1
 
-            # Detector scoring: TP if it fired on attack, FP if fired on benign
-            d_tp = d_atk_sigs
-            d_fp = d_ben_sigs
-            d_fn = 0 if d_atk_sigs > 0 else 1
-            d_tn = 5 if d_ben_sigs == 0 else 0
-            d_scores = compute_metrics(d_tp, d_fp, d_fn, d_tn)
+            # Check if this detector has expected detection coverage in ground truth
+            expected_in_split = any(
+                any(ed.detector == det for ed in sc.expected_detections)
+                for sc in scenarios_to_eval
+                if sc.is_malicious
+            )
+
+            if not expected_in_split:
+                status = "NOT_EVALUATED"
+                notes = (
+                    f"Not evaluated in ground truth v1.0.0 (0 benchmark scenarios assigned; "
+                    f"active in pipeline and emitted {d_atk_sigs + d_ben_sigs} signals during capture replay)"
+                )
+                d_scores = MetricScores(tp=0, fp=d_ben_sigs, fn=0, tn=0)
+            else:
+                status = "EVALUATED"
+                det_scenarios = [
+                    sc
+                    for sc in scenarios_to_eval
+                    if sc.is_malicious and any(ed.detector == det for ed in sc.expected_detections)
+                ]
+                d_sc_tp = sum(
+                    1
+                    for sc in det_scenarios
+                    if any(
+                        s.detector == det
+                        for s in capture_results.get(sc.capture_name, {}).get("signals", [])
+                    )
+                )
+                d_sc_fn = len(det_scenarios) - d_sc_tp
+                d_sc_fp = 1 if d_ben_sigs > 0 else 0
+                d_sc_tn = (
+                    sum(1 for sc in scenarios_to_eval if not sc.is_malicious)
+                    if d_ben_sigs == 0
+                    else 0
+                )
+                d_scores = compute_metrics(d_sc_tp, d_sc_fp, d_sc_fn, d_sc_tn)
+                notes = f"Evaluated across {len(det_scenarios)} ground-truth benchmark scenarios"
 
             detector_metrics.append(
                 DetectorEvaluationMetric(
@@ -437,6 +555,8 @@ class DetectionEvaluationEngine:
                     total_signals=d_atk_sigs + d_ben_sigs,
                     attack_signals=d_atk_sigs,
                     benign_signals=d_ben_sigs,
+                    status=status,
+                    notes=notes,
                 )
             )
 
@@ -531,6 +651,9 @@ class DetectionEvaluationEngine:
         scenario_scores = compute_metrics(sc_tp, sc_fp, sc_fn, sc_tn)
         incident_scores = compute_metrics(inc_tp, inc_fp, inc_fn, inc_tn)
         event_scores = compute_metrics(ev_tp, ev_fp, ev_fn, ev_tn)
+        atk_scores = compute_metrics(atk_tp, atk_fp, atk_fn, atk_tn)
+        rule_scores = compute_metrics(rule_tp, rule_fp, rule_fn, rule_tn)
+        tech_scores = compute_metrics(tech_tp, tech_fp, tech_fn, tech_tn)
 
         return EvaluationRunSummary(
             run_id=run_id,
@@ -550,4 +673,7 @@ class DetectionEvaluationEngine:
             false_positives=false_positives,
             false_negatives=false_negatives,
             throughput_eps=round(throughput_eps, 2),
+            attack_detection=atk_scores,
+            rule_attribution=rule_scores,
+            technique_attribution=tech_scores,
         )

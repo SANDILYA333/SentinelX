@@ -1,7 +1,7 @@
 {
-  "run_id": "eval-1794410191",
-  "created_at": "2026-11-11T15:16:31.604025Z",
-  "git_commit": "df63933",
+  "run_id": "eval-1794411439",
+  "created_at": "2026-11-11T15:37:19.163071Z",
+  "git_commit": "59d1fc8",
   "dataset_version": "1.0.0",
   "splits_evaluated": [
     "dev",
@@ -21,16 +21,16 @@
     "fnr": 0.3333
   },
   "event_level": {
-    "tp": 371,
-    "fp": 0,
-    "fn": 0,
-    "tn": 1325,
-    "precision": 1.0,
-    "recall": 1.0,
-    "f1_score": 1.0,
-    "accuracy": 1.0,
-    "fpr": 0.0,
-    "fnr": 0.0
+    "tp": 196,
+    "fp": 75,
+    "fn": 196,
+    "tn": 1229,
+    "precision": 0.7232,
+    "recall": 0.5,
+    "f1_score": 0.5913,
+    "accuracy": 0.8402,
+    "fpr": 0.0575,
+    "fnr": 0.5
   },
   "scenario_level": {
     "tp": 6,
@@ -60,10 +60,10 @@
     {
       "detector": "rule",
       "metrics": {
-        "tp": 77,
+        "tp": 5,
         "fp": 0,
         "fn": 0,
-        "tn": 5,
+        "tn": 8,
         "precision": 1.0,
         "recall": 1.0,
         "f1_score": 1.0,
@@ -73,51 +73,57 @@
       },
       "total_signals": 77,
       "attack_signals": 77,
-      "benign_signals": 0
+      "benign_signals": 0,
+      "status": "EVALUATED",
+      "notes": "Evaluated across 5 ground-truth benchmark scenarios"
     },
     {
       "detector": "baseline",
       "metrics": {
-        "tp": 57,
+        "tp": 0,
         "fp": 0,
         "fn": 0,
-        "tn": 5,
-        "precision": 1.0,
-        "recall": 1.0,
-        "f1_score": 1.0,
-        "accuracy": 1.0,
-        "fpr": 0.0,
-        "fnr": 0.0
+        "tn": 0,
+        "precision": null,
+        "recall": null,
+        "f1_score": null,
+        "accuracy": null,
+        "fpr": null,
+        "fnr": null
       },
       "total_signals": 57,
       "attack_signals": 57,
-      "benign_signals": 0
+      "benign_signals": 0,
+      "status": "NOT_EVALUATED",
+      "notes": "Not evaluated in ground truth v1.0.0 (0 benchmark scenarios assigned; active in pipeline and emitted 57 signals during capture replay)"
     },
     {
       "detector": "anomaly",
       "metrics": {
-        "tp": 147,
+        "tp": 0,
         "fp": 0,
         "fn": 0,
-        "tn": 5,
-        "precision": 1.0,
-        "recall": 1.0,
-        "f1_score": 1.0,
-        "accuracy": 1.0,
-        "fpr": 0.0,
-        "fnr": 0.0
+        "tn": 0,
+        "precision": null,
+        "recall": null,
+        "f1_score": null,
+        "accuracy": null,
+        "fpr": null,
+        "fnr": null
       },
       "total_signals": 147,
       "attack_signals": 147,
-      "benign_signals": 0
+      "benign_signals": 0,
+      "status": "NOT_EVALUATED",
+      "notes": "Not evaluated in ground truth v1.0.0 (0 benchmark scenarios assigned; active in pipeline and emitted 147 signals during capture replay)"
     },
     {
       "detector": "graph",
       "metrics": {
-        "tp": 43,
+        "tp": 1,
         "fp": 0,
         "fn": 0,
-        "tn": 5,
+        "tn": 8,
         "precision": 1.0,
         "recall": 1.0,
         "f1_score": 1.0,
@@ -127,15 +133,17 @@
       },
       "total_signals": 43,
       "attack_signals": 43,
-      "benign_signals": 0
+      "benign_signals": 0,
+      "status": "EVALUATED",
+      "notes": "Evaluated across 1 ground-truth benchmark scenarios"
     },
     {
       "detector": "deception",
       "metrics": {
-        "tp": 47,
+        "tp": 4,
         "fp": 0,
         "fn": 0,
-        "tn": 5,
+        "tn": 8,
         "precision": 1.0,
         "recall": 1.0,
         "f1_score": 1.0,
@@ -145,7 +153,9 @@
       },
       "total_signals": 47,
       "attack_signals": 47,
-      "benign_signals": 0
+      "benign_signals": 0,
+      "status": "EVALUATED",
+      "notes": "Evaluated across 4 ground-truth benchmark scenarios"
     }
   ],
   "rules": [
@@ -272,53 +282,53 @@
   ],
   "latency": {
     "ingest_latency": {
-      "p50": 0.05,
-      "p90": 0.05,
-      "p95": 0.05,
-      "p99": 0.05,
-      "min_ms": 0.05,
-      "mean_ms": 0.05,
-      "max_ms": 0.05,
+      "p50": 0.001,
+      "p90": 0.001,
+      "p95": 0.001,
+      "p99": 0.002,
+      "min_ms": 0.001,
+      "mean_ms": 0.001,
+      "max_ms": 0.007,
       "count": 1696
     },
     "detector_latency": {
-      "p50": 4.423,
-      "p90": 5.139,
-      "p95": 8.566,
-      "p99": 9.544,
-      "min_ms": 3.85,
-      "mean_ms": 4.791,
-      "max_ms": 10.271,
+      "p50": 4.745,
+      "p90": 5.625,
+      "p95": 9.089,
+      "p99": 10.267,
+      "min_ms": 4.044,
+      "mean_ms": 5.143,
+      "max_ms": 11.165,
       "count": 1696
     },
     "correlator_latency": {
-      "p50": 4.04,
-      "p90": 7.332,
-      "p95": 7.881,
-      "p99": 8.401,
-      "min_ms": 0.298,
-      "mean_ms": 4.26,
-      "max_ms": 46.089,
+      "p50": 4.398,
+      "p90": 7.716,
+      "p95": 8.659,
+      "p99": 9.404,
+      "min_ms": 0.305,
+      "mean_ms": 4.514,
+      "max_ms": 39.845,
       "count": 371
     },
     "end_to_end_latency": {
-      "p50": 4.427,
-      "p90": 10.394,
-      "p95": 14.183,
-      "p99": 22.079,
-      "min_ms": 3.851,
-      "mean_ms": 5.725,
-      "max_ms": 54.383,
+      "p50": 4.755,
+      "p90": 11.219,
+      "p95": 15.291,
+      "p99": 23.224,
+      "min_ms": 4.045,
+      "mean_ms": 6.132,
+      "max_ms": 48.445,
       "count": 1696
     },
     "time_to_detect": {
-      "p50": 4.882,
-      "p90": 5.258,
-      "p95": 5.258,
-      "p99": 5.258,
-      "min_ms": 4.411,
-      "mean_ms": 4.85,
-      "max_ms": 5.258,
+      "p50": 4.769,
+      "p90": 5.216,
+      "p95": 5.216,
+      "p99": 5.216,
+      "min_ms": 4.697,
+      "mean_ms": 4.894,
+      "max_ms": 5.216,
       "count": 3
     }
   },
@@ -344,27 +354,27 @@
       "detected": true,
       "classification": "TP",
       "score": 1.0,
-      "time_to_detect_ms": 4.8820780002643005,
+      "time_to_detect_ms": 4.769479999595205,
       "matched_signals": [
-        "sig_097db73a8f840d2c",
+        "sig_da931b9c8f1aa4b3",
         "sig_afb45c8dd5aff462",
-        "sig_6ea6f7f654a5caa9",
-        "sig_c1236c5e5fad2e38",
-        "sig_e2516f4e91ffec4d",
-        "sig_eeb59610647613fb",
+        "sig_6df178ae66f4e224",
+        "sig_19683004eb76cbf3",
+        "sig_dddf48cbc80535c5",
+        "sig_2b6f9c5fd0f63faa",
+        "sig_07684fdcb60ae4fd",
+        "sig_3e5a360acf0acbd7",
+        "sig_a0431639c3c434bf",
+        "sig_070eb0c962f4f04a",
         "sig_6ece1cd4692ef085",
         "sig_2b9af97446f05988",
-        "sig_2b6f9c5fd0f63faa",
-        "sig_3e5a360acf0acbd7",
-        "sig_da931b9c8f1aa4b3",
-        "sig_19683004eb76cbf3",
-        "sig_f37f5c673e46cd0c",
         "sig_75e72640f9d077d0",
-        "sig_070eb0c962f4f04a",
-        "sig_dddf48cbc80535c5",
-        "sig_a0431639c3c434bf",
-        "sig_6df178ae66f4e224",
-        "sig_07684fdcb60ae4fd"
+        "sig_6ea6f7f654a5caa9",
+        "sig_eeb59610647613fb",
+        "sig_097db73a8f840d2c",
+        "sig_f37f5c673e46cd0c",
+        "sig_e2516f4e91ffec4d",
+        "sig_c1236c5e5fad2e38"
       ],
       "matched_rules": [
         "RULE-AUTH-001"
@@ -375,7 +385,10 @@
       "notes": "Evaluated against capture replay",
       "evidence_events": [
         "evt-auth-jump-01"
-      ]
+      ],
+      "attack_detected": true,
+      "rule_matched": true,
+      "technique_matched": true
     },
     {
       "scenario_id": "SCEN-AUTH-002",
@@ -393,7 +406,10 @@
       "notes": "Evaluated against capture replay",
       "evidence_events": [
         "evt-benign-auth-01"
-      ]
+      ],
+      "attack_detected": false,
+      "rule_matched": false,
+      "technique_matched": false
     },
     {
       "scenario_id": "SCEN-NET-001",
@@ -404,10 +420,10 @@
       "detected": true,
       "classification": "TP",
       "score": 1.0,
-      "time_to_detect_ms": 4.8820780002643005,
+      "time_to_detect_ms": 4.769479999595205,
       "matched_signals": [
-        "sig_74ddbc3edc13fea7",
-        "sig_88e34d7fca3cbc9e"
+        "sig_88e34d7fca3cbc9e",
+        "sig_74ddbc3edc13fea7"
       ],
       "matched_rules": [
         "GRAPH-SCAN-001"
@@ -419,7 +435,10 @@
       "evidence_events": [
         "evt-scan-01",
         "evt-scan-02"
-      ]
+      ],
+      "attack_detected": true,
+      "rule_matched": true,
+      "technique_matched": true
     },
     {
       "scenario_id": "SCEN-NET-002",
@@ -437,7 +456,10 @@
       "notes": "Evaluated against capture replay",
       "evidence_events": [
         "evt-pivot-ot-01"
-      ]
+      ],
+      "attack_detected": true,
+      "rule_matched": false,
+      "technique_matched": true
     },
     {
       "scenario_id": "SCEN-NET-003",
@@ -456,7 +478,10 @@
       "evidence_events": [
         "evt-ntp-01",
         "evt-dns-01"
-      ]
+      ],
+      "attack_detected": false,
+      "rule_matched": false,
+      "technique_matched": false
     },
     {
       "scenario_id": "SCEN-EP-001",
@@ -467,7 +492,7 @@
       "detected": true,
       "classification": "TP",
       "score": 1.0,
-      "time_to_detect_ms": 4.8820780002643005,
+      "time_to_detect_ms": 4.769479999595205,
       "matched_signals": [
         "sig_2906f6f70bd6f43e",
         "sig_dcd1f17595bf745e"
@@ -481,7 +506,10 @@
       "notes": "Evaluated against capture replay",
       "evidence_events": [
         "evt-shell-01"
-      ]
+      ],
+      "attack_detected": true,
+      "rule_matched": true,
+      "technique_matched": true
     },
     {
       "scenario_id": "SCEN-EP-002",
@@ -499,7 +527,10 @@
       "notes": "Evaluated against capture replay",
       "evidence_events": [
         "evt-backup-cron-01"
-      ]
+      ],
+      "attack_detected": false,
+      "rule_matched": false,
+      "technique_matched": false
     },
     {
       "scenario_id": "SCEN-DEC-001",
@@ -517,7 +548,10 @@
       "notes": "Evaluated against capture replay",
       "evidence_events": [
         "evt-cowrie-01"
-      ]
+      ],
+      "attack_detected": true,
+      "rule_matched": true,
+      "technique_matched": true
     },
     {
       "scenario_id": "SCEN-DEC-002",
@@ -535,7 +569,10 @@
       "notes": "Evaluated against capture replay",
       "evidence_events": [
         "evt-canary-01"
-      ]
+      ],
+      "attack_detected": true,
+      "rule_matched": true,
+      "technique_matched": true
     },
     {
       "scenario_id": "SCEN-DEC-003",
@@ -546,23 +583,23 @@
       "detected": true,
       "classification": "TP",
       "score": 1.0,
-      "time_to_detect_ms": 4.8820780002643005,
+      "time_to_detect_ms": 4.769479999595205,
       "matched_signals": [
-        "sig_aa0db70e959fd937",
         "sig_749d2e8fb54cdbb2",
-        "sig_ad9be99f131f1717",
+        "sig_8583c21a276e25e5",
         "sig_6e0d011853c968dd",
-        "sig_5bbdb69ffe7b1062",
-        "sig_abd6f8557e16770f",
-        "sig_0f8e8c1d3c06bc41",
-        "sig_3c55009489a3cf5b",
         "sig_d85c017d798ebabb",
-        "sig_69bec44271d32485",
-        "sig_e1b690857321be4d",
-        "sig_e9838283d096d3cf",
-        "sig_fcd2f6fd399acb51",
+        "sig_aa0db70e959fd937",
+        "sig_5bbdb69ffe7b1062",
         "sig_24e2f2fea10e0fec",
-        "sig_8583c21a276e25e5"
+        "sig_0f8e8c1d3c06bc41",
+        "sig_69bec44271d32485",
+        "sig_abd6f8557e16770f",
+        "sig_e1b690857321be4d",
+        "sig_fcd2f6fd399acb51",
+        "sig_e9838283d096d3cf",
+        "sig_3c55009489a3cf5b",
+        "sig_ad9be99f131f1717"
       ],
       "matched_rules": [
         "RULE-DECOY-001"
@@ -573,7 +610,10 @@
       "notes": "Evaluated against capture replay",
       "evidence_events": [
         "evt-decoy-plc-01"
-      ]
+      ],
+      "attack_detected": true,
+      "rule_matched": true,
+      "technique_matched": true
     },
     {
       "scenario_id": "SCEN-OT-001",
@@ -584,7 +624,7 @@
       "detected": true,
       "classification": "TP",
       "score": 1.0,
-      "time_to_detect_ms": 4.8820780002643005,
+      "time_to_detect_ms": 4.769479999595205,
       "matched_signals": [
         "sig_8a8a1dfa1500361e",
         "sig_1d08a3d3ff00b510",
@@ -599,7 +639,10 @@
       "notes": "Evaluated against capture replay",
       "evidence_events": [
         "evt-ot-write-01"
-      ]
+      ],
+      "attack_detected": true,
+      "rule_matched": true,
+      "technique_matched": true
     },
     {
       "scenario_id": "SCEN-OT-002",
@@ -617,7 +660,10 @@
       "notes": "Evaluated against capture replay",
       "evidence_events": [
         "evt-ot-poll-01"
-      ]
+      ],
+      "attack_detected": false,
+      "rule_matched": false,
+      "technique_matched": false
     },
     {
       "scenario_id": "SCEN-OT-003",
@@ -635,7 +681,10 @@
       "notes": "Evaluated against capture replay",
       "evidence_events": [
         "evt-ot-maint-01"
-      ]
+      ],
+      "attack_detected": false,
+      "rule_matched": false,
+      "technique_matched": false
     },
     {
       "scenario_id": "SCEN-BENIGN-101",
@@ -651,7 +700,10 @@
       "matched_rules": [],
       "matched_detectors": [],
       "notes": "Evaluated against capture replay",
-      "evidence_events": []
+      "evidence_events": [],
+      "attack_detected": false,
+      "rule_matched": false,
+      "technique_matched": false
     },
     {
       "scenario_id": "SCEN-BENIGN-103",
@@ -667,7 +719,10 @@
       "matched_rules": [],
       "matched_detectors": [],
       "notes": "Evaluated against capture replay",
-      "evidence_events": []
+      "evidence_events": [],
+      "attack_detected": false,
+      "rule_matched": false,
+      "technique_matched": false
     },
     {
       "scenario_id": "SCEN-BENIGN-105",
@@ -683,7 +738,10 @@
       "matched_rules": [],
       "matched_detectors": [],
       "notes": "Evaluated against capture replay",
-      "evidence_events": []
+      "evidence_events": [],
+      "attack_detected": false,
+      "rule_matched": false,
+      "technique_matched": false
     },
     {
       "scenario_id": "SCEN-ATK-BASE",
@@ -694,42 +752,45 @@
       "detected": true,
       "classification": "TP",
       "score": 1.0,
-      "time_to_detect_ms": 4.8820780002643005,
+      "time_to_detect_ms": 4.769479999595205,
       "matched_signals": [
-        "sig_097db73a8f840d2c",
-        "sig_1d08a3d3ff00b510",
-        "sig_afb45c8dd5aff462",
-        "sig_6ea6f7f654a5caa9",
-        "sig_c1236c5e5fad2e38",
-        "sig_e2516f4e91ffec4d",
-        "sig_eeb59610647613fb",
-        "sig_6ece1cd4692ef085",
-        "sig_2b9af97446f05988",
-        "sig_2b6f9c5fd0f63faa",
-        "sig_2fe1336d0d6846c4",
-        "sig_3e5a360acf0acbd7",
-        "sig_14c68abc13c4a660",
-        "sig_8a8a1dfa1500361e",
         "sig_da931b9c8f1aa4b3",
-        "sig_19683004eb76cbf3",
-        "sig_f37f5c673e46cd0c",
-        "sig_75e72640f9d077d0",
-        "sig_070eb0c962f4f04a",
-        "sig_dddf48cbc80535c5",
-        "sig_a0431639c3c434bf",
+        "sig_afb45c8dd5aff462",
         "sig_6df178ae66f4e224",
-        "sig_07684fdcb60ae4fd"
+        "sig_8a8a1dfa1500361e",
+        "sig_1d08a3d3ff00b510",
+        "sig_19683004eb76cbf3",
+        "sig_dddf48cbc80535c5",
+        "sig_2b6f9c5fd0f63faa",
+        "sig_07684fdcb60ae4fd",
+        "sig_3e5a360acf0acbd7",
+        "sig_a0431639c3c434bf",
+        "sig_070eb0c962f4f04a",
+        "sig_6ece1cd4692ef085",
+        "sig_14c68abc13c4a660",
+        "sig_2b9af97446f05988",
+        "sig_2fe1336d0d6846c4",
+        "sig_75e72640f9d077d0",
+        "sig_6ea6f7f654a5caa9",
+        "sig_eeb59610647613fb",
+        "sig_097db73a8f840d2c",
+        "sig_f37f5c673e46cd0c",
+        "sig_e2516f4e91ffec4d",
+        "sig_c1236c5e5fad2e38"
       ],
       "matched_rules": [
-        "RULE-CRED-001",
+        "RULE-OT-001",
         "RULE-AUTH-001",
-        "RULE-OT-001"
+        "RULE-CRED-001"
       ],
       "matched_detectors": [
         "rule"
       ],
       "notes": "Evaluated against capture replay",
-      "evidence_events": []
+      "evidence_events": [],
+      "attack_detected": true,
+      "rule_matched": true,
+      "technique_matched": true
     }
   ],
   "false_positives": [],
@@ -754,7 +815,10 @@
       "target_assets": [
         "eng-ws"
       ],
-      "notes": "Expected detection did not fire during capture replay."
+      "attack_detected": true,
+      "rule_matched": false,
+      "technique_matched": true,
+      "notes": "Attributed expected detection did not fire in exact conjunction"
     },
     {
       "scenario_id": "SCEN-DEC-001",
@@ -777,7 +841,10 @@
       "target_assets": [
         "backup-srv-02"
       ],
-      "notes": "Expected detection did not fire during capture replay."
+      "attack_detected": true,
+      "rule_matched": true,
+      "technique_matched": true,
+      "notes": "Attributed expected detection did not fire in exact conjunction"
     },
     {
       "scenario_id": "SCEN-DEC-002",
@@ -799,8 +866,47 @@
       "target_assets": [
         "db-prod-02"
       ],
-      "notes": "Expected detection did not fire during capture replay."
+      "attack_detected": true,
+      "rule_matched": true,
+      "technique_matched": true,
+      "notes": "Attributed expected detection did not fire in exact conjunction"
     }
   ],
-  "throughput_eps": 171.12
+  "throughput_eps": 159.81,
+  "attack_detection": {
+    "tp": 9,
+    "fp": 0,
+    "fn": 0,
+    "tn": 8,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0,
+    "accuracy": 1.0,
+    "fpr": 0.0,
+    "fnr": 0.0
+  },
+  "rule_attribution": {
+    "tp": 8,
+    "fp": 0,
+    "fn": 1,
+    "tn": 8,
+    "precision": 1.0,
+    "recall": 0.8889,
+    "f1_score": 0.9412,
+    "accuracy": 0.9412,
+    "fpr": 0.0,
+    "fnr": 0.1111
+  },
+  "technique_attribution": {
+    "tp": 9,
+    "fp": 0,
+    "fn": 0,
+    "tn": 8,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0,
+    "accuracy": 1.0,
+    "fpr": 0.0,
+    "fnr": 0.0
+  }
 }
