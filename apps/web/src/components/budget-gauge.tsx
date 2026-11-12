@@ -165,14 +165,14 @@ export function BudgetGauge() {
                 <line x1="80" y1="80" x2="80" y2="24" stroke="#f8fafc" strokeWidth="2.5" strokeLinecap="round" />
               </g>
             </svg>
+          </div>
 
-            {/* Central Score Label */}
-            <div className="absolute -bottom-2 text-center pointer-events-none">
-              <span className="text-xl font-bold font-mono tracking-tight text-slate-100">
-                {sliderValue.toFixed(2)}
-              </span>
-              <span className="block text-[10px] text-slate-400 font-mono">Score Threshold</span>
-            </div>
+          {/* Central Score Label Under Meter */}
+          <div className="mt-3 text-center pointer-events-none select-none">
+            <span className="text-xl font-bold font-mono tracking-tight text-slate-100">
+              {sliderValue.toFixed(2)}
+            </span>
+            <span className="block text-[10px] text-slate-400 font-mono">Score Threshold</span>
           </div>
         </div>
 
