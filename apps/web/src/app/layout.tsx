@@ -4,9 +4,9 @@ import { Providers } from "@/components/providers";
 import { Sidebar } from "@/components/sidebar";
 
 export const metadata: Metadata = {
-  title: "SentinelX | IT/OT Threat Detection & Deception",
+  title: "SentinelX | Cyber-Physical IT/OT Threat Detection & Response Safety",
   description:
-    "Next-generation IT/OT threat detection, attack graph reconstruction, and response safety.",
+    "Autonomous IT/OT threat detection, attack graph reconstruction, deception intelligence, and Response Safety Guard.",
 };
 
 export default function RootLayout({
@@ -19,7 +19,7 @@ export default function RootLayout({
       <body className="bg-[#090d16] text-slate-100 antialiased min-h-screen flex">
         <Providers>
           <Sidebar />
-          <main className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
+          <main className="flex-1 flex flex-col min-h-screen overflow-x-hidden pt-14 md:pt-0">
             {children}
           </main>
         </Providers>

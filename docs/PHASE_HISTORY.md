@@ -28,7 +28,8 @@ This document chronicles the engineering development lifecycle of SentinelX acro
 | **Phase 8** | [`72b28e5`](https://github.com/innovasia/SentinelX/commit/72b28e5) – [`b6dc91e`](https://github.com/innovasia/SentinelX/commit/b6dc91e) | 2026-11-09 08:31 – 08:36 | LLM Analyst Summary subsystem, Google Gemini client, and grounding verifier (V1–V4). |
 | **Phase 8.1** | [`769fba0`](https://github.com/innovasia/SentinelX/commit/769fba0) | 2026-11-09 09:31 | Prompt injection defense: added non-verdict rule V5, headline checks, and schema cleanup. |
 | **Phase 8.2** | [`664e6bb`](https://github.com/innovasia/SentinelX/commit/664e6bb) | 2026-11-09 10:04 | Headline verification fallback, evidence ranking for noisy multi-stage captures, and tests. |
-| **Phase D** | *(Working Tree)* | 2026-11-11 15:15 – 20:50 | Detection Evaluation & System Performance: multi-level benchmark, ground truth v1.0.0, API, Next.js UI. |
+| **Phase D** | [`df63933`](https://github.com/innovasia/SentinelX/commit/df63933) – [`59d1fc8`](https://github.com/innovasia/SentinelX/commit/59d1fc8) | 2026-11-11 15:15 – 20:50 | Detection Evaluation & System Performance: multi-level benchmark, ground truth v1.0.0, API, Next.js UI. |
+| **Phase E** | *(Working Tree)* | 2026-11-11 21:00 – 22:15 | Product-wide Experience & Polish: SOC design system, persistent WebSocket, investigation queue, provenance edges, honest disclosures. |
 
 ---
 
@@ -383,4 +384,50 @@ Transform SentinelX from an operational detection system into a rigorously evalu
 
 ### State at End of Phase
 Fully verified, reproducible evaluation and benchmarking framework with 187 passing unit/integration tests, zero linter warnings, complete Next.js 15 UI compilation, and documented baseline performance metrics.
+
+---
+
+## Phase E: Product-wide Experience & Polish
+
+### Goal
+Transform the complete engineering foundation established in Phases A–D into a cohesive, professional industrial cybersecurity product with a clean SOC analyst user experience, unified navigation and styling, rock-solid real-time streaming, and honest analytical disclosures.
+
+### What Was Built
+- **D0 — Repository & Experience Audit**:
+  - Full audit of all 10 major UI areas (`apps/web/`) documented in `docs/phase-e/phase_e_experience_audit.md`.
+- **D1 — Design System & Component Library**:
+  - Established design tokens, typography, semantic status indicators, network zone badges, and relationship provenance lines in `docs/phase-e/design-system.md`.
+  - Implemented reusable UI components: `PageHeader`, `StatusBadge`, `SeverityBadge`, `MetricCard`, `EmptyState`, `ErrorState`, `LoadingState`, `ConfirmationDialog`, `ToastProvider` / `useToast()`, and `AssetInventoryModal`.
+- **D2 — Shell, Navigation & Persistent WebSockets**:
+  - Reorganized sidebar navigation into Overview, Investigation, Threat Intelligence, and Validation sections with active route highlights.
+  - Implemented mobile hamburger drawer and global asset topology modal.
+  - Re-architected WebSocket connection in `apps/web/src/hooks/useEventStream.ts` into a module-level singleton wrapped in `apps/web/src/components/providers.tsx` to eliminate reconnect thrashing across client page navigations.
+- **D3 — Dashboard Experience**:
+  - Overhauled `apps/web/src/app/page.tsx` with unified `PageHeader`, 4-KPI metric row, active priority investigation queue with 1-click drilldowns, collapsible sensor status table, and tabbed live feed (Canonical Events, Signals, Guard decisions).
+- **D4 — Incident Investigation Workflow**:
+  - Enhanced `apps/web/src/app/incidents/page.tsx` with real-time severity/status filter tabs, multi-criteria sorting (Score, Newest, Signals), expanded entity/summary search, and in-context embedded `ResponseGuardPanel`.
+  - Replaced browser `alert()` and `confirm()` with custom `ConfirmationDialog` and toast notifications.
+- **D5 — Attack Graph & Timeline Usability**:
+  - Added keyboard navigation to `apps/web/src/components/attack-timeline.tsx` (Space for play/pause, Left/Right for stepping) and relative delta timestamps (`+MM:SS`).
+  - Updated `apps/web/src/app/graph/page.tsx` with provenance-coded edges (`observed` solid, `inferred` dashed, `configured` dotted), "Fit View" toolbar button, and "Return to Incident Details" backlink.
+- **D6 & D7 — Deception & Response Safety Guard Governance**:
+  - Delineated directly observed sensor telemetry vs inferred attacker intent vs configured topology in `apps/web/src/components/deception-modal.tsx`.
+  - Supported URL deep-linking (`/deception?tab=guard`).
+  - Enforced strict advisory disclaimers and human confirmation dialogs for non-bypassable guard approvals.
+- **D8 — Evaluation Dashboard Disclosures**:
+  - Enhanced `apps/web/src/app/eval/page.tsx` with a multi-level evaluation hierarchy table.
+  - Added three permanent disclosure cards under the Gaps subtab: capture-scope technique attribution reconciliation, single-capture dataset limitation, and honest `NOT EVALUATED` marking for runtime baseline/anomaly engines.
+- **D12 & D13 — Headless Screenshots & Verification**:
+  - Automated headless Chrome capture producing 7 full-resolution screenshots in `docs/phase-e/screenshots/`.
+  - Complete implementation report in `docs/phase-e/implementation-report.md`.
+
+### How It Was Verified
+- Backend pytest suite: 187 passed, 1 skipped.
+- Frontend ESLint: 0 errors, 0 warnings.
+- Next.js 15 production build: 10/10 static pages compiled.
+- Python Ruff linter: all checks passed.
+- Headless Chrome CDP verification: 7 screenshots generated and inspected.
+
+### State at End of Phase
+Fully accepted, cohesive, professional industrial IT/OT cybersecurity platform with zero regressions, rock-solid real-time updates, strict safety guardrails, and honest analytical evaluation reporting.
 

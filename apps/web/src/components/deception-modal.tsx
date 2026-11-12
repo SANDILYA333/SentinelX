@@ -59,9 +59,14 @@ export function DeceptionModal({ activity, onClose }: DeceptionModalProps) {
         {/* Target Decoy & Source Overview Grid */}
         <div className="grid grid-cols-2 gap-3">
           <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1.5">
-            <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
-              <Server className="w-3.5 h-3.5 text-purple-400" /> Target Decoy Asset
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
+                <Server className="w-3.5 h-3.5 text-purple-400" /> Target Decoy Asset
+              </span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-950/60 border border-blue-800 text-blue-300 font-mono">
+                CONFIGURED TOPOLOGY
+              </span>
+            </div>
             <div className="text-slate-200 font-bold text-sm">{activity.decoy_hostname}</div>
             <div className="text-[11px] text-slate-400 flex items-center gap-2">
               <span>Role: <strong className="text-purple-300">{activity.decoy_type}</strong></span>
@@ -71,9 +76,14 @@ export function DeceptionModal({ activity, onClose }: DeceptionModalProps) {
           </div>
 
           <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1.5">
-            <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
-              <Globe className="w-3.5 h-3.5 text-red-400" /> Attacker Origin
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
+                <Globe className="w-3.5 h-3.5 text-red-400" /> Attacker Origin
+              </span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-950/60 border border-amber-800 text-amber-300 font-mono">
+                OBSERVED IP + INFERRED ROLE
+              </span>
+            </div>
             <div className="text-red-400 font-bold text-sm">{activity.src_ip || "Unknown IP"}</div>
             <div className="text-[11px] text-slate-400 flex items-center gap-2">
               <span>Status: <strong className="text-red-300 uppercase">{activity.attacker_role || "Untrusted"}</strong></span>
@@ -89,14 +99,19 @@ export function DeceptionModal({ activity, onClose }: DeceptionModalProps) {
 
         {/* Description & Intelligence Narrative */}
         <div className="p-3.5 rounded-xl bg-purple-950/20 border border-purple-800/40 space-y-2">
-          <span className="text-[10px] uppercase font-bold text-purple-400 flex items-center gap-1">
-            <Shield className="w-3.5 h-3.5" /> Intelligence Narrative
-          </span>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase font-bold text-purple-400 flex items-center gap-1">
+              <Shield className="w-3.5 h-3.5" /> Intelligence Narrative
+            </span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-950/80 border border-purple-700 text-purple-300 font-mono">
+              INFERRED ATTACKER INTENT
+            </span>
+          </div>
           <p className="text-slate-200 text-xs leading-relaxed">
             {activity.description}
           </p>
           <div className="text-[10px] text-slate-400 pt-1 border-t border-purple-900/40 flex items-center justify-between">
-            <span>Provenance: <strong className="text-emerald-400 uppercase">{activity.provenance} TELEMETRY</strong></span>
+            <span>Provenance: <strong className="text-emerald-400 uppercase">{activity.provenance || "OBSERVED"} TELEMETRY</strong></span>
             <span>Recorded: <strong>{new Date(activity.ts).toLocaleString()}</strong></span>
           </div>
         </div>
@@ -161,17 +176,31 @@ export function DeceptionModal({ activity, onClose }: DeceptionModalProps) {
             Close
           </Button>
 
-          {activity.incident_id && (
-            <Link href={`/graph?incident_id=${activity.incident_id}`}>
-              <Button
-                size="sm"
-                className="gap-2 bg-purple-600 hover:bg-purple-500 text-white font-bold"
-              >
-                Inspect in Attack Graph Replay
-                <ExternalLink className="w-3.5 h-3.5" />
-              </Button>
-            </Link>
-          )}
+          <div className="flex items-center gap-2">
+            {activity.incident_id && (
+              <>
+                <Link href={`/incidents?id=${activity.incident_id}`}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-200 font-medium"
+                  >
+                    View Incident Details
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </Button>
+                </Link>
+                <Link href={`/graph?incident_id=${activity.incident_id}`}>
+                  <Button
+                    size="sm"
+                    className="gap-1.5 bg-purple-600 hover:bg-purple-500 text-white font-bold"
+                  >
+                    Inspect in Attack Graph
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </Button>
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>

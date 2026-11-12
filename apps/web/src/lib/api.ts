@@ -508,14 +508,20 @@ export interface EvaluationOverviewResponse {
 export interface EvaluationRunListItem {
   run_id: string;
   created_at: string;
-  git_commit: string;
-  dataset_version: string;
-  splits_evaluated: string[];
+  git_commit?: string;
+  dataset_version?: string;
+  splits_evaluated?: string[];
+  splits?: string[];
+  headline_precision?: number | null;
+  headline_recall?: number | null;
+  headline_f1?: number | null;
+  headline_accuracy?: number | null;
+  p95_latency_ms?: number | null;
   headline: {
-    tp: number;
-    fp: number;
-    fn: number;
-    tn: number;
+    tp?: number;
+    fp?: number;
+    fn?: number;
+    tn?: number;
     precision: number | null;
     recall: number | null;
     f1_score: number | null;
@@ -541,7 +547,30 @@ export async function fetchEvaluationRuns(limit: number = 20): Promise<Evaluatio
   if (!res.ok) {
     throw new Error(`Failed to fetch evaluation runs: ${res.statusText}`);
   }
-  return res.json();
+  const rawList = await res.json();
+  return (rawList || []).map((item: Record<string, unknown>) => {
+    const rawHeadline = (item.headline as Record<string, unknown>) || {};
+    return {
+      ...item,
+      run_id: String(item.run_id || ""),
+      created_at: String(item.created_at || ""),
+      git_commit: String(item.git_commit || ""),
+      dataset_version: String(item.dataset_version || ""),
+      splits: Array.isArray(item.splits) ? item.splits : Array.isArray(item.splits_evaluated) ? item.splits_evaluated : [],
+      splits_evaluated: Array.isArray(item.splits_evaluated) ? item.splits_evaluated : Array.isArray(item.splits) ? item.splits : [],
+      throughput_eps: typeof item.throughput_eps === "number" ? item.throughput_eps : 0,
+      headline: {
+        tp: typeof rawHeadline.tp === "number" ? rawHeadline.tp : 0,
+        fp: typeof rawHeadline.fp === "number" ? rawHeadline.fp : 0,
+        fn: typeof rawHeadline.fn === "number" ? rawHeadline.fn : 0,
+        tn: typeof rawHeadline.tn === "number" ? rawHeadline.tn : 0,
+        precision: typeof item.headline_precision === "number" ? item.headline_precision : typeof rawHeadline.precision === "number" ? rawHeadline.precision : null,
+        recall: typeof item.headline_recall === "number" ? item.headline_recall : typeof rawHeadline.recall === "number" ? rawHeadline.recall : null,
+        f1_score: typeof item.headline_f1 === "number" ? item.headline_f1 : typeof rawHeadline.f1_score === "number" ? rawHeadline.f1_score : null,
+        accuracy: typeof item.headline_accuracy === "number" ? item.headline_accuracy : typeof rawHeadline.accuracy === "number" ? rawHeadline.accuracy : null,
+      },
+    } as EvaluationRunListItem;
+  });
 }
 
 export async function fetchEvaluationRun(runId: string): Promise<EvaluationRunSummary> {

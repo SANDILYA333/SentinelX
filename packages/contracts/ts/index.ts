@@ -1380,6 +1380,9 @@ export interface EvaluationRunSummary {
   false_positives?: FalsePositives;
   false_negatives?: FalseNegatives;
   throughput_eps?: ThroughputEps;
+  attack_detection?: MetricScores;
+  rule_attribution?: MetricScores;
+  technique_attribution?: MetricScores;
 }
 /**
  * Standard evaluation metrics with explicit zero-division handling.

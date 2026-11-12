@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   Background,
@@ -29,7 +30,9 @@ import { useEventStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  ArrowLeft,
   GitGraph,
+  Maximize2,
   RefreshCw,
   ShieldCheck,
   Sparkles,
@@ -350,6 +353,8 @@ function AttackGraphContent() {
       const isDecoy = e.label.includes("decoy");
 
       const strokeColor = isOt ? "#f43f5e" : isPivot ? "#f59e0b" : isDecoy ? "#c084fc" : isAuth ? "#38bdf8" : "#94a3b8";
+      const edgeProvenance = e.provenance || "observed";
+      const dashArray = edgeProvenance === "inferred" ? "6,4" : edgeProvenance === "configured" ? "2,3" : isAuth ? "5,5" : undefined;
 
       return {
         id: e.id || `e_${e.source}_${e.target}_${idx}`,
@@ -360,7 +365,7 @@ function AttackGraphContent() {
         style: {
           stroke: strokeColor,
           strokeWidth: isOt ? 3 : 2,
-          strokeDasharray: isAuth ? "5,5" : undefined,
+          strokeDasharray: dashArray,
         },
         markerEnd: {
           type: MarkerType.ArrowClosed,
@@ -677,12 +682,22 @@ function AttackGraphContent() {
 
         {/* Incident Selector & Layout Actions */}
         <div className="flex flex-wrap items-center gap-2.5">
+          {selectedId && (
+            <Link
+              href={`/incidents?id=${encodeURIComponent(selectedId)}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-blue-400 hover:text-blue-300 hover:bg-slate-800 transition cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Incident Details</span>
+            </Link>
+          )}
+
           <div className="flex items-center gap-2 text-xs">
             <span className="text-slate-400">Incident:</span>
             <select
               value={selectedId || ""}
               onChange={(e) => setSelectedId(e.target.value)}
-              className="bg-slate-900 border border-slate-800 text-xs text-slate-200 rounded-lg px-3 py-1.5 focus:outline-hidden focus:border-blue-500 font-mono shadow-xs"
+              className="bg-slate-900 border border-slate-800 text-xs text-slate-200 rounded-lg px-3 py-1.5 focus:outline-hidden focus:border-blue-500 font-mono shadow-xs cursor-pointer"
             >
               {incidents.map((inc) => (
                 <option key={inc.incident_id} value={inc.incident_id}>
@@ -711,8 +726,17 @@ function AttackGraphContent() {
           <Button
             variant="outline"
             size="sm"
+            onClick={() => reactFlow.fitView({ duration: 400 })}
+            className="text-xs font-mono border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 h-8 cursor-pointer"
+          >
+            <Maximize2 className="w-3.5 h-3.5 mr-1 text-slate-400" /> Fit View
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleZonedLayout}
-            className="text-xs font-mono border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 h-8"
+            className="text-xs font-mono border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 h-8 cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5 mr-1 text-purple-400" /> Zoned Layout
           </Button>
@@ -721,7 +745,7 @@ function AttackGraphContent() {
             variant="outline"
             size="sm"
             onClick={handleAutoLayout}
-            className="text-xs font-mono border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 h-8"
+            className="text-xs font-mono border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 h-8 cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5 mr-1 text-blue-400" /> Auto Dagre
           </Button>
@@ -731,7 +755,7 @@ function AttackGraphContent() {
               variant="outline"
               size="sm"
               onClick={() => setShowGuardPanel(true)}
-              className="text-xs font-mono border-emerald-800/80 bg-emerald-950/40 hover:bg-emerald-900/40 text-emerald-300 h-8 font-bold"
+              className="text-xs font-mono border-emerald-800/80 bg-emerald-950/40 hover:bg-emerald-900/40 text-emerald-300 h-8 font-bold cursor-pointer"
             >
               <ShieldCheck className="w-3.5 h-3.5 mr-1 text-emerald-400" /> Response Guard ({recommendations.length})
             </Button>
@@ -812,23 +836,23 @@ function AttackGraphContent() {
           </div>
         )}
 
-        {/* Legend Overlay in Bottom Left */}
-        <div className="absolute bottom-4 left-4 z-20 p-3 rounded-xl bg-slate-950/85 border border-slate-800 backdrop-blur-md text-[11px] font-mono space-y-2 shadow-xl select-none">
-          <div className="flex items-center justify-between border-b border-slate-800/80 pb-1 gap-4">
-            <span className="font-semibold text-slate-400">Attack Graph Legend</span>
+        {/* Enhanced Provenance & Attack Graph Legend in Bottom Left */}
+        <div className="absolute bottom-4 left-4 z-20 p-3 rounded-xl bg-slate-950/90 border border-slate-800 backdrop-blur-md text-[11px] font-mono space-y-2 shadow-2xl select-none max-w-xs">
+          <div className="flex items-center justify-between border-b border-slate-800/80 pb-1 gap-3">
+            <span className="font-bold text-slate-300 uppercase tracking-wider text-[10px]">Graph Legend</span>
             <span className="text-[9px] text-emerald-400 font-bold bg-emerald-950/60 px-1 py-0.2 rounded border border-emerald-800">
-              OBSERVED TELEMETRY
+              PROVENANCE AWARE
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-slate-300">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-slate-300 text-[10px]">
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
-              <span>External Actor</span>
+              <span>Attacker (10.10.1.5)</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-              <span>IT Host / User</span>
+              <span>IT Enterprise Host</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
@@ -836,23 +860,29 @@ function AttackGraphContent() {
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-              <span>Process PLC (OT)</span>
+              <span>Critical PLC (OT)</span>
             </div>
           </div>
 
-          <div className="pt-1.5 border-t border-slate-800/80 flex items-center gap-3 text-slate-400 text-[10px]">
-            <span className="flex items-center gap-1">
-              <span className="w-3.5 h-0.5 bg-sky-400 inline-block border-b border-dashed border-sky-400" /> SSH Auth
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-3.5 h-0.5 bg-amber-400 inline-block" /> Lateral Pivot
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-3.5 h-0.5 bg-rose-500 inline-block" /> OT Modbus
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-3.5 h-0.5 bg-purple-400 inline-block" /> Decoy Pivot
-            </span>
+          <div className="pt-1.5 border-t border-slate-800/80 space-y-1 text-slate-400 text-[10px]">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <span className="w-4 h-0.5 bg-slate-300 inline-block" /> Solid Line:
+              </span>
+              <span className="text-slate-200 font-semibold">Observed Evidence</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <span className="w-4 h-0.5 border-b border-dashed border-amber-400 inline-block" /> Dashed Line:
+              </span>
+              <span className="text-amber-300 font-semibold">Inferred Path / Pivot</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <span className="w-4 h-0.5 border-b border-dotted border-slate-500 inline-block" /> Dotted Line:
+              </span>
+              <span className="text-slate-400">Configured Link</span>
+            </div>
           </div>
         </div>
 

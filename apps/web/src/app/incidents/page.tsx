@@ -4,8 +4,9 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import type { IncidentSummaryResponse, Signal, Technique } from "@contracts/index";
+import type { IncidentSummaryResponse, ResponseRecommendation, Signal, Technique } from "@contracts/index";
 import {
+  fetchGuardRecommendations,
   fetchIncidentById,
   fetchIncidentSummary,
   fetchMitreTechniques,
@@ -22,13 +23,16 @@ import {
   STAGE_META,
 } from "@/lib/theme";
 import { EvidenceLink } from "@/components/evidence-link";
+import { ResponseGuardPanel } from "@/components/response-guard-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { StatusBadge } from "@/components/ui/status-badge";
 import {
   AlertTriangle,
   ArrowRight,
-  CheckCircle2,
   Clock,
   GitGraph,
   Loader2,
@@ -36,6 +40,7 @@ import {
   Search,
   Server,
   Shield,
+  ShieldCheck,
   Sparkles,
   User,
 } from "lucide-react";
@@ -52,6 +57,11 @@ function IncidentsContent() {
   const [incidentDetail, setIncidentDetail] = useState<IncidentWithEvidence | null>(null);
   const [loadingDetail, setLoadingDetail] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [filterSeverity, setFilterSeverity] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"score" | "newest" | "signals">("score");
+
+  // Guard Recommendations for selected incident
+  const [recommendations, setRecommendations] = useState<ResponseRecommendation[]>([]);
 
   // LLM / Template Analyst Summary state
   const [summary, setSummary] = useState<IncidentSummaryResponse | null>(null);
@@ -75,17 +85,20 @@ function IncidentsContent() {
     return map;
   }, [mitreTechniques]);
 
-  // Sync initial query param ID
+  // Sync initial query param ID or default to first incident
   useEffect(() => {
-    if (initialId && !selectedIncidentId) {
+    if (initialId) {
       setSelectedIncidentId(initialId);
+    } else if (!selectedIncidentId && incidents.length > 0) {
+      setSelectedIncidentId(incidents[0].incident_id);
     }
-  }, [initialId, selectedIncidentId]);
+  }, [initialId, incidents, selectedIncidentId]);
 
   // Load incident detail when selection changes
   useEffect(() => {
     if (!selectedIncidentId) {
       setIncidentDetail(null);
+      setRecommendations([]);
       return;
     }
 
@@ -105,6 +118,15 @@ function IncidentsContent() {
         if (active) {
           setLoadingDetail(false);
         }
+      });
+
+    // Fetch guard recommendations
+    fetchGuardRecommendations(selectedIncidentId)
+      .then((recs) => {
+        if (active) setRecommendations(recs);
+      })
+      .catch(() => {
+        if (active) setRecommendations([]);
       });
 
     return () => {
@@ -161,18 +183,32 @@ function IncidentsContent() {
     }
   };
 
-  // Filtered incidents
+  // Filtered & sorted incidents
   const filteredIncidents = useMemo(() => {
-    return incidents.filter((inc) => {
-      if (!searchQuery.trim()) return true;
-      const q = searchQuery.toLowerCase();
-      const idMatch = inc.incident_id.toLowerCase().includes(q);
-      const sevMatch = inc.severity.toLowerCase().includes(q);
-      const entityMatch = inc.entities.some((e) => e.value.toLowerCase().includes(q));
-      const stageMatch = inc.kill_chain_stages.some((s) => s.toLowerCase().includes(q));
-      return idMatch || sevMatch || entityMatch || stageMatch;
-    });
-  }, [incidents, searchQuery]);
+    return incidents
+      .filter((inc) => {
+        if (filterSeverity !== "all") {
+          if (filterSeverity === "active" && inc.score < 0.5) return false;
+          if (filterSeverity === "novelty" && !inc.novelty_only) return false;
+          if (["critical", "high", "medium", "low"].includes(filterSeverity) && inc.severity !== filterSeverity) {
+            return false;
+          }
+        }
+        if (!searchQuery.trim()) return true;
+        const q = searchQuery.toLowerCase();
+        const idMatch = inc.incident_id.toLowerCase().includes(q);
+        const sevMatch = inc.severity.toLowerCase().includes(q);
+        const entityMatch = inc.entities.some((e) => e.value.toLowerCase().includes(q));
+        const stageMatch = inc.kill_chain_stages.some((s) => s.toLowerCase().includes(q));
+        const summaryMatch = (inc.summary || "").toLowerCase().includes(q);
+        return idMatch || sevMatch || entityMatch || stageMatch || summaryMatch;
+      })
+      .sort((a, b) => {
+        if (sortBy === "score") return b.score - a.score;
+        if (sortBy === "signals") return b.signal_ids.length - a.signal_ids.length;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+  }, [incidents, searchQuery, filterSeverity, sortBy]);
 
   // Group signals by detector type for "Why Flagged" panel
   const signalsByDetector = useMemo(() => {
@@ -193,64 +229,89 @@ function IncidentsContent() {
   }, [incidentDetail]);
 
   return (
-    <div className="p-8 space-y-6 max-w-7xl mx-auto w-full">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-800/80">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-100 flex items-center gap-2.5">
-            <AlertTriangle className="w-6 h-6 text-red-400" />
-            Correlated Security Incidents
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Multi-stage attack campaign progression, MITRE ATT&amp;CK matrix correlation, and TTFMA metrics.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Badge
-            variant="outline"
-            className={cn(
-              "px-3 py-1 font-mono text-xs",
-              status === "open"
-                ? "bg-emerald-950/60 text-emerald-400 border-emerald-800/60"
-                : "bg-amber-950/60 text-amber-400 border-amber-800/60"
-            )}
-          >
-            {status === "open" ? "Live Correlation" : "Connecting..."}
-          </Badge>
-          <Badge variant="outline" className="bg-slate-900 border-slate-800 text-slate-300 font-mono text-xs">
-            {incidents.length} Total ({incidents.filter((i) => i.score >= 0.50).length} Active)
-          </Badge>
-        </div>
-      </div>
+    <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full font-sans">
+      {/* Page Header */}
+      <PageHeader
+        title="Correlated Security Incidents"
+        subtitle="Multi-stage cyber-physical attack progression, MITRE ATT&CK correlation, and automated safety interlocks."
+        icon={AlertTriangle}
+        actions={
+          <div className="flex items-center gap-3">
+            <StatusBadge
+              status={status === "open" ? "live" : "connecting"}
+              label={status === "open" ? "CORRELATION STREAM LIVE" : "CONNECTING"}
+            />
+            <span className="text-xs font-mono px-3 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
+              {incidents.length} Total ({incidents.filter((i) => i.score >= 0.50).length} Active)
+            </span>
+          </div>
+        }
+      />
 
       {/* Main Grid: Left Column (Incident List) / Right Column (Incident Detail) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Incidents List */}
         <div className="lg:col-span-5 space-y-3">
-          {/* Search box */}
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Search incidents by entity, stage, ID..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-slate-200 focus:outline-hidden focus:border-blue-500"
-            />
+          {/* Filter Bar & Search */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-1 font-mono text-[11px]">
+                {["all", "active", "critical", "high", "novelty"].map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => setFilterSeverity(f)}
+                    className={cn(
+                      "px-2 py-0.5 rounded uppercase font-semibold transition cursor-pointer",
+                      filterSeverity === f
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800"
+                    )}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as "score" | "newest" | "signals")}
+                className="bg-slate-900 border border-slate-800 text-[11px] font-mono text-slate-300 rounded px-2 py-1 focus:outline-none"
+              >
+                <option value="score">Sort: Score</option>
+                <option value="newest">Sort: Newest</option>
+                <option value="signals">Sort: Signals</option>
+              </select>
+            </div>
+
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Search by ID, IP, target asset, rule..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-blue-500"
+              />
+            </div>
           </div>
 
-          <div className="space-y-3">
+          {/* Incidents Scrollable List */}
+          <div className="space-y-2.5 max-h-[calc(100vh-14rem)] overflow-y-auto pr-1">
             {filteredIncidents.length === 0 ? (
-              <Card className="border-slate-800 bg-slate-900/40 p-8 text-center space-y-2">
-                <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto opacity-60" />
-                <h4 className="text-sm font-semibold text-slate-300">Zero Incidents Match</h4>
-                <p className="text-xs text-slate-500">
-                  {incidents.length === 0
+              <EmptyState
+                title="Zero Incidents Found"
+                description={
+                  incidents.length === 0
                     ? "No multi-stage attack incidents have been correlated yet. All telemetry within baseline."
-                    : "No incidents matched your search filter."}
-                </p>
-              </Card>
+                    : "No incidents match the specified search and filter criteria."
+                }
+                actionLabel={searchQuery || filterSeverity !== "all" ? "Reset Filters" : undefined}
+                onAction={() => {
+                  setSearchQuery("");
+                  setFilterSeverity("all");
+                }}
+              />
             ) : (
               filteredIncidents.map((inc) => {
                 const isSelected = inc.incident_id === selectedIncidentId;
@@ -263,24 +324,23 @@ function IncidentsContent() {
                     key={inc.incident_id}
                     onClick={() => setSelectedIncidentId(inc.incident_id)}
                     className={cn(
-                      "p-4 rounded-xl border transition-all cursor-pointer space-y-3",
+                      "p-3.5 rounded-xl border transition-all cursor-pointer space-y-2 select-none",
                       isSelected
-                        ? "bg-slate-900/90 border-blue-500/80 shadow-lg shadow-blue-950/30"
-                        : "bg-slate-900/40 border-slate-800 hover:border-slate-700 hover:bg-slate-900/60"
+                        ? "bg-slate-800/90 border-blue-500 shadow-md ring-1 ring-blue-500/40"
+                        : "bg-slate-900/60 border-slate-800/80 hover:bg-slate-850 hover:border-slate-700"
                     )}
                   >
-                    {/* Top Row: Severity, ID, Score, TTFMA */}
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className={cn("text-[10px] font-mono uppercase", sevStyle.badge)}>
-                          {inc.severity}
+                        <Badge variant="outline" className={sevStyle.badge}>
+                          {inc.severity.toUpperCase()}
                         </Badge>
-                        <span className="font-mono text-xs font-bold text-slate-200">
+                        <span className="font-mono text-xs font-bold text-slate-100">
                           {inc.incident_id}
                         </span>
                         {inc.novelty_only && (
                           <Badge variant="outline" className="bg-amber-950/60 text-amber-300 border-amber-600/40 text-[10px] font-mono">
-                            novelty-only, score capped
+                            novelty
                           </Badge>
                         )}
                       </div>
@@ -288,16 +348,16 @@ function IncidentsContent() {
                       <div className="flex items-center gap-2 text-xs font-mono">
                         {inc.ttfma_seconds != null && (
                           <span className="text-emerald-400 text-[11px]">
-                            TTFMA: <strong>{inc.ttfma_seconds.toFixed(1)}s</strong>
+                            {inc.ttfma_seconds.toFixed(1)}s
                           </span>
                         )}
-                        <span className="text-slate-300 font-bold">
+                        <span className="text-slate-100 font-bold">
                           {(inc.score * 100).toFixed(0)}%
                         </span>
                       </div>
                     </div>
 
-                    {/* Score Bar */}
+                    {/* Progression Score Bar */}
                     <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
                       <div
                         className={cn("h-full transition-all duration-300", sevStyle.bar)}
@@ -305,7 +365,7 @@ function IncidentsContent() {
                       />
                     </div>
 
-                    {/* Kill Chain Stage Pills (In Logical Order) */}
+                    {/* Kill Chain Stage Pills */}
                     <div className="flex flex-wrap gap-1">
                       {sortKillChainStages(inc.kill_chain_stages).map((stage) => {
                         const meta = STAGE_META[stage];
@@ -313,7 +373,7 @@ function IncidentsContent() {
                           <span
                             key={stage}
                             className={cn(
-                              "text-[10px] px-1.5 py-0.5 rounded border font-medium",
+                              "text-[10px] px-1.5 py-0.5 rounded border font-medium font-mono",
                               meta?.badge || "bg-slate-800 text-slate-300 border-slate-700"
                             )}
                           >
@@ -323,9 +383,9 @@ function IncidentsContent() {
                       })}
                     </div>
 
-                    {/* Bottom Metadata & Badges */}
+                    {/* Bottom Metadata */}
                     <div className="flex items-center justify-between text-xs text-slate-400 font-mono pt-1 border-t border-slate-800/60 text-[11px]">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2.5">
                         {userEnt && (
                           <span className="flex items-center gap-1">
                             <User className="w-3 h-3 text-slate-500" /> {userEnt}
@@ -338,7 +398,7 @@ function IncidentsContent() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-2">
                         {inc.decoy_touched && (
                           <span className="text-purple-400 text-[10px] font-semibold">
                             &bull; Decoy
@@ -349,9 +409,7 @@ function IncidentsContent() {
                             &bull; OT
                           </span>
                         )}
-                        <span className="text-slate-500">
-                          {inc.signal_ids.length} sigs
-                        </span>
+                        <span className="text-slate-500">{inc.signal_ids.length} sigs</span>
                       </div>
                     </div>
                   </div>
@@ -365,8 +423,8 @@ function IncidentsContent() {
         <div className="lg:col-span-7">
           {loadingDetail && (
             <Card className="border-slate-800 bg-slate-900/40 p-12 text-center text-slate-400 space-y-3">
-              <div className="w-8 h-8 border-2 border-slate-700 border-t-blue-500 rounded-full animate-spin mx-auto" />
-              <p className="text-xs font-mono">Loading incident evidence &amp; signals...</p>
+              <Loader2 className="w-8 h-8 text-blue-400 animate-spin mx-auto" />
+              <p className="text-xs font-mono">Loading incident telemetry, signals, and safety guard decisions...</p>
             </Card>
           )}
 
@@ -377,7 +435,7 @@ function IncidentsContent() {
                 <CardHeader className="pb-3 border-b border-slate-800/80">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Badge variant="outline" className={getSeverityStyle(incidentDetail.severity).badge}>
                           {incidentDetail.severity.toUpperCase()} SEVERITY
                         </Badge>
@@ -386,19 +444,19 @@ function IncidentsContent() {
                         </CardTitle>
                         {incidentDetail.novelty_only && (
                           <Badge variant="outline" className="bg-amber-950/60 text-amber-300 border-amber-600/40 text-xs font-mono">
-                            novelty-only, score capped
+                            novelty-only
                           </Badge>
                         )}
                       </div>
-                      <CardDescription className="text-xs text-slate-400 mt-1">
-                        First signal {new Date(incidentDetail.first_signal_ts || incidentDetail.created_at).toISOString()} &bull; Updated {new Date(incidentDetail.updated_at).toISOString()}
+                      <CardDescription className="text-xs text-slate-400 mt-1 font-mono">
+                        First signal: {new Date(incidentDetail.first_signal_ts || incidentDetail.created_at).toISOString()} &bull; Updated: {new Date(incidentDetail.updated_at).toISOString()}
                       </CardDescription>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/graph?incident_id=${encodeURIComponent(incidentDetail.incident_id)}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/40 text-xs font-medium transition"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-500 text-xs font-bold font-mono transition shadow-md shadow-blue-900/30 cursor-pointer"
                       >
                         <GitGraph className="w-3.5 h-3.5" />
                         <span>Interactive Attack Graph</span>
@@ -443,7 +501,7 @@ function IncidentsContent() {
                   {/* MITRE ATT&CK & ICS Techniques Rollup */}
                   {incidentDetail.techniques && incidentDetail.techniques.length > 0 && (
                     <div className="space-y-2 pt-2 border-t border-slate-800/80">
-                      <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                      <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5 font-mono">
                         <Shield className="w-3.5 h-3.5 text-blue-400" />
                         Correlated ATT&amp;CK / ATT&amp;CK-ICS Techniques ({incidentDetail.techniques.length})
                       </span>
@@ -473,6 +531,42 @@ function IncidentsContent() {
                 </CardContent>
               </Card>
 
+              {/* Response Safety Guard Section (Embedded inside Incident Details) */}
+              {recommendations.length > 0 && (
+                <Card className="border-emerald-800/60 bg-emerald-950/10 shadow-lg">
+                  <CardHeader className="pb-3 border-b border-emerald-800/40 bg-emerald-950/20">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                        <CardTitle className="text-sm font-bold text-emerald-200 font-mono">
+                          Response Safety Guard Recommendations ({recommendations.length})
+                        </CardTitle>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] uppercase font-mono bg-emerald-950 text-emerald-300 border-emerald-700">
+                        Pre-Evaluated Safety Matrix
+                      </Badge>
+                    </div>
+                    <CardDescription className="text-xs text-slate-400">
+                      Deterministic containment recommendations evaluated against OT process safety policies. Advisory only.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    <ResponseGuardPanel
+                      recommendations={recommendations}
+                      onDecisionUpdated={(updated) => {
+                        setRecommendations((prev) =>
+                          prev.map((r) =>
+                            r.decision.decision_id === updated.decision_id
+                              ? { ...r, decision: updated }
+                              : r
+                          )
+                        );
+                      }}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Analyst Summary Card */}
               <Card className="border-slate-800 bg-slate-900/60 shadow-lg">
                 <CardHeader className="pb-3 border-b border-slate-800/80">
@@ -480,33 +574,23 @@ function IncidentsContent() {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-purple-400" />
-                        <CardTitle className="text-sm font-semibold tracking-tight text-slate-100">
-                          Analyst Summary
+                        <CardTitle className="text-sm font-semibold tracking-tight text-slate-100 font-mono">
+                          Analyst Summary &amp; Grounding Verification
                         </CardTitle>
                         {summaryStatus === "llm" && summary && (
                           <Badge variant="outline" className="bg-purple-950/60 text-purple-300 border-purple-600/40 text-[10px] font-mono">
-                            LLM ({summary.verified_count}/{summary.total_count} verified{summary.dropped_count > 0 ? `, ${summary.dropped_count} dropped` : ""})
+                            LLM Verified ({summary.verified_count}/{summary.total_count})
                           </Badge>
                         )}
                         {summaryStatus === "template" && (
                           <Badge variant="outline" className="bg-slate-800 text-slate-300 border-slate-700 text-[10px] font-mono">
-                            Deterministic Fallback (LLM unavailable)
-                          </Badge>
-                        )}
-                        {summary?.is_stale && (
-                          <Badge variant="outline" className="bg-amber-950/60 text-amber-300 border-amber-600/50 text-[10px] font-mono">
-                            stale - regenerate
-                          </Badge>
-                        )}
-                        {summaryStatus === "error" && (
-                          <Badge variant="outline" className="bg-rose-950/60 text-rose-300 border-rose-600/40 text-[10px] font-mono">
-                            Error
+                            Deterministic Fallback (V1-V5 Grounded)
                           </Badge>
                         )}
                       </div>
-                      <CardDescription className="text-xs text-slate-400">
+                      <CardDescription className="text-xs text-slate-400 font-mono">
                         {summary
-                          ? `Model: ${summary.model} • covers ${summary.events_covered ?? (summary.claims ?? []).reduce((acc, c) => acc + (c.event_ids?.length || 0), 0)} of ${summary.total_events ?? incidentDetail?.event_ids?.length ?? "—"} current events • cached, generated ${new Date(summary.generated_at).toLocaleTimeString()}`
+                          ? `Model: ${summary.model} • covers ${summary.events_covered ?? (summary.claims ?? []).reduce((acc, c) => acc + (c.event_ids?.length || 0), 0)} of ${summary.total_events ?? incidentDetail?.event_ids?.length ?? "—"} current events`
                           : "Grounded incident synthesis with strict citation verification"}
                       </CardDescription>
                     </div>
@@ -518,7 +602,7 @@ function IncidentsContent() {
                           variant="outline"
                           disabled={summaryStatus === "generating"}
                           onClick={() => handleGenerateSummary(false)}
-                          className="h-8 text-xs font-mono bg-purple-950/40 text-purple-300 border-purple-700/60 hover:bg-purple-900/60 hover:text-purple-200"
+                          className="h-8 text-xs font-mono bg-purple-950/40 text-purple-300 border-purple-700/60 hover:bg-purple-900/60 hover:text-purple-200 cursor-pointer"
                         >
                           {summaryStatus === "generating" ? (
                             <>
@@ -538,7 +622,7 @@ function IncidentsContent() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleGenerateSummary(true)}
-                          className="h-8 text-xs font-mono bg-slate-900 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800"
+                          className="h-8 text-xs font-mono bg-slate-900 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 cursor-pointer"
                         >
                           <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
                           Regenerate
@@ -551,7 +635,7 @@ function IncidentsContent() {
                 <CardContent className="pt-4 space-y-4">
                   {summaryStatus === "generating" && (
                     <div className="py-8 text-center space-y-3">
-                      <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                      <Loader2 className="w-6 h-6 text-purple-400 animate-spin mx-auto" />
                       <p className="text-xs text-slate-400 font-mono">
                         Extracting bounded evidence packet and verifying citations...
                       </p>
@@ -584,24 +668,23 @@ function IncidentsContent() {
                   )}
 
                   {(summaryStatus === "llm" || summaryStatus === "template") && summary && (
-                    <div className="space-y-3">
+                    <div className="space-y-3 font-mono">
                       {/* Plain text headline */}
                       <div className="p-3 rounded-lg bg-slate-950/80 border border-slate-800/80">
-                        <p className="text-xs font-bold font-mono text-slate-100">
+                        <p className="text-xs font-bold text-slate-100">
                           {summary.headline}
                         </p>
                       </div>
 
-                      {/* Verified / Deterministic Claims */}
+                      {/* Claims */}
                       <div className="space-y-2">
                         {(summary.claims ?? []).map((claim, idx) => (
                           <div
                             key={idx}
-                            className="p-3 rounded-lg bg-slate-950/50 border border-slate-800/60 space-y-2"
+                            className="p-3 rounded-lg bg-slate-950/50 border border-slate-800/60 space-y-2 text-xs"
                           >
                             <div className="flex items-start justify-between gap-2">
-                              {/* Plain text claim text - no dangerouslySetInnerHTML */}
-                              <p className="text-xs text-slate-300 font-mono leading-relaxed">
+                              <p className="text-xs text-slate-300 leading-relaxed font-sans">
                                 {claim.text}
                               </p>
                               {claim.deterministic ? (
@@ -638,38 +721,11 @@ function IncidentsContent() {
                                   {tid}
                                 </span>
                               ))}
-
-                              {(claim.entities ?? []).map((ent) => (
-                                <span
-                                  key={ent}
-                                  className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400"
-                                >
-                                  {ent}
-                                </span>
-                              ))}
                             </div>
-
-                            {/* Cited Telemetry Context */}
-                            {claim.event_ids && claim.event_ids.length > 0 && incidentDetail?.evidence_events && (
-                              <div className="space-y-1 pt-1.5 border-t border-slate-800/30 text-[11px] font-mono">
-                                {claim.event_ids.map((eid) => {
-                                  const ev = incidentDetail.evidence_events.find((e) => e.event_id === eid);
-                                  if (!ev) return null;
-                                  const snippet = ev.cmdline || ev.action || "telemetry event";
-                                  return (
-                                    <div key={eid} className="text-slate-400 flex items-start gap-1.5 pl-1.5 border-l border-slate-700">
-                                      <span className="text-slate-500 font-semibold">{ev.host || ev.source_tool}:</span>
-                                      <span className="truncate text-slate-300" title={snippet}>{snippet}</span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
                           </div>
                         ))}
                       </div>
 
-                      {/* Verifier Notice Footer */}
                       <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 pt-2 border-t border-slate-800/60">
                         <span>grounding verified by code, not semantics</span>
                         <span>strictly advisory &bull; no automated containment</span>
@@ -682,7 +738,7 @@ function IncidentsContent() {
               {/* Chronological Attack Narrative Timeline */}
               <Card className="border-slate-800 bg-slate-900/60 shadow-lg">
                 <CardHeader className="pb-3 border-b border-slate-800/80">
-                  <CardTitle className="text-sm font-semibold tracking-tight text-slate-100 flex items-center gap-2">
+                  <CardTitle className="text-sm font-semibold tracking-tight text-slate-100 flex items-center gap-2 font-mono">
                     <Clock className="w-4 h-4 text-emerald-400" />
                     Attack Progression Narrative Timeline
                   </CardTitle>
@@ -695,7 +751,6 @@ function IncidentsContent() {
                   {incidentDetail.explanation && incidentDetail.explanation.length > 0 ? (
                     <div className="space-y-3 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-slate-800">
                       {incidentDetail.explanation.map((line, idx) => {
-                        // Find potential signal / rule id match in line (e.g. RULE-AUTH-001)
                         const ruleMatch = line.match(/\((RULE-[A-Z0-9-]+|GRAPH-[A-Z0-9-]+|BASE-[A-Z0-9-]+|ANOM-[A-Z0-9-]+)\)/);
                         const matchedRule = ruleMatch ? ruleMatch[1] : null;
 
@@ -728,10 +783,10 @@ function IncidentsContent() {
                 </CardContent>
               </Card>
 
-              {/* "Why Flagged" Panel (Grouped by Detector) */}
+              {/* Contributing Detection Signals Panel */}
               <Card className="border-slate-800 bg-slate-900/60 shadow-lg">
                 <CardHeader className="pb-3 border-b border-slate-800/80">
-                  <CardTitle className="text-sm font-semibold tracking-tight text-slate-100 flex items-center gap-2">
+                  <CardTitle className="text-sm font-semibold tracking-tight text-slate-100 flex items-center gap-2 font-mono">
                     <Sparkles className="w-4 h-4 text-purple-400" />
                     Why Flagged: Contributing Detection Signals
                   </CardTitle>
@@ -757,7 +812,7 @@ function IncidentsContent() {
                           {sigs.map((sig) => (
                             <div
                               key={sig.signal_id}
-                              className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80 space-y-2"
+                              className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80 space-y-2 font-mono"
                             >
                               <div className="flex items-center justify-between text-xs">
                                 <span className="font-semibold text-slate-200">
@@ -768,21 +823,20 @@ function IncidentsContent() {
                                 </span>
                               </div>
 
-                              <p className="text-[11px] text-slate-400 font-mono leading-relaxed">
+                              <p className="text-[11px] text-slate-400 leading-relaxed font-sans">
                                 {sig.explanation}
                               </p>
 
-                              <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/60 text-[10px] font-mono">
+                              <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/60 text-[10px]">
                                 <div className="flex items-center gap-2">
                                   <span className="text-slate-500">
-                                    Conf: <strong className="text-slate-300">{(sig.confidence * 100).toFixed(0)}%</strong>
+                                    Detector Conf: <strong className="text-slate-300">{(sig.confidence * 100).toFixed(0)}%</strong>
                                   </span>
                                   <span className="text-slate-500">
-                                    Score: <strong className="text-slate-300">{sig.score.toFixed(2)}</strong>
+                                    Signal Score: <strong className="text-slate-300">{sig.score.toFixed(2)}</strong>
                                   </span>
                                 </div>
 
-                                {/* Clickable evidence event links */}
                                 <div className="flex items-center gap-1">
                                   <span className="text-slate-500 mr-1">Events:</span>
                                   {sig.evidence_event_ids.map((eid) => (
@@ -802,13 +856,10 @@ function IncidentsContent() {
           )}
 
           {!loadingDetail && !incidentDetail && (
-            <Card className="border-slate-800 bg-slate-900/40 p-16 text-center space-y-3">
-              <AlertTriangle className="w-10 h-10 text-slate-600 mx-auto" />
-              <h3 className="text-base font-semibold text-slate-300">No Incident Selected</h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                Select an incident from the list on the left to inspect its chronological narrative timeline, contributing detection signals, and ATT&amp;CK mappings.
-              </p>
-            </Card>
+            <EmptyState
+              title="No Incident Selected"
+              description="Select an incident from the queue on the left to inspect its narrative timeline, contributing signals, ATT&CK mappings, and response guard recommendations."
+            />
           )}
         </div>
       </div>

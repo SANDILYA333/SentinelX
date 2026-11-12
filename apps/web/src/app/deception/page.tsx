@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import type { Action, DeceptionActivity, GuardDecision } from "@contracts/index";
 import {
@@ -24,6 +25,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
+  Info,
   Send,
   Server,
   Shield,
@@ -41,12 +43,24 @@ const GUARD_ACTIONS: { value: Action; label: string; desc: string }[] = [
   { value: "kill_process", label: "Kill Process", desc: "Terminate suspicious process execution" },
 ];
 
-export default function DeceptionGuardPage() {
+function DeceptionGuardContent() {
   useEventStream();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
   const { incidents, guardDecisions } = useEventStore();
 
-  const [activeTab, setActiveTab] = useState<"deception" | "guard">("deception");
+  const [activeTab, setActiveTab] = useState<"deception" | "guard">(
+    tabParam === "guard" ? "guard" : "deception"
+  );
   const [selectedDeceptionActivity, setSelectedDeceptionActivity] = useState<DeceptionActivity | null>(null);
+
+  useEffect(() => {
+    if (tabParam === "guard") {
+      setActiveTab("guard");
+    } else if (tabParam === "deception") {
+      setActiveTab("deception");
+    }
+  }, [tabParam]);
 
   // Deception backend queries
   const { data: overview } = useQuery({
@@ -326,7 +340,19 @@ export default function DeceptionGuardPage() {
 
       {/* TAB B: RESPONSE SAFETY GUARD INTERLOCK WORKSPACE */}
       {activeTab === "guard" && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="space-y-4">
+          <div className="p-3 rounded-xl bg-blue-950/30 border border-blue-800/60 flex items-start gap-3">
+            <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+            <div className="text-[11px] font-sans text-slate-300 leading-relaxed">
+              <strong className="text-blue-300 font-semibold font-mono block mb-0.5">
+                ADVISORY SAFETY MODE — NO AUTOMATIC EXECUTION
+              </strong>
+              SentinelX Response Safety Guard evaluates containment actions against authoritative OT process safety policies.
+              An <strong className="text-emerald-400 font-mono">ALLOW</strong> decision does not automatically execute commands against production networks. All containment must be performed manually by authorized operators.
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Column: Interactive Pre-Execution Interlock Tester */}
           <div className="lg:col-span-5 space-y-4">
             <Card className="border-slate-800 bg-slate-900/60 shadow-lg">
@@ -455,12 +481,12 @@ export default function DeceptionGuardPage() {
                       </span>
 
                       <span className="text-[10px] px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
-                        Rule: {latestDecision.rule_ids[0]}
+                        Rule: {latestDecision.rule_ids?.[0] || "POL-SAFETY"}
                       </span>
                     </div>
 
                     <div className="space-y-1 text-slate-200 text-xs leading-relaxed">
-                      {latestDecision.reasons.map((r, idx) => (
+                      {(Array.isArray(latestDecision.reasons) ? latestDecision.reasons : [(latestDecision as unknown as Record<string, string>).reasoning || "Policy evaluated."]).map((r, idx) => (
                         <p key={idx} className={cn(r.toLowerCase().includes("safer alternative") ? "text-emerald-300 font-bold pt-1 border-t border-slate-800" : "")}>
                           &bull; {r}
                         </p>
@@ -468,7 +494,7 @@ export default function DeceptionGuardPage() {
                     </div>
 
                     <div className="flex items-center justify-between pt-1 border-t border-slate-800/60 text-[10px] text-slate-400">
-                      <span>Criticality: <strong className="text-slate-100">{latestDecision.asset_criticality}</strong></span>
+                      <span>Criticality: <strong className="text-slate-100">{latestDecision.asset_criticality || "standard"}</strong></span>
                       <span>Target Zone: <strong className="text-slate-100 uppercase">{latestDecision.target_zone || "IT"}</strong></span>
                     </div>
                   </div>
@@ -516,24 +542,24 @@ export default function DeceptionGuardPage() {
 
                               <div className="flex items-center gap-2 text-slate-400 text-[11px]">
                                 <Badge variant="outline" className="text-[10px] bg-slate-950 text-slate-400 border-slate-800">
-                                  {dec.rule_ids[0] || "GUARD-DEFAULT"}
+                                  {dec.rule_ids?.[0] || "GUARD-DEFAULT"}
                                 </Badge>
                                 <span>{new Date(dec.ts).toLocaleTimeString()}</span>
                               </div>
                             </div>
 
                             <p className="text-xs text-slate-300 leading-relaxed">
-                              {dec.reasons[0]}
+                              {dec.reasons?.[0]}
                             </p>
 
-                            {dec.reasons.length > 2 && dec.reasons[2].toLowerCase().includes("safer alternative") && (
+                            {dec.reasons && dec.reasons.length > 2 && dec.reasons[2].toLowerCase().includes("safer alternative") && (
                               <div className="p-2 rounded bg-emerald-950/20 border border-emerald-800/40 text-emerald-300 text-xs">
                                 {dec.reasons[2]}
                               </div>
                             )}
 
                             <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-800/40">
-                              <span>Criticality: {dec.asset_criticality} &bull; Zone: {dec.target_zone?.toUpperCase() || "IT"}</span>
+                              <span>Criticality: {dec.asset_criticality || "standard"} &bull; Zone: {dec.target_zone?.toUpperCase() || "IT"}</span>
                               <span>
                                 Approval: <strong className="uppercase text-slate-300">{dec.approval_status || "not_required"}</strong>
                                 {dec.approved_by && ` (by ${dec.approved_by})`}
@@ -549,6 +575,7 @@ export default function DeceptionGuardPage() {
             </Card>
           </div>
         </div>
+      </div>
       )}
 
       {/* Deception Activity Inspection Modal */}
@@ -557,5 +584,13 @@ export default function DeceptionGuardPage() {
         onClose={() => setSelectedDeceptionActivity(null)}
       />
     </div>
+  );
+}
+
+export default function DeceptionGuardPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-slate-400 font-mono text-xs">Loading deception &amp; safety workspace...</div>}>
+      <DeceptionGuardContent />
+    </Suspense>
   );
 }

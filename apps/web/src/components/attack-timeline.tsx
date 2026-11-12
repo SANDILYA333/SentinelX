@@ -32,6 +32,18 @@ interface AttackTimelineProps {
 
 const PLAYBACK_SPEEDS = [0.5, 1, 2, 5, 10];
 
+function formatDelta(currentTs: string, startTs: string): string {
+  try {
+    const diffMs = Math.max(0, new Date(currentTs).getTime() - new Date(startTs).getTime());
+    const totalSec = Math.floor(diffMs / 1000);
+    const mins = Math.floor(totalSec / 60);
+    const secs = totalSec % 60;
+    return `+${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  } catch {
+    return "+00:00";
+  }
+}
+
 export function AttackTimeline({
   events,
   currentIndex,
@@ -46,6 +58,27 @@ export function AttackTimeline({
 }: AttackTimelineProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const activeItemRef = useRef<HTMLButtonElement>(null);
+
+  // Keyboard navigation shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement)?.tagName)) {
+        return;
+      }
+      if (e.code === "Space") {
+        e.preventDefault();
+        onPlayPause();
+      } else if (e.code === "ArrowLeft") {
+        e.preventDefault();
+        onStepBackward();
+      } else if (e.code === "ArrowRight") {
+        e.preventDefault();
+        onStepForward();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onPlayPause, onStepBackward, onStepForward]);
 
   // Auto-scroll the timeline list when active item changes
   useEffect(() => {
@@ -64,6 +97,7 @@ export function AttackTimeline({
   }, [currentIndex]);
 
   const activeEvent = currentIndex >= 0 && currentIndex < events.length ? events[currentIndex] : null;
+  const startTs = events.length > 0 ? events[0].timestamp : null;
 
   return (
     <div className="flex flex-col bg-slate-950/95 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-md overflow-hidden shrink-0">
@@ -76,7 +110,7 @@ export function AttackTimeline({
             size="icon"
             onClick={onRestart}
             title="Restart Replay"
-            className="h-8 w-8 text-slate-400 hover:text-slate-100 hover:bg-slate-800"
+            className="h-8 w-8 text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
           </Button>
@@ -86,8 +120,8 @@ export function AttackTimeline({
             size="icon"
             onClick={onStepBackward}
             disabled={currentIndex <= 0}
-            title="Step Backward (Previous Event)"
-            className="h-8 w-8 text-slate-400 hover:text-slate-100 hover:bg-slate-800 disabled:opacity-30"
+            title="Step Backward (Previous Event, Arrow Left)"
+            className="h-8 w-8 text-slate-400 hover:text-slate-100 hover:bg-slate-800 disabled:opacity-30 cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
@@ -96,8 +130,9 @@ export function AttackTimeline({
             variant="default"
             size="sm"
             onClick={onPlayPause}
+            title="Play/Pause (Spacebar)"
             className={cn(
-              "h-8 px-3 text-xs font-bold gap-1.5 transition-all shadow-md",
+              "h-8 px-3 text-xs font-bold gap-1.5 transition-all shadow-md cursor-pointer",
               isPlaying
                 ? "bg-amber-600 hover:bg-amber-500 text-amber-50 shadow-amber-900/30"
                 : "bg-blue-600 hover:bg-blue-500 text-blue-50 shadow-blue-900/30"
@@ -119,8 +154,8 @@ export function AttackTimeline({
             size="icon"
             onClick={onStepForward}
             disabled={currentIndex >= events.length - 1}
-            title="Step Forward (Next Event)"
-            className="h-8 w-8 text-slate-400 hover:text-slate-100 hover:bg-slate-800 disabled:opacity-30"
+            title="Step Forward (Next Event, Arrow Right)"
+            className="h-8 w-8 text-slate-400 hover:text-slate-100 hover:bg-slate-800 disabled:opacity-30 cursor-pointer"
           >
             <ChevronRight className="w-4 h-4" />
           </Button>
@@ -128,9 +163,16 @@ export function AttackTimeline({
 
         {/* Current Time and Scrubber Progress */}
         <div className="flex-1 flex items-center gap-3 min-w-[220px] max-w-xl mx-2">
-          <span className="text-[11px] text-slate-400 shrink-0 flex items-center gap-1">
+          <span className="text-[11px] text-slate-400 shrink-0 flex items-center gap-1.5">
             <Clock className="w-3 h-3 text-blue-400" />
-            {activeEvent ? new Date(activeEvent.timestamp).toLocaleTimeString() : "--:--:--"}
+            <span className="text-slate-200">
+              {activeEvent ? new Date(activeEvent.timestamp).toLocaleTimeString() : "--:--:--"}
+            </span>
+            {activeEvent && startTs && (
+              <span className="text-[10px] text-emerald-400 font-bold">
+                ({formatDelta(activeEvent.timestamp, startTs)})
+              </span>
+            )}
           </span>
 
           <input
@@ -140,33 +182,39 @@ export function AttackTimeline({
             value={Math.max(0, currentIndex)}
             onChange={(e) => onSelectIndex(Number(e.target.value))}
             className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500 focus:outline-hidden"
+            aria-label="Timeline scrubber slider"
           />
 
-          <span className="text-[11px] text-slate-400 shrink-0 tabular-nums">
-            {events.length > 0 ? `${currentIndex + 1}/${events.length}` : "0/0"}
+          <span className="text-[11px] text-slate-400 shrink-0 tabular-nums font-semibold">
+            {events.length > 0 ? `${currentIndex + 1} / ${events.length}` : "0 / 0"}
           </span>
         </div>
 
-        {/* Speed Selector */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-slate-500 flex items-center gap-1">
-            <FastForward className="w-3 h-3" /> Speed:
+        {/* Speed Selector & Keyboard Hint */}
+        <div className="flex items-center gap-3">
+          <span className="hidden lg:inline text-[10px] text-slate-500">
+            [Space] Play/Pause • [←/→] Step
           </span>
-          <div className="flex rounded-md bg-slate-950 p-0.5 border border-slate-800">
-            {PLAYBACK_SPEEDS.map((spd) => (
-              <button
-                key={spd}
-                onClick={() => onSpeedChange(spd)}
-                className={cn(
-                  "px-2 py-0.5 text-[10px] rounded transition-colors font-mono",
-                  playbackSpeed === spd
-                    ? "bg-blue-600 text-white font-bold"
-                    : "text-slate-400 hover:text-slate-200"
-                )}
-              >
-                {spd}x
-              </button>
-            ))}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-slate-500 flex items-center gap-1">
+              <FastForward className="w-3 h-3" /> Speed:
+            </span>
+            <div className="flex rounded-md bg-slate-950 p-0.5 border border-slate-800">
+              {PLAYBACK_SPEEDS.map((spd) => (
+                <button
+                  key={spd}
+                  onClick={() => onSpeedChange(spd)}
+                  className={cn(
+                    "px-2 py-0.5 text-[10px] rounded transition-colors font-mono cursor-pointer",
+                    playbackSpeed === spd
+                      ? "bg-blue-600 text-white font-bold"
+                      : "text-slate-400 hover:text-slate-200"
+                  )}
+                >
+                  {spd}x
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -177,7 +225,7 @@ export function AttackTimeline({
         className="flex items-center gap-2.5 p-3 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent select-none min-h-[96px]"
       >
         {events.length === 0 ? (
-          <div className="w-full text-center text-xs text-slate-500 py-3 font-mono">
+          <div className="w-full text-center text-xs text-slate-500 py-4 font-mono">
             No chronological timeline telemetry recorded for this incident.
           </div>
         ) : (
@@ -195,7 +243,7 @@ export function AttackTimeline({
                 ref={isActive ? activeItemRef : undefined}
                 onClick={() => onSelectIndex(idx)}
                 className={cn(
-                  "relative flex flex-col text-left p-2.5 rounded-xl border font-mono transition-all shrink-0 w-64",
+                  "relative flex flex-col text-left p-2.5 rounded-xl border font-mono transition-all shrink-0 w-64 cursor-pointer",
                   isActive
                     ? "bg-slate-900 border-blue-500 ring-2 ring-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.4)]"
                     : isPast

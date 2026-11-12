@@ -1,10 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect } from "react";
 import type { Event, GuardDecision, Incident, Signal, WSMessage } from "@contracts/index";
 import { fetchEvents, fetchGuardDecisions, fetchIncidents, fetchSignals } from "@/lib/api";
 import { useEventStore } from "@/lib/store";
 import { getWebSocketUrl } from "@/lib/ws";
+
+// Module-level singleton state across route transitions
+let globalWs: WebSocket | null = null;
+let globalReconnectTimeout: NodeJS.Timeout | null = null;
+let globalReconnectDelay = 1000;
+let isHydrated = false;
+let activeSubscribers = 0;
 
 export function useEventStream() {
   const {
@@ -24,20 +31,15 @@ export function useEventStream() {
     setGuardDecisions,
   } = useEventStore();
 
-  const reconnectDelayRef = useRef<number>(1000);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
-  const isHydratedRef = useRef<boolean>(false);
-
-  // Helper to hydrate store from REST API
   const hydrateFromApi = useCallback(async () => {
     try {
-      const [initialEvents, initialSignals, initialIncidents, initialDecisions] = await Promise.allSettled([
-        fetchEvents(50),
-        fetchSignals(50),
-        fetchIncidents(),
-        fetchGuardDecisions(20),
-      ]);
+      const [initialEvents, initialSignals, initialIncidents, initialDecisions] =
+        await Promise.allSettled([
+          fetchEvents(50),
+          fetchSignals(50),
+          fetchIncidents(),
+          fetchGuardDecisions(20),
+        ]);
 
       if (initialEvents.status === "fulfilled") {
         setEvents(initialEvents.value);
@@ -51,34 +53,29 @@ export function useEventStream() {
       if (initialDecisions.status === "fulfilled") {
         setGuardDecisions(initialDecisions.value);
       }
-      isHydratedRef.current = true;
+      isHydrated = true;
     } catch {
       // Quietly ignore network offline errors during hydration
     }
   }, [setEvents, setSignals, setIncidents, setGuardDecisions]);
 
-  // Initial event, signal, and incident hydration
-  useEffect(() => {
-    if (!isHydratedRef.current) {
-      hydrateFromApi();
-    }
-  }, [hydrateFromApi]);
-
-  // Connect helper
   const connect = useCallback(() => {
-    if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
+    if (
+      globalWs &&
+      (globalWs.readyState === WebSocket.OPEN ||
+        globalWs.readyState === WebSocket.CONNECTING)
+    ) {
       return;
     }
 
     setStatus("connecting");
     const wsUrl = getWebSocketUrl();
     const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
+    globalWs = ws;
 
     ws.onopen = () => {
       setStatus("open");
-      reconnectDelayRef.current = 1000;
-      // Re-hydrate store now that backend is available
+      globalReconnectDelay = 1000;
       hydrateFromApi();
     };
 
@@ -104,45 +101,49 @@ export function useEventStream() {
     };
 
     ws.onerror = () => {
-      // Browser handles errors silently, onclose will fire next
+      // Handled by onclose
     };
 
     ws.onclose = () => {
       setStatus("closed");
-      const delay = reconnectDelayRef.current;
-      reconnectDelayRef.current = Math.min(delay * 1.5, 5000);
+      globalWs = null;
+      const delay = globalReconnectDelay;
+      globalReconnectDelay = Math.min(delay * 1.5, 5000);
 
-      reconnectTimeoutRef.current = setTimeout(() => {
-        connect();
+      if (globalReconnectTimeout) clearTimeout(globalReconnectTimeout);
+      globalReconnectTimeout = setTimeout(() => {
+        if (activeSubscribers > 0) {
+          connect();
+        }
       }, delay);
     };
   }, [setStatus, addEvent, addSignal, addIncident, addGuardDecision, hydrateFromApi]);
 
-  // WebSocket lifecycle
   useEffect(() => {
+    activeSubscribers += 1;
+    if (!isHydrated) {
+      hydrateFromApi();
+    }
     connect();
 
     return () => {
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
+      activeSubscribers = Math.max(0, activeSubscribers - 1);
+      // We keep the singleton socket alive across route transitions
     };
-  }, [connect]);
+  }, [connect, hydrateFromApi]);
 
   const forceReconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
+    if (globalReconnectTimeout) {
+      clearTimeout(globalReconnectTimeout);
     }
-    reconnectDelayRef.current = 1000;
-    if (wsRef.current) {
+    globalReconnectDelay = 1000;
+    if (globalWs) {
       try {
-        wsRef.current.close();
+        globalWs.close();
       } catch {
         // Ignore
       }
+      globalWs = null;
     }
     connect();
   }, [connect]);
