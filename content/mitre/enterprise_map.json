@@ -64,6 +64,60 @@
     "technique_id": "T1005",
     "name": "Data from Local System",
     "tactic": "Collection"
+  },
+  "T1083": {
+    "framework": "enterprise",
+    "technique_id": "T1083",
+    "name": "File and Directory Discovery",
+    "tactic": "Discovery"
+  },
+  "T1552.004": {
+    "framework": "enterprise",
+    "technique_id": "T1552.004",
+    "name": "Unsecured Credentials: Private Keys",
+    "tactic": "Credential Access"
+  },
+  "T1135": {
+    "framework": "enterprise",
+    "technique_id": "T1135",
+    "name": "Network Share Discovery",
+    "tactic": "Discovery"
+  },
+  "T1039": {
+    "framework": "enterprise",
+    "technique_id": "T1039",
+    "name": "Data from Network Shared Drive",
+    "tactic": "Collection"
+  },
+  "T1053.003": {
+    "framework": "enterprise",
+    "technique_id": "T1053.003",
+    "name": "Scheduled Task/Job: Cron",
+    "tactic": "Execution, Persistence, Privilege Escalation"
+  },
+  "T1565.001": {
+    "framework": "enterprise",
+    "technique_id": "T1565.001",
+    "name": "Data Manipulation: Stored Data Manipulation",
+    "tactic": "Impact"
+  },
+  "T1110": {
+    "framework": "enterprise",
+    "technique_id": "T1110",
+    "name": "Brute Force",
+    "tactic": "Credential Access"
+  },
+  "T1105": {
+    "framework": "enterprise",
+    "technique_id": "T1105",
+    "name": "Ingress Tool Transfer",
+    "tactic": "Command and Control"
+  },
+  "T1190": {
+    "framework": "enterprise",
+    "technique_id": "T1190",
+    "name": "Exploit Public-Facing Application",
+    "tactic": "Initial Access"
   }
 }
 

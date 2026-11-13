@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from sentinelx.schemas.deception import LotLAnalytics, LotLInteraction, LotLLure
 from sentinelx.schemas.eval import EvaluationRunSummary
 from sentinelx.schemas.event import Event
 from sentinelx.schemas.guard import GuardDecision
@@ -161,6 +162,50 @@ def init_db(path: str | Path) -> sqlite3.Connection:
         """)
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_evaluation_scenarios_lookup ON evaluation_scenario_results(run_id, scenario_id);"
+        )
+
+        # Living-off-the-Land (LotL) Deception Engine Tables (Phase F)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS lotl_lures (
+                lure_id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                lure_type TEXT NOT NULL,
+                platform TEXT NOT NULL,
+                host TEXT NOT NULL,
+                path TEXT NOT NULL,
+                status TEXT NOT NULL,
+                enabled INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL,
+                last_interaction TEXT,
+                total_interactions INTEGER NOT NULL DEFAULT 0,
+                json TEXT NOT NULL
+            );
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_lotl_lures_host ON lotl_lures(host);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_lotl_lures_type ON lotl_lures(lure_type);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_lotl_lures_status ON lotl_lures(status);")
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS lotl_interactions (
+                interaction_id TEXT PRIMARY KEY,
+                lure_id TEXT NOT NULL,
+                lure_type TEXT NOT NULL,
+                interaction_type TEXT NOT NULL,
+                host TEXT NOT NULL,
+                ts TEXT NOT NULL,
+                event_id TEXT NOT NULL,
+                json TEXT NOT NULL,
+                FOREIGN KEY (lure_id) REFERENCES lotl_lures(lure_id)
+            );
+        """)
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_lotl_interactions_ts ON lotl_interactions(ts DESC);"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_lotl_interactions_lure ON lotl_interactions(lure_id, ts DESC);"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_lotl_interactions_host ON lotl_interactions(host, ts DESC);"
         )
 
     return conn
@@ -759,3 +804,194 @@ def list_evaluation_runs(db: sqlite3.Connection, limit: int = 20) -> list[dict[s
             }
         )
     return results
+
+
+# ==============================================================================
+# Living-off-the-Land (LotL) Deception Engine Database Accessors (Phase F)
+# ==============================================================================
+
+
+def upsert_lotl_lure(db: sqlite3.Connection, lure: LotLLure) -> None:
+    """Insert or update a LotL deception lure in the registry."""
+    with db:
+        db.execute(
+            """
+            INSERT INTO lotl_lures (
+                lure_id, name, lure_type, platform, host, path, status,
+                enabled, created_at, last_interaction, total_interactions, json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(lure_id) DO UPDATE SET
+                name = excluded.name,
+                lure_type = excluded.lure_type,
+                platform = excluded.platform,
+                host = excluded.host,
+                path = excluded.path,
+                status = excluded.status,
+                enabled = excluded.enabled,
+                last_interaction = excluded.last_interaction,
+                total_interactions = excluded.total_interactions,
+                json = excluded.json;
+            """,
+            (
+                lure.lure_id,
+                lure.name,
+                lure.lure_type,
+                lure.platform,
+                lure.host,
+                lure.path,
+                lure.status,
+                1 if lure.enabled else 0,
+                lure.created_at.isoformat(),
+                lure.last_interaction.isoformat() if lure.last_interaction else None,
+                lure.total_interactions,
+                lure.model_dump_json(),
+            ),
+        )
+
+
+def get_lotl_lure(db: sqlite3.Connection, lure_id: str) -> LotLLure | None:
+    """Retrieve a single LotL lure by its lure_id."""
+    cursor = db.cursor()
+    cursor.execute("SELECT json FROM lotl_lures WHERE lure_id = ?", (lure_id,))
+    row = cursor.fetchone()
+    if not row:
+        return None
+    return LotLLure.model_validate_json(row[0])
+
+
+def list_lotl_lures(
+    db: sqlite3.Connection,
+    host: str | None = None,
+    lure_type: str | None = None,
+    status: str | None = None,
+    enabled: bool | None = None,
+) -> list[LotLLure]:
+    """Retrieve all LotL lures matching optional filter criteria."""
+    query = "SELECT json FROM lotl_lures WHERE 1=1"
+    params: list[Any] = []
+    if host:
+        query += " AND host = ?"
+        params.append(host)
+    if lure_type:
+        query += " AND lure_type = ?"
+        params.append(lure_type)
+    if status:
+        query += " AND status = ?"
+        params.append(status)
+    if enabled is not None:
+        query += " AND enabled = ?"
+        params.append(1 if enabled else 0)
+    query += " ORDER BY lure_id ASC"
+
+    cursor = db.cursor()
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    return [LotLLure.model_validate_json(r[0]) for r in rows]
+
+
+def set_lotl_lure_enabled(db: sqlite3.Connection, lure_id: str, enabled: bool) -> LotLLure | None:
+    """Enable or disable a LotL lure by ID."""
+    lure = get_lotl_lure(db, lure_id)
+    if not lure:
+        return None
+    updated = lure.model_copy(
+        update={
+            "enabled": enabled,
+            "status": "active" if enabled and lure.status == "disabled" else ("disabled" if not enabled else lure.status),
+        }
+    )
+    upsert_lotl_lure(db, updated)
+    return updated
+
+
+def record_lotl_interaction(db: sqlite3.Connection, interaction: LotLInteraction) -> None:
+    """Record an attacker interaction with a LotL lure and update lure statistics."""
+    with db:
+        db.execute(
+            """
+            INSERT OR REPLACE INTO lotl_interactions (
+                interaction_id, lure_id, lure_type, interaction_type, host, ts, event_id, json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+            """,
+            (
+                interaction.interaction_id,
+                interaction.lure_id,
+                interaction.lure_type,
+                interaction.interaction_type,
+                interaction.host,
+                interaction.ts.isoformat(),
+                interaction.event_id,
+                interaction.model_dump_json(),
+            ),
+        )
+        # Update lure last_interaction and total_interactions
+        lure = get_lotl_lure(db, interaction.lure_id)
+        if lure:
+            new_count = lure.total_interactions + 1
+            new_last = interaction.ts
+            updated_lure = lure.model_copy(
+                update={"total_interactions": new_count, "last_interaction": new_last}
+            )
+            upsert_lotl_lure(db, updated_lure)
+
+
+def list_lotl_interactions(
+    db: sqlite3.Connection,
+    lure_id: str | None = None,
+    host: str | None = None,
+    limit: int = 100,
+    offset: int = 0,
+) -> list[LotLInteraction]:
+    """List LotL interactions in reverse chronological order."""
+    query = "SELECT json FROM lotl_interactions WHERE 1=1"
+    params: list[Any] = []
+    if lure_id:
+        query += " AND lure_id = ?"
+        params.append(lure_id)
+    if host:
+        query += " AND host = ?"
+        params.append(host)
+    query += " ORDER BY ts DESC LIMIT ? OFFSET ?"
+    params.extend([limit, offset])
+
+    cursor = db.cursor()
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    return [LotLInteraction.model_validate_json(r[0]) for r in rows]
+
+
+def get_lotl_analytics(db: sqlite3.Connection) -> LotLAnalytics:
+    """Compute aggregated analytics for LotL deception lures and interactions."""
+    lures = list_lotl_lures(db)
+    interactions = list_lotl_interactions(db, limit=1000)
+
+    total_active = sum(1 for l in lures if l.enabled and l.status == "active")
+    discovered_lure_ids = {i.lure_id for i in interactions}
+    total_discovered = len(discovered_lure_ids)
+
+    canary_pres = sum(1 for i in interactions if i.interaction_type == "canary_credential_presented")
+    decoy_auths = sum(1 for i in interactions if "ssh" in i.interaction_type and "login" in i.interaction_type)
+    file_mods = sum(1 for i in interactions if i.interaction_type in ("decoy_file_modified", "decoy_task_modified"))
+
+    interacting_hosts = sorted(list({i.host for i in interactions if i.host}))
+
+    by_type: dict[str, int] = {}
+    for i in interactions:
+        by_type[i.interaction_type] = by_type.get(i.interaction_type, 0) + 1
+
+    by_lure: dict[str, int] = {}
+    for i in interactions:
+        by_lure[i.lure_id] = by_lure.get(i.lure_id, 0) + 1
+
+    return LotLAnalytics(
+        total_active_lures=total_active,
+        total_discovered_lures=total_discovered,
+        total_interactions=len(interactions),
+        canary_presentations=canary_pres,
+        decoy_authentications=decoy_auths,
+        file_modifications=file_mods,
+        interacting_hosts=interacting_hosts,
+        interactions_by_type=by_type,
+        interactions_by_lure=by_lure,
+    )
+

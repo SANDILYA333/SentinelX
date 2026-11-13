@@ -98,6 +98,21 @@
       },
       "title": "Evidence Events",
       "type": "array"
+    },
+    "attack_detected": {
+      "default": false,
+      "title": "Attack Detected",
+      "type": "boolean"
+    },
+    "rule_matched": {
+      "default": false,
+      "title": "Rule Matched",
+      "type": "boolean"
+    },
+    "technique_matched": {
+      "default": false,
+      "title": "Technique Matched",
+      "type": "boolean"
     }
   },
   "required": [

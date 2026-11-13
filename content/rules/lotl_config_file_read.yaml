@@ -1,0 +1,37 @@
+id: "RULE-LOTL-003"
+title: "Decoy Infrastructure Configuration File Access"
+severity_hint: "high"
+score: 0.85
+confidence: 0.90
+applies_to:
+  - category: "process"
+  - category: "file"
+technique_ids:
+  - "T1083"
+  - "T0846"
+condition:
+  any_of:
+    - field: "cmdline"
+      operator: "contains_any"
+      value:
+        - "/srv/ansible/hosts.yaml"
+        - "docker-compose.backup.yml"
+        - "controllers.conf"
+        - "/etc/profile.d/backup_env.sh"
+        - "/etc/profile.d/corp_cloud_api.sh"
+    - field: "tags"
+      operator: "contains_any"
+      value:
+        - "config_file_read"
+        - "canary_variable_read"
+    - field: "action"
+      operator: "contains_any"
+      value:
+        - "config_file_read"
+        - "canary_variable_read"
+explanation_template: "Attacker discovered decoy infrastructure configuration on {host}: {cmdline}"
+metadata:
+  category: "Discovery"
+  detector: "deception"
+  description: "Triggers when planted Ansible, Docker, Kubernetes, or SCADA configuration lures are accessed."
+

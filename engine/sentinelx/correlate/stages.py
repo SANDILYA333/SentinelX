@@ -25,9 +25,9 @@ def classify_signal_stage(signal: Signal) -> str:
 
     if rule_id in ("RULE-AUTH-001", "RULE-SHELL-001"):
         return "initial_access"
-    if rule_id in ("GRAPH-SCAN-001",):
+    if rule_id in ("GRAPH-SCAN-001", "RULE-LOTL-003", "RULE-LOTL-005"):
         return "discovery"
-    if rule_id in ("RULE-CRED-001", "RULE-DECOY-001"):
+    if rule_id in ("RULE-CRED-001", "RULE-DECOY-001", "RULE-LOTL-001", "RULE-LOTL-002", "RULE-LOTL-004"):
         return "credential_access"
     if rule_id in ("RULE-NET-001", "GRAPH-PATH-001"):
         return "lateral_movement"

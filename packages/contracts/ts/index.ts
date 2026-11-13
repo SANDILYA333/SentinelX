@@ -633,7 +633,17 @@ export type InteractionType =
   | "modbus_discovery"
   | "modbus_read"
   | "modbus_write_attempt"
-  | "unauthorized_interaction";
+  | "unauthorized_interaction"
+  | "shell_history_read"
+  | "ssh_key_read"
+  | "ssh_config_read"
+  | "canary_credential_presented"
+  | "canary_variable_read"
+  | "config_file_read"
+  | "share_enumerated"
+  | "share_file_read"
+  | "decoy_file_modified"
+  | "decoy_task_modified";
 
 export type MitreTechnique = string | null;
 
@@ -1261,6 +1271,12 @@ export type Notes = string;
 
 export type EvidenceEvents = string[];
 
+export type AttackDetected = boolean;
+
+export type RuleMatched = boolean;
+
+export type TechniqueMatched = boolean;
+
 /**
  * Evaluation result for a single scenario.
  */
@@ -1280,6 +1296,9 @@ export interface ScenarioEvaluationResult {
   matched_detectors?: MatchedDetectors;
   notes?: Notes;
   evidence_events?: EvidenceEvents;
+  attack_detected?: AttackDetected;
+  rule_matched?: RuleMatched;
+  technique_matched?: TechniqueMatched;
 }
 
 export type TotalSignals = number;
@@ -1288,16 +1307,14 @@ export type AttackSignals = number;
 
 export type BenignSignals = number;
 
-/**
- * Evaluation metrics for an individual detector engine.
- */
-
 export interface DetectorEvaluationMetric {
   detector: Detector;
   metrics: MetricScores;
   total_signals?: TotalSignals;
   attack_signals?: AttackSignals;
   benign_signals?: BenignSignals;
+  status?: Status;
+  notes?: Notes;
 }
 /**
  * Standard evaluation metrics with explicit zero-division handling.
@@ -1346,6 +1363,8 @@ export type Detector1 = string;
 
 export type Rules = RuleEvaluationMetric[];
 
+export type Notes1 = string;
+
 export type Scenarios = ScenarioEvaluationResult[];
 
 export type FalsePositives = {
@@ -1380,9 +1399,9 @@ export interface EvaluationRunSummary {
   false_positives?: FalsePositives;
   false_negatives?: FalseNegatives;
   throughput_eps?: ThroughputEps;
-  attack_detection?: MetricScores;
-  rule_attribution?: MetricScores;
-  technique_attribution?: MetricScores;
+  attack_detection?: MetricScores | null;
+  rule_attribution?: MetricScores | null;
+  technique_attribution?: MetricScores | null;
 }
 /**
  * Standard evaluation metrics with explicit zero-division handling.
@@ -1448,6 +1467,167 @@ export interface ExpectedDetection {
   technique_id?: TechniqueId;
   target_asset?: TargetAsset;
   description?: Description2;
+}
+
+export type LureId = string;
+
+export type LureType =
+  | "shell_history"
+  | "ssh_key"
+  | "ssh_config"
+  | "canary_env"
+  | "config_file"
+  | "decoy_share"
+  | "scheduled_task"
+  | "powershell_history";
+
+export type Platform = "linux" | "windows" | "cross_platform";
+
+export type Path = string;
+
+export type LastInteraction = string | null;
+
+export type ExpectedInteractions = string[];
+
+export type DecoyDestination = string | null;
+
+export type MitreTechniques = string[];
+/**
+ * Alert and incident severity levels.
+ */
+
+export type Enabled = boolean;
+
+export type Sha256Hash = string | null;
+
+export interface LotLLure {
+  lure_id: LureId;
+  name: Name;
+  lure_type: LureType;
+  platform?: Platform;
+  host: Host;
+  path: Path;
+  status?: Status;
+  created_at: CreatedAt;
+  last_interaction?: LastInteraction;
+  total_interactions?: TotalInteractions;
+  expected_interactions?: ExpectedInteractions;
+  decoy_destination?: DecoyDestination;
+  mitre_techniques?: MitreTechniques;
+  severity?: Severity;
+  enabled?: Enabled;
+  sha256_hash?: Sha256Hash;
+  description?: Description;
+  metadata?: Metadata;
+}
+
+export type InteractionId = string;
+
+export type LureName = string;
+
+export type EvidenceSource = string;
+
+export type Outcome1 = "success" | "failure" | "unknown";
+/**
+ * Alert and incident severity levels.
+ *
+ * This interface was referenced by `LotLInteraction`'s JSON-Schema
+ * via the `definition` "Severity".
+ */
+
+export interface LotLInteraction {
+  interaction_id: InteractionId;
+  lure_id: LureId;
+  lure_name: LureName;
+  lure_type: LureType;
+  interaction_type: InteractionType;
+  host: Host;
+  user?: User;
+  process?: Process;
+  cmdline?: Cmdline;
+  target: Target;
+  ts: Ts;
+  event_id: EventId;
+  severity?: Severity;
+  evidence_source: EvidenceSource;
+  provenance?: Provenance;
+  mitre_technique?: MitreTechnique;
+  outcome?: Outcome;
+  incident_id?: IncidentId;
+  raw_ref?: RawRef;
+  metadata?: Metadata;
+}
+
+export type TotalLures = number;
+
+export type ActiveLures = number;
+
+export type MissingLures = number;
+
+export type TamperedLures = number;
+
+export type DisabledLures = number;
+
+export type UnsupportedLures = number;
+
+export type SensorsHealthy = boolean;
+
+export type LastSensorHeartbeat = string | null;
+
+export type Details = {
+  [k: string]: unknown;
+}[];
+
+/**
+ * Overall health state of the Living-off-the-Land deception infrastructure.
+ */
+
+export interface LotLHealthStatus {
+  total_lures?: TotalLures;
+  active_lures?: ActiveLures;
+  missing_lures?: MissingLures;
+  tampered_lures?: TamperedLures;
+  disabled_lures?: DisabledLures;
+  unsupported_lures?: UnsupportedLures;
+  sensors_healthy?: SensorsHealthy;
+  last_sensor_heartbeat?: LastSensorHeartbeat;
+  details?: Details;
+}
+
+export type TotalActiveLures = number;
+
+export type TotalDiscoveredLures = number;
+
+export type CanaryPresentations = number;
+
+export type DecoyAuthentications = number;
+
+export type FileModifications = number;
+
+export type InteractingHosts = string[];
+
+/**
+ * Aggregated metrics and interaction breakdown across all LotL deception lures.
+ */
+
+export interface LotLAnalytics {
+  total_active_lures?: TotalActiveLures;
+  total_discovered_lures?: TotalDiscoveredLures;
+  total_interactions?: TotalInteractions;
+  canary_presentations?: CanaryPresentations;
+  decoy_authentications?: DecoyAuthentications;
+  file_modifications?: FileModifications;
+  interacting_hosts?: InteractingHosts;
+  interactions_by_type?: InteractionsByType;
+  interactions_by_lure?: InteractionsByLure;
+}
+
+export interface InteractionsByType {
+  [k: string]: number;
+}
+
+export interface InteractionsByLure {
+  [k: string]: number;
 }
 
 export type SourceStatus = "live" | "idle" | "stale" | "error";

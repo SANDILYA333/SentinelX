@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 
 from fastapi import WebSocket
 from sentinelx.schemas.common import WSMessage
+from sentinelx.schemas.deception import LotLInteraction
 from sentinelx.schemas.event import Event
 from sentinelx.schemas.guard import GuardDecision
 from sentinelx.schemas.incident import Incident
@@ -99,6 +100,15 @@ class ConnectionManager:
             type="guard",
             ts=decision.ts,
             payload=json.loads(decision.model_dump_json()),
+        )
+        await self.broadcast(msg)
+
+    async def broadcast_lotl_interaction(self, interaction: LotLInteraction) -> None:
+        """Broadcast an attributed LotL deception interaction envelope to connected UI clients."""
+        msg = WSMessage(
+            type="lotl_interaction",
+            ts=interaction.ts,
+            payload=json.loads(interaction.model_dump_json()),
         )
         await self.broadcast(msg)
 

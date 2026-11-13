@@ -1,0 +1,64 @@
+{
+  "additionalProperties": false,
+  "description": "Overall health state of the Living-off-the-Land deception infrastructure.",
+  "properties": {
+    "total_lures": {
+      "default": 0,
+      "title": "Total Lures",
+      "type": "integer"
+    },
+    "active_lures": {
+      "default": 0,
+      "title": "Active Lures",
+      "type": "integer"
+    },
+    "missing_lures": {
+      "default": 0,
+      "title": "Missing Lures",
+      "type": "integer"
+    },
+    "tampered_lures": {
+      "default": 0,
+      "title": "Tampered Lures",
+      "type": "integer"
+    },
+    "disabled_lures": {
+      "default": 0,
+      "title": "Disabled Lures",
+      "type": "integer"
+    },
+    "unsupported_lures": {
+      "default": 0,
+      "title": "Unsupported Lures",
+      "type": "integer"
+    },
+    "sensors_healthy": {
+      "default": true,
+      "title": "Sensors Healthy",
+      "type": "boolean"
+    },
+    "last_sensor_heartbeat": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Last Sensor Heartbeat"
+    },
+    "details": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Details",
+      "type": "array"
+    }
+  },
+  "title": "LotLHealthStatus",
+  "type": "object"
+}

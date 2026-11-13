@@ -1,0 +1,35 @@
+id: "RULE-LOTL-002"
+title: "Decoy SSH Key or Client Configuration Access"
+severity_hint: "critical"
+score: 0.95
+confidence: 0.95
+applies_to:
+  - category: "process"
+  - category: "file"
+technique_ids:
+  - "T1552.004"
+  - "T1021.004"
+condition:
+  any_of:
+    - field: "cmdline"
+      operator: "contains_any"
+      value:
+        - "id_ed25519_backup"
+        - ".ssh/id_ed25519"
+        - ".ssh/config"
+    - field: "tags"
+      operator: "contains_any"
+      value:
+        - "ssh_key_read"
+        - "ssh_config_read"
+    - field: "action"
+      operator: "contains_any"
+      value:
+        - "ssh_key_read"
+        - "ssh_config_read"
+explanation_template: "Attacker accessed decoy SSH credentials on {host} ({user}): {cmdline}"
+metadata:
+  category: "Credential Access"
+  detector: "deception"
+  description: "Triggers when planted decoy SSH private keys or host configuration aliases are read or harvested."
+

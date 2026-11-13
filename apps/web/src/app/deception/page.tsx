@@ -2,20 +2,32 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import type { Action, DeceptionActivity, GuardDecision } from "@contracts/index";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { Action, DeceptionActivity, GuardDecision, LotLLure } from "@contracts/index";
 import {
+  disableLotLLure,
+  deployLotLLures,
+  enableLotLLure,
   evaluateGuardAction,
   fetchAssets,
   fetchDeceptionActivities,
   fetchDeceptionAssets,
   fetchDeceptionOverview,
+  fetchLotLAnalytics,
+  fetchLotLHealth,
+  fetchLotLInteractions,
+  fetchLotLLures,
+  verifyLotLLures,
 } from "@/lib/api";
 import { useEventStream } from "@/hooks/useEventStream";
 import { useEventStore } from "@/lib/store";
 import { getGuardStyle } from "@/lib/theme";
 import { DeceptionFeed } from "@/components/deception-feed";
 import { DeceptionModal } from "@/components/deception-modal";
+import { LotLInventory } from "@/components/lotl-inventory";
+import { LotLFeed } from "@/components/lotl-feed";
+import { LotLAnalyticsView } from "@/components/lotl-analytics";
+import { LotLModal } from "@/components/lotl-modal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,11 +37,14 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
+  HeartPulse,
   Info,
+  Layers,
   Send,
   Server,
   Shield,
   ShieldAlert,
+  Terminal,
   XCircle,
   Zap,
 } from "lucide-react";
@@ -45,18 +60,24 @@ const GUARD_ACTIONS: { value: Action; label: string; desc: string }[] = [
 
 function DeceptionGuardContent() {
   useEventStream();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
   const { incidents, guardDecisions } = useEventStore();
 
-  const [activeTab, setActiveTab] = useState<"deception" | "guard">(
-    tabParam === "guard" ? "guard" : "deception"
+  const [activeTab, setActiveTab] = useState<"deception" | "lotl" | "guard">(
+    tabParam === "guard" ? "guard" : tabParam === "lotl" ? "lotl" : "deception"
   );
+  const [lotlSubTab, setLotlSubTab] = useState<"inventory" | "feed" | "analytics">("inventory");
   const [selectedDeceptionActivity, setSelectedDeceptionActivity] = useState<DeceptionActivity | null>(null);
+  const [selectedLotLLure, setSelectedLotLLure] = useState<LotLLure | null>(null);
+  const [isDeployingLotL, setIsDeployingLotL] = useState<boolean>(false);
 
   useEffect(() => {
     if (tabParam === "guard") {
       setActiveTab("guard");
+    } else if (tabParam === "lotl") {
+      setActiveTab("lotl");
     } else if (tabParam === "deception") {
       setActiveTab("deception");
     }
@@ -85,6 +106,69 @@ function DeceptionGuardContent() {
     queryKey: ["assets"],
     queryFn: fetchAssets,
   });
+
+  // LotL Deception Queries
+  const { data: lotlLures = [] } = useQuery({
+    queryKey: ["lotl-lures"],
+    queryFn: () => fetchLotLLures(),
+    refetchInterval: 5000,
+  });
+
+  const { data: lotlInteractions = [] } = useQuery({
+    queryKey: ["lotl-interactions"],
+    queryFn: () => fetchLotLInteractions({ limit: 100 }),
+    refetchInterval: 5000,
+  });
+
+  const { data: lotlHealth = null } = useQuery({
+    queryKey: ["lotl-health"],
+    queryFn: fetchLotLHealth,
+    refetchInterval: 10000,
+  });
+
+  const { data: lotlAnalytics = null } = useQuery({
+    queryKey: ["lotl-analytics"],
+    queryFn: fetchLotLAnalytics,
+    refetchInterval: 5000,
+  });
+
+  const handleToggleLotLEnabled = async (lureId: string, enabled: boolean) => {
+    try {
+      if (enabled) {
+        await enableLotLLure(lureId);
+      } else {
+        await disableLotLLure(lureId);
+      }
+      queryClient.invalidateQueries({ queryKey: ["lotl-lures"] });
+      queryClient.invalidateQueries({ queryKey: ["lotl-analytics"] });
+    } catch (err) {
+      console.error("Failed to toggle LotL lure enabled status:", err);
+    }
+  };
+
+  const handleDeployAllLotL = async () => {
+    setIsDeployingLotL(true);
+    try {
+      await deployLotLLures();
+      queryClient.invalidateQueries({ queryKey: ["lotl-lures"] });
+      queryClient.invalidateQueries({ queryKey: ["lotl-health"] });
+      queryClient.invalidateQueries({ queryKey: ["lotl-analytics"] });
+    } catch (err) {
+      console.error("Failed to deploy LotL lures:", err);
+    } finally {
+      setIsDeployingLotL(false);
+    }
+  };
+
+  const handleVerifyAllLotL = async () => {
+    try {
+      await verifyLotLLures();
+      queryClient.invalidateQueries({ queryKey: ["lotl-lures"] });
+      queryClient.invalidateQueries({ queryKey: ["lotl-health"] });
+    } catch (err) {
+      console.error("Failed to verify LotL lures:", err);
+    }
+  };
 
   // Guard action tester state
   const [selectedAction, setSelectedAction] = useState<Action>("isolate_host");
@@ -149,7 +233,19 @@ function DeceptionGuardContent() {
                 : "text-slate-400 hover:text-slate-200"
             )}
           >
-            <Shield className="w-3.5 h-3.5" /> Deception Intelligence
+            <Shield className="w-3.5 h-3.5" /> Deception Canaries
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("lotl")}
+            className={cn(
+              "px-3.5 py-1.5 rounded-lg transition font-bold text-xs flex items-center gap-1.5",
+              activeTab === "lotl"
+                ? "bg-purple-600 text-white shadow-md shadow-purple-900/30"
+                : "text-slate-400 hover:text-slate-200"
+            )}
+          >
+            <Terminal className="w-3.5 h-3.5" /> LotL Deception Engine
           </button>
           <button
             type="button"
@@ -167,55 +263,109 @@ function DeceptionGuardContent() {
       </div>
 
       {/* OVERVIEW METRICS KPI BAR */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-        <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 shadow-sm space-y-1">
-          <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-bold">
-            Total Deception Interactions
-          </span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-purple-300">
-              {overview?.total_interactions ?? activities.length}
+      {activeTab === "lotl" ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 shadow-sm space-y-1">
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-bold">
+              Active Managed Lures
             </span>
-            <span className="text-[10px] text-slate-500">classified events</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-purple-300">
+                {lotlAnalytics?.total_active_lures ?? lotlLures.filter((l) => l.enabled).length}
+              </span>
+              <span className="text-[10px] text-emerald-400">
+                / {lotlLures.length} total
+              </span>
+            </div>
           </div>
-        </div>
 
-        <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 shadow-sm space-y-1">
-          <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-bold">
-            Incidents Involving Canaries
-          </span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-rose-400">
-              {overview?.incident_count ?? 1}
+          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 shadow-sm space-y-1">
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-bold">
+              Lures Discovered
             </span>
-            <span className="text-[10px] text-slate-500">correlated attacks</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-rose-400">
+                {lotlAnalytics?.total_discovered_lures ?? 0}
+              </span>
+              <span className="text-[10px] text-slate-500">artifacts probed</span>
+            </div>
           </div>
-        </div>
 
-        <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 shadow-sm space-y-1">
-          <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-bold">
-            Unique Attacker Sources
-          </span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-amber-400">
-              {overview?.unique_sources?.length ?? 2}
+          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 shadow-sm space-y-1">
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-bold">
+              Total LotL Interactions
             </span>
-            <span className="text-[10px] text-slate-500">source IPs trapped</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-cyan-400">
+                {lotlAnalytics?.total_interactions ?? lotlInteractions.length}
+              </span>
+              <span className="text-[10px] text-slate-500">audit &amp; FIM events</span>
+            </div>
           </div>
-        </div>
 
-        <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 shadow-sm space-y-1">
-          <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-bold">
-            Active Decoy Infrastructure
-          </span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-emerald-400">
-              {deceptionAssets.filter((a) => (a.status as string) === "active").length} / {deceptionAssets.length || 3}
+          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 shadow-sm space-y-1">
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-bold">
+              Canary Invocations
             </span>
-            <span className="text-[10px] text-slate-500">decoys engaged</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-amber-400">
+                {lotlAnalytics?.canary_presentations ?? 0}
+              </span>
+              <span className="text-[10px] text-slate-500">credential accesses</span>
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 shadow-sm space-y-1">
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-bold">
+              Total Deception Interactions
+            </span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-purple-300">
+                {overview?.total_interactions ?? activities.length}
+              </span>
+              <span className="text-[10px] text-slate-500">classified events</span>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 shadow-sm space-y-1">
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-bold">
+              Incidents Involving Canaries
+            </span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-rose-400">
+                {overview?.incident_count ?? 1}
+              </span>
+              <span className="text-[10px] text-slate-500">correlated attacks</span>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 shadow-sm space-y-1">
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-bold">
+              Unique Attacker Sources
+            </span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-amber-400">
+                {overview?.unique_sources?.length ?? 2}
+              </span>
+              <span className="text-[10px] text-slate-500">source IPs trapped</span>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 shadow-sm space-y-1">
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-bold">
+              Active Decoy Infrastructure
+            </span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-emerald-400">
+                {deceptionAssets.filter((a) => (a.status as string) === "active").length} / {deceptionAssets.length || 3}
+              </span>
+              <span className="text-[10px] text-slate-500">decoys engaged</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TAB A: DECEPTION INTELLIGENCE WORKSPACE */}
       {activeTab === "deception" && (
@@ -338,7 +488,88 @@ function DeceptionGuardContent() {
         </div>
       )}
 
-      {/* TAB B: RESPONSE SAFETY GUARD INTERLOCK WORKSPACE */}
+      {/* TAB B: LIVING-OFF-THE-LAND (LotL) DECEPTION WORKSPACE */}
+      {activeTab === "lotl" && (
+        <div className="space-y-6">
+          {/* Sub-tab Navigation */}
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setLotlSubTab("inventory")}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5",
+                  lotlSubTab === "inventory"
+                    ? "bg-purple-600 text-white"
+                    : "bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800"
+                )}
+              >
+                <Layers className="w-3.5 h-3.5" /> Lure Inventory ({lotlLures.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setLotlSubTab("feed")}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5",
+                  lotlSubTab === "feed"
+                    ? "bg-purple-600 text-white"
+                    : "bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800"
+                )}
+              >
+                <Activity className="w-3.5 h-3.5" /> Live Touches Feed ({lotlInteractions.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setLotlSubTab("analytics")}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5",
+                  lotlSubTab === "analytics"
+                    ? "bg-purple-600 text-white"
+                    : "bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800"
+                )}
+              >
+                <HeartPulse className="w-3.5 h-3.5" /> Analytics &amp; Health
+              </button>
+            </div>
+
+            <div className="text-[11px] text-slate-400 hidden sm:flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Engine Status: {lotlHealth?.sensors_healthy ? "HEALTHY" : "DEGRADED"}</span>
+            </div>
+          </div>
+
+          {/* Subtab Content */}
+          {lotlSubTab === "inventory" && (
+            <LotLInventory
+              lures={lotlLures}
+              interactions={lotlInteractions}
+              onToggleEnabled={handleToggleLotLEnabled}
+              onDeployAll={handleDeployAllLotL}
+              onVerifyAll={handleVerifyAllLotL}
+              isDeploying={isDeployingLotL}
+            />
+          )}
+
+          {lotlSubTab === "feed" && (
+            <LotLFeed
+              interactions={lotlInteractions}
+              onSelectInteraction={(interaction) => {
+                const lure = lotlLures.find((l) => l.lure_id === interaction.lure_id) || null;
+                setSelectedLotLLure(lure);
+              }}
+            />
+          )}
+
+          {lotlSubTab === "analytics" && (
+            <LotLAnalyticsView
+              analytics={lotlAnalytics}
+              health={lotlHealth}
+            />
+          )}
+        </div>
+      )}
+
+      {/* TAB C: RESPONSE SAFETY GUARD INTERLOCK WORKSPACE */}
       {activeTab === "guard" && (
         <div className="space-y-4">
           <div className="p-3 rounded-xl bg-blue-950/30 border border-blue-800/60 flex items-start gap-3">
@@ -582,6 +813,14 @@ function DeceptionGuardContent() {
       <DeceptionModal
         activity={selectedDeceptionActivity}
         onClose={() => setSelectedDeceptionActivity(null)}
+      />
+
+      {/* LotL Lure Inspection Modal */}
+      <LotLModal
+        lure={selectedLotLLure}
+        interactions={lotlInteractions}
+        onClose={() => setSelectedLotLLure(null)}
+        onToggleEnabled={handleToggleLotLEnabled}
       />
     </div>
   );

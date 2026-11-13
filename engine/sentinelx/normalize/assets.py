@@ -64,14 +64,18 @@ class AssetInventory(BaseModel):
                 return host
         return None
 
-    def get_host_by_ip(self, ip: str) -> HostAsset | None:
+    def get_host_by_ip(self, ip: str | None) -> HostAsset | None:
+        if not ip:
+            return None
         ip_clean = ip.strip()
         for host in self.hosts:
             if ip_clean in host.ips.values():
                 return host
         return None
 
-    def get_zone_for_ip(self, ip: str) -> str | None:
+    def get_zone_for_ip(self, ip: str | None) -> str | None:
+        if not ip:
+            return None
         ip_clean = ip.strip()
         host = self.get_host_by_ip(ip_clean)
         if host:

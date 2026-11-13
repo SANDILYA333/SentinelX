@@ -1,0 +1,34 @@
+id: "RULE-LOTL-006"
+title: "Decoy Artifact or Scheduled Task Tampering"
+severity_hint: "high"
+score: 0.90
+confidence: 0.92
+applies_to:
+  - category: "file"
+  - category: "process"
+technique_ids:
+  - "T1053.003"
+  - "T1565.001"
+condition:
+  any_of:
+    - field: "cmdline"
+      operator: "contains_any"
+      value:
+        - "sync_backup_telemetry.sh"
+        - "decoy_backup_sync"
+    - field: "tags"
+      operator: "contains_any"
+      value:
+        - "decoy_file_modified"
+        - "decoy_task_modified"
+    - field: "action"
+      operator: "contains_any"
+      value:
+        - "decoy_file_modified"
+        - "decoy_task_modified"
+explanation_template: "Tampering observed on deception artifact or scheduled task on {host}: {cmdline}"
+metadata:
+  category: "Persistence & Impact"
+  detector: "deception"
+  description: "Triggers when planted deception files or scheduled tasks are modified, deleted, or altered."
+

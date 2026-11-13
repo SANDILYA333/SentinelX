@@ -125,6 +125,16 @@
       "default": 0,
       "title": "Benign Signals",
       "type": "integer"
+    },
+    "status": {
+      "default": "EVALUATED",
+      "title": "Status",
+      "type": "string"
+    },
+    "notes": {
+      "default": "",
+      "title": "Notes",
+      "type": "string"
     }
   },
   "required": [

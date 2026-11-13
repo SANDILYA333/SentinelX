@@ -1,0 +1,208 @@
+{
+  "$defs": {
+    "Outcome": {
+      "description": "Action execution outcome.",
+      "enum": [
+        "success",
+        "failure",
+        "unknown"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "Severity": {
+      "description": "Alert and incident severity levels.",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "title": "Severity",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Observed attacker interaction with a Living-off-the-Land deception artifact.",
+  "properties": {
+    "interaction_id": {
+      "title": "Interaction Id",
+      "type": "string"
+    },
+    "lure_id": {
+      "title": "Lure Id",
+      "type": "string"
+    },
+    "lure_name": {
+      "title": "Lure Name",
+      "type": "string"
+    },
+    "lure_type": {
+      "enum": [
+        "shell_history",
+        "ssh_key",
+        "ssh_config",
+        "canary_env",
+        "config_file",
+        "decoy_share",
+        "scheduled_task",
+        "powershell_history"
+      ],
+      "title": "Lure Type",
+      "type": "string"
+    },
+    "interaction_type": {
+      "enum": [
+        "ssh_connection",
+        "ssh_login_attempt",
+        "ssh_login_success",
+        "ssh_command_input",
+        "ssh_file_transfer",
+        "session_closed",
+        "service_discovery",
+        "port_probe",
+        "http_interaction",
+        "mysql_login_attempt",
+        "modbus_discovery",
+        "modbus_read",
+        "modbus_write_attempt",
+        "unauthorized_interaction",
+        "shell_history_read",
+        "ssh_key_read",
+        "ssh_config_read",
+        "canary_credential_presented",
+        "canary_variable_read",
+        "config_file_read",
+        "share_enumerated",
+        "share_file_read",
+        "decoy_file_modified",
+        "decoy_task_modified"
+      ],
+      "title": "Interaction Type",
+      "type": "string"
+    },
+    "host": {
+      "title": "Host",
+      "type": "string"
+    },
+    "user": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "User"
+    },
+    "process": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Process"
+    },
+    "cmdline": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cmdline"
+    },
+    "target": {
+      "title": "Target",
+      "type": "string"
+    },
+    "ts": {
+      "format": "date-time",
+      "title": "Ts",
+      "type": "string"
+    },
+    "event_id": {
+      "title": "Event Id",
+      "type": "string"
+    },
+    "severity": {
+      "$ref": "#/$defs/Severity",
+      "default": "high"
+    },
+    "evidence_source": {
+      "title": "Evidence Source",
+      "type": "string"
+    },
+    "provenance": {
+      "default": "observed",
+      "enum": [
+        "observed",
+        "inferred",
+        "configured"
+      ],
+      "title": "Provenance",
+      "type": "string"
+    },
+    "mitre_technique": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Mitre Technique"
+    },
+    "outcome": {
+      "$ref": "#/$defs/Outcome",
+      "default": "success"
+    },
+    "incident_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Incident Id"
+    },
+    "raw_ref": {
+      "additionalProperties": true,
+      "title": "Raw Ref",
+      "type": "object"
+    },
+    "metadata": {
+      "additionalProperties": true,
+      "title": "Metadata",
+      "type": "object"
+    }
+  },
+  "required": [
+    "interaction_id",
+    "lure_id",
+    "lure_name",
+    "lure_type",
+    "interaction_type",
+    "host",
+    "target",
+    "ts",
+    "event_id",
+    "evidence_source"
+  ],
+  "title": "LotLInteraction",
+  "type": "object"
+}

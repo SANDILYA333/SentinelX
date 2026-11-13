@@ -103,7 +103,17 @@
             "modbus_discovery",
             "modbus_read",
             "modbus_write_attempt",
-            "unauthorized_interaction"
+            "unauthorized_interaction",
+            "shell_history_read",
+            "ssh_key_read",
+            "ssh_config_read",
+            "canary_credential_presented",
+            "canary_variable_read",
+            "config_file_read",
+            "share_enumerated",
+            "share_file_read",
+            "decoy_file_modified",
+            "decoy_task_modified"
           ],
           "title": "Interaction Type",
           "type": "string"

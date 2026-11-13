@@ -1,0 +1,31 @@
+id: "RULE-LOTL-004"
+title: "Canary Credential Token Presentation"
+severity_hint: "critical"
+score: 0.98
+confidence: 0.98
+applies_to:
+  - category: "authentication"
+  - category: "process"
+  - category: "http"
+technique_ids:
+  - "T1078.003"
+condition:
+  any_of:
+    - field: "cmdline"
+      operator: "contains_any"
+      value:
+        - "sx_canary_tok"
+        - "sx_canary_key"
+        - "CanaryTokenPass2026"
+    - field: "action"
+      operator: "eq"
+      value: "canary_credential_presented"
+    - field: "tags"
+      operator: "contains"
+      value: "canary_token_presentation"
+explanation_template: "Canary credential token presented in telemetry on {host} ({user}): {cmdline}"
+metadata:
+  category: "Credential Access"
+  detector: "deception"
+  description: "High-confidence detection when an attacker attempts to use a planted canary credential token."
+

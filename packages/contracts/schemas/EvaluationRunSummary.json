@@ -83,6 +83,16 @@
           "default": 0,
           "title": "Benign Signals",
           "type": "integer"
+        },
+        "status": {
+          "default": "EVALUATED",
+          "title": "Status",
+          "type": "string"
+        },
+        "notes": {
+          "default": "",
+          "title": "Notes",
+          "type": "string"
         }
       },
       "required": [
@@ -414,6 +424,21 @@
           },
           "title": "Evidence Events",
           "type": "array"
+        },
+        "attack_detected": {
+          "default": false,
+          "title": "Attack Detected",
+          "type": "boolean"
+        },
+        "rule_matched": {
+          "default": false,
+          "title": "Rule Matched",
+          "type": "boolean"
+        },
+        "technique_matched": {
+          "default": false,
+          "title": "Technique Matched",
+          "type": "boolean"
         }
       },
       "required": [
@@ -522,6 +547,39 @@
       "default": 0.0,
       "title": "Throughput Eps",
       "type": "number"
+    },
+    "attack_detection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MetricScores"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "rule_attribution": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MetricScores"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "technique_attribution": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MetricScores"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     }
   },
   "required": [

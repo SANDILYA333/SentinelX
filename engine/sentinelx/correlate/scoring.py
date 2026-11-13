@@ -108,6 +108,7 @@ def score_incident(
     has_honeytoken = any(
         s.detector == "deception"
         or (s.rule_id or "").upper() == "RULE-DECOY-001"
+        or (s.rule_id or "").upper().startswith("RULE-LOTL-")
         or s.metadata.get("confirmed_honeytoken") is True
         for s in sorted_signals
     )

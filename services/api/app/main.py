@@ -8,6 +8,8 @@ from datetime import UTC, datetime
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from sentinelx.correlate.pipeline import CorrelationPipeline
+from sentinelx.deception.lotl.monitor import InteractionMonitor
+from sentinelx.deception.lotl.registry import LureRegistry
 from sentinelx.detect.runtime import DetectorPipeline
 from sentinelx.guard.evaluator import GuardEvaluator
 from sentinelx.ingest.runtime import Ingestor
@@ -27,6 +29,7 @@ from app.routes.events import router as events_router
 from app.routes.guard import router as guard_router
 from app.routes.health import router as health_router
 from app.routes.incidents import router as incidents_router
+from app.routes.lotl import router as lotl_router
 from app.routes.mitre import router as mitre_router
 from app.routes.signals import router as signals_router
 from app.routes.sources import router as sources_router
@@ -40,6 +43,8 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Application lifespan manager to setup DB, Ingestor, Detectors, and Correlator."""
     db = get_db()
+    lotl_registry = LureRegistry(db)
+    lotl_monitor = InteractionMonitor(lotl_registry, db)
     detector_pipeline = DetectorPipeline(db=db)
     correlation_pipeline = CorrelationPipeline(
         db=db,
@@ -67,6 +72,9 @@ async def lifespan(app: FastAPI):
     # Callback when Ingestor flushes events
     async def on_event(ev: Event) -> None:
         await manager.broadcast_event(ev)
+        lotl_act = lotl_monitor.evaluate_event(ev)
+        if lotl_act:
+            await manager.broadcast_lotl_interaction(lotl_act)
         signals = detector_pipeline.process_event(ev)
         for sig in signals:
             await manager.broadcast_signal(sig)
@@ -127,6 +135,7 @@ app.include_router(signals_router)
 app.include_router(incidents_router)
 app.include_router(guard_router)
 app.include_router(deception_router)
+app.include_router(lotl_router)
 app.include_router(budget_router)
 app.include_router(sources_router)
 app.include_router(assets_router)

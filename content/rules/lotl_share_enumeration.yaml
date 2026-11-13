@@ -1,0 +1,35 @@
+id: "RULE-LOTL-005"
+title: "Decoy Network Share Discovery and File Access"
+severity_hint: "high"
+score: 0.85
+confidence: 0.90
+applies_to:
+  - category: "process"
+  - category: "file"
+technique_ids:
+  - "T1135"
+  - "T1039"
+condition:
+  any_of:
+    - field: "cmdline"
+      operator: "contains_any"
+      value:
+        - "/srv/share/IT_Backups"
+        - "/srv/share/SCADA_Configs"
+        - "/srv/share/Engineering_Archives"
+    - field: "tags"
+      operator: "contains_any"
+      value:
+        - "share_enumerated"
+        - "share_file_read"
+    - field: "action"
+      operator: "contains_any"
+      value:
+        - "share_enumerated"
+        - "share_file_read"
+explanation_template: "Attacker enumerated or accessed decoy share file on {host}: {cmdline}"
+metadata:
+  category: "Collection & Discovery"
+  detector: "deception"
+  description: "Detects unauthorized discovery or extraction of files located inside decoy network shares."
+

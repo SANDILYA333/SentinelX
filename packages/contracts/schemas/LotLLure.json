@@ -1,0 +1,162 @@
+{
+  "$defs": {
+    "Severity": {
+      "description": "Alert and incident severity levels.",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "title": "Severity",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Registry definition and state for an administrative deception artifact.",
+  "properties": {
+    "lure_id": {
+      "title": "Lure Id",
+      "type": "string"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "lure_type": {
+      "enum": [
+        "shell_history",
+        "ssh_key",
+        "ssh_config",
+        "canary_env",
+        "config_file",
+        "decoy_share",
+        "scheduled_task",
+        "powershell_history"
+      ],
+      "title": "Lure Type",
+      "type": "string"
+    },
+    "platform": {
+      "default": "linux",
+      "enum": [
+        "linux",
+        "windows",
+        "cross_platform"
+      ],
+      "title": "Platform",
+      "type": "string"
+    },
+    "host": {
+      "title": "Host",
+      "type": "string"
+    },
+    "path": {
+      "title": "Path",
+      "type": "string"
+    },
+    "status": {
+      "default": "active",
+      "enum": [
+        "active",
+        "disabled",
+        "missing",
+        "tampered",
+        "unsupported",
+        "error"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "last_interaction": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Last Interaction"
+    },
+    "total_interactions": {
+      "default": 0,
+      "title": "Total Interactions",
+      "type": "integer"
+    },
+    "expected_interactions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Expected Interactions",
+      "type": "array"
+    },
+    "decoy_destination": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Decoy Destination"
+    },
+    "mitre_techniques": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Mitre Techniques",
+      "type": "array"
+    },
+    "severity": {
+      "$ref": "#/$defs/Severity",
+      "default": "high"
+    },
+    "enabled": {
+      "default": true,
+      "title": "Enabled",
+      "type": "boolean"
+    },
+    "sha256_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Sha256 Hash"
+    },
+    "description": {
+      "default": "",
+      "title": "Description",
+      "type": "string"
+    },
+    "metadata": {
+      "additionalProperties": true,
+      "title": "Metadata",
+      "type": "object"
+    }
+  },
+  "required": [
+    "lure_id",
+    "name",
+    "lure_type",
+    "host",
+    "path",
+    "created_at"
+  ],
+  "title": "LotLLure",
+  "type": "object"
+}

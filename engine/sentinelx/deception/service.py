@@ -52,6 +52,8 @@ def list_deception_activities(
            OR json_extract(json, '$.host') LIKE '%decoy%'
            OR json_extract(json, '$.host') IN ('backup-srv-02', 'db-prod-02', 'cowrie', 'opencanary', 'decoy-plc')
            OR json LIKE '%"decoy"%'
+           OR json LIKE '%"lotl"%'
+           OR json LIKE '%"lure_id%'
         ORDER BY ts DESC
     """
     cursor = db.cursor()

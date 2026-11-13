@@ -1,0 +1,59 @@
+{
+  "additionalProperties": false,
+  "description": "Aggregated metrics and interaction breakdown across all LotL deception lures.",
+  "properties": {
+    "total_active_lures": {
+      "default": 0,
+      "title": "Total Active Lures",
+      "type": "integer"
+    },
+    "total_discovered_lures": {
+      "default": 0,
+      "title": "Total Discovered Lures",
+      "type": "integer"
+    },
+    "total_interactions": {
+      "default": 0,
+      "title": "Total Interactions",
+      "type": "integer"
+    },
+    "canary_presentations": {
+      "default": 0,
+      "title": "Canary Presentations",
+      "type": "integer"
+    },
+    "decoy_authentications": {
+      "default": 0,
+      "title": "Decoy Authentications",
+      "type": "integer"
+    },
+    "file_modifications": {
+      "default": 0,
+      "title": "File Modifications",
+      "type": "integer"
+    },
+    "interacting_hosts": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Interacting Hosts",
+      "type": "array"
+    },
+    "interactions_by_type": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Interactions By Type",
+      "type": "object"
+    },
+    "interactions_by_lure": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Interactions By Lure",
+      "type": "object"
+    }
+  },
+  "title": "LotLAnalytics",
+  "type": "object"
+}

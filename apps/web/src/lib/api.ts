@@ -11,6 +11,10 @@ import type {
   GuardDecision,
   Incident,
   IncidentSummaryResponse,
+  LotLAnalytics,
+  LotLHealthStatus,
+  LotLInteraction,
+  LotLLure,
   ResponseRecommendation,
   ScenarioEvaluationResult,
   Signal,
@@ -353,6 +357,126 @@ export async function fetchDeceptionAssets(): Promise<DeceptionAssetSummary[]> {
   });
   if (!res.ok) {
     throw new Error(`Failed to fetch deception assets: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export interface LotLLuresQueryParams {
+  host?: string;
+  lure_type?: string;
+  status?: string;
+  enabled?: boolean;
+}
+
+export async function fetchLotLLures(params?: LotLLuresQueryParams): Promise<LotLLure[]> {
+  const url = new URL(`${getApiBaseUrl()}/api/v1/deception/lotl/lures`);
+  if (params?.host) url.searchParams.set("host", params.host);
+  if (params?.lure_type) url.searchParams.set("lure_type", params.lure_type);
+  if (params?.status) url.searchParams.set("status", params.status);
+  if (params?.enabled !== undefined) url.searchParams.set("enabled", params.enabled ? "true" : "false");
+
+  const res = await fetch(url.toString(), {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch LotL lures: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchLotLLureById(lureId: string): Promise<LotLLure> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/deception/lotl/lures/${encodeURIComponent(lureId)}`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch LotL lure ${lureId}: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function enableLotLLure(lureId: string): Promise<LotLLure> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/deception/lotl/lures/${encodeURIComponent(lureId)}/enable`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to enable lure ${lureId}: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function disableLotLLure(lureId: string): Promise<LotLLure> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/deception/lotl/lures/${encodeURIComponent(lureId)}/disable`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to disable lure ${lureId}: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export interface LotLInteractionsQueryParams {
+  lure_id?: string;
+  host?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export async function fetchLotLInteractions(params?: LotLInteractionsQueryParams): Promise<LotLInteraction[]> {
+  const url = new URL(`${getApiBaseUrl()}/api/v1/deception/lotl/interactions`);
+  if (params?.lure_id) url.searchParams.set("lure_id", params.lure_id);
+  if (params?.host) url.searchParams.set("host", params.host);
+  if (params?.limit) url.searchParams.set("limit", params.limit.toString());
+  if (params?.offset) url.searchParams.set("offset", params.offset.toString());
+
+  const res = await fetch(url.toString(), {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch LotL interactions: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchLotLHealth(): Promise<LotLHealthStatus> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/deception/lotl/health`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch LotL health: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchLotLAnalytics(): Promise<LotLAnalytics> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/deception/lotl/analytics`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch LotL analytics: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function deployLotLLures(): Promise<Record<string, unknown>> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/deception/lotl/deploy`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to deploy LotL lures: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function verifyLotLLures(): Promise<Record<string, unknown>> {
+  const res = await fetch(`${getApiBaseUrl()}/api/v1/deception/lotl/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to verify LotL lures: ${res.statusText}`);
   }
   return res.json();
 }

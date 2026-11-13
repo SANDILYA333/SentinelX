@@ -23,13 +23,14 @@ def is_deception_event(event: Event) -> bool:
 
     is_decoy_tool = source_tool in ("cowrie", "opencanary")
     is_decoy_domain = getattr(event, "domain", None) == "decoy" or "decoy" in tags
+    is_lotl_event = "lotl" in tags or any(t.startswith("lure_id:") for t in tags)
     is_decoy_host = (
         "decoy" in host_clean
         or host_clean in ("backup-srv-02", "db-prod-02", "cowrie", "opencanary", "decoy-plc")
         or assets.is_decoy(event.host)
         or assets.is_decoy(dst_ip)
     )
-    return bool(is_decoy_tool or is_decoy_domain or is_decoy_host)
+    return bool(is_decoy_tool or is_decoy_domain or is_decoy_host or is_lotl_event)
 
 
 def classify_deception_event(
@@ -55,6 +56,7 @@ def classify_deception_event(
 
     is_decoy_tool = source_tool in ("cowrie", "opencanary")
     is_decoy_domain = getattr(event, "domain", None) == "decoy" or "decoy" in tags
+    is_lotl_event = "lotl" in tags or any(t.startswith("lure_id:") for t in tags)
     is_decoy_host = (
         "decoy" in host_clean
         or host_clean in ("backup-srv-02", "db-prod-02", "cowrie", "opencanary", "decoy-plc")
@@ -62,7 +64,7 @@ def classify_deception_event(
         or assets.is_decoy(dst_ip)
     )
 
-    if not (is_decoy_tool or is_decoy_domain or is_decoy_host):
+    if not (is_decoy_tool or is_decoy_domain or is_decoy_host or is_lotl_event):
         return None
 
     # Resolve canonical target decoy asset
@@ -249,6 +251,105 @@ def classify_deception_event(
             severity = Severity.medium
             mitre_technique = "T0846"
 
+    # Living-off-the-Land (LotL) Deception Interactions
+    elif is_lotl_event or "lotl" in tags or action.startswith("shell_history") or action.startswith("ssh_key") or action.startswith("canary"):
+        # Extract lure metadata from tags if present
+        lure_id = next((t.split(":", 1)[1] for t in tags if t.startswith("lure_id:")), None)
+        lure_type_tag = next((t.split(":", 1)[1] for t in tags if t.startswith("lure_type:")), None)
+
+        decoy_asset = lure_id or "lotl_lure"
+        decoy_hostname = event.host or "unknown_host"
+        decoy_type = lure_type_tag or "lotl_deception_lure"
+        network_zone = assets.get_zone_for_ip(src_ip) or "it"
+
+        cmd = event.cmdline or ""
+        metadata["cmdline"] = cmd
+        if lure_id:
+            metadata["lure_id"] = lure_id
+
+        if "shell_history" in action or "shell_history" in tags or ".bash_history" in cmd:
+            interaction_type = "shell_history_read"
+            title = f"Living-off-the-Land Shell History Enumeration on {decoy_hostname}"
+            description = (
+                f"Attacker read synthetic shell history on '{decoy_hostname}' "
+                f"({cmd or 'history inspection'}). Discovered bait credentials and decoy destinations."
+            )
+            outcome = Outcome.success
+            severity = Severity.high
+            mitre_technique = "T1552.001"
+        elif "ssh_key" in action or "ssh_key" in tags or "id_ed25519" in cmd or "id_rsa" in cmd:
+            interaction_type = "ssh_key_read"
+            title = f"Decoy SSH Private Key Accessed on {decoy_hostname}"
+            description = (
+                f"Attacker inspected or extracted synthetic SSH private key on '{decoy_hostname}'. "
+                "Bait key harvesting indicates imminent lateral movement attempt."
+            )
+            outcome = Outcome.success
+            severity = Severity.critical
+            mitre_technique = "T1552.004"
+        elif "ssh_config" in action or "ssh_config" in tags or ".ssh/config" in cmd:
+            interaction_type = "ssh_config_read"
+            title = f"Decoy SSH Configuration Discovered on {decoy_hostname}"
+            description = f"Attacker inspected decoy SSH host configurations on '{decoy_hostname}'."
+            outcome = Outcome.success
+            severity = Severity.high
+            mitre_technique = "T1021.004"
+        elif "canary_credential" in action or "canary_token" in tags or "canary_tok" in cmd:
+            interaction_type = "canary_credential_presented"
+            title = f"Canary Credential Token Presented from {decoy_hostname}"
+            description = (
+                f"High-confidence canary credential token was presented or validated from {src_ip or decoy_hostname}. "
+                "Definitive proof of decoy credential utilization."
+            )
+            outcome = Outcome.success
+            severity = Severity.critical
+            mitre_technique = "T1078.003"
+        elif "canary_variable" in action or "canary_env" in tags:
+            interaction_type = "canary_variable_read"
+            title = f"Canary Environment Profile Enumerated on {decoy_hostname}"
+            description = f"Attacker accessed canary environment profile containing bait tokens on '{decoy_hostname}'."
+            outcome = Outcome.success
+            severity = Severity.high
+            mitre_technique = "T1552.001"
+        elif "config_file" in action or "config_file" in tags or "hosts.yaml" in cmd or "controllers.conf" in cmd:
+            interaction_type = "config_file_read"
+            title = f"Decoy Infrastructure Configuration Read on {decoy_hostname}"
+            description = (
+                f"Attacker accessed synthetic infrastructure configuration on '{decoy_hostname}' ({cmd or 'config read'})."
+            )
+            outcome = Outcome.success
+            severity = Severity.high
+            mitre_technique = "T1083"
+        elif "share" in action or "share" in tags:
+            if "enum" in action:
+                interaction_type = "share_enumerated"
+                title = f"Decoy Share Enumeration on {decoy_hostname}"
+                description = f"Attacker enumerated decoy network shares on '{decoy_hostname}'."
+                outcome = Outcome.success
+                severity = Severity.medium
+                mitre_technique = "T1135"
+            else:
+                interaction_type = "share_file_read"
+                title = f"Decoy Share File Accessed on {decoy_hostname}"
+                description = f"Attacker accessed synthetic file in decoy share on '{decoy_hostname}'."
+                outcome = Outcome.success
+                severity = Severity.high
+                mitre_technique = "T1039"
+        elif "task_modified" in action or "cron" in tags:
+            interaction_type = "decoy_task_modified"
+            title = f"Decoy Scheduled Task Tampering on {decoy_hostname}"
+            description = f"Decoy scheduled task or cron entry modified on '{decoy_hostname}'."
+            outcome = Outcome.success
+            severity = Severity.high
+            mitre_technique = "T1053.003"
+        elif "file_modified" in action or "tamper" in tags:
+            interaction_type = "decoy_file_modified"
+            title = f"Decoy Artifact Modified (Tampering) on {decoy_hostname}"
+            description = f"Planted deception file modified or deleted on '{decoy_hostname}'."
+            outcome = Outcome.success
+            severity = Severity.high
+            mitre_technique = "T1565.001"
+
     activity_id = f"decoy_act_{event.event_id.replace('evt_', '')}"
 
     return DeceptionActivity(
@@ -316,6 +417,52 @@ def generate_deception_interpretations(activities: list[DeceptionActivity]) -> l
         interpretations.append(
             f"OBSERVED: {len(ot_probes)} industrial protocol command(s) delivered to decoy PLC (10.10.3.60). "
             "INFERRED: Attacker traversed into the OT zone and attempted ICS controller discovery."
+        )
+
+    # Living-off-the-Land (LotL) Interpretations
+    shell_history_reads = [a for a in activities if a.interaction_type == "shell_history_read"]
+    ssh_key_reads = [a for a in activities if a.interaction_type in ("ssh_key_read", "ssh_config_read")]
+    canary_presentations = [a for a in activities if a.interaction_type == "canary_credential_presented"]
+    config_reads = [a for a in activities if a.interaction_type in ("config_file_read", "canary_variable_read")]
+    share_reads = [a for a in activities if a.interaction_type in ("share_enumerated", "share_file_read")]
+    tampering = [a for a in activities if a.interaction_type in ("decoy_file_modified", "decoy_task_modified")]
+
+    if shell_history_reads:
+        hosts = sorted(list({a.decoy_hostname for a in shell_history_reads if a.decoy_hostname}))
+        interpretations.append(
+            f"OBSERVED: {len(shell_history_reads)} Living-off-the-Land shell history enumeration event(s) across {', '.join(hosts)}. "
+            "INFERRED: Attacker used native shell tools to discover administrative backup procedures and bait credentials."
+        )
+
+    if ssh_key_reads:
+        hosts = sorted(list({a.decoy_hostname for a in ssh_key_reads if a.decoy_hostname}))
+        interpretations.append(
+            f"OBSERVED: {len(ssh_key_reads)} decoy SSH private key or configuration access event(s) on {', '.join(hosts)}. "
+            "INFERRED: Attacker harvested bait cryptographic keys for lateral movement toward DMZ backup infrastructure."
+        )
+
+    if canary_presentations:
+        interpretations.append(
+            f"OBSERVED: {len(canary_presentations)} canary credential presentation attempt(s) confirmed. "
+            "INFERRED: High-confidence evidence of an adversary attempting to authenticate using harvested deception tokens."
+        )
+
+    if config_reads:
+        interpretations.append(
+            f"OBSERVED: {len(config_reads)} decoy infrastructure configuration file inspection(s). "
+            "INFERRED: Internal architecture discovery mapping DMZ databases and secondary industrial controllers."
+        )
+
+    if share_reads:
+        interpretations.append(
+            f"OBSERVED: {len(share_reads)} interaction(s) with decoy network share repositories. "
+            "INFERRED: Network share reconnaissance seeking archived credentials and SCADA topology."
+        )
+
+    if tampering:
+        interpretations.append(
+            f"OBSERVED: {len(tampering)} unauthorized modification(s) to planted deception artifacts or cron tasks. "
+            "INFERRED: Potential adversary tampering, script tampering, or persistence mechanism installation."
         )
 
     return interpretations
